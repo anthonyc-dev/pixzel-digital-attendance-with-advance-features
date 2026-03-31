@@ -158,7 +158,7 @@ const EmployerRegistrationPage = () => {
               <div className="space-y-3 sm:space-y-4">
                 <div className="space-y-1.5 sm:space-y-2">
                   <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
-                    <Hash className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                    {/* <Hash className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> */}
                     Employer ID
                   </label>
                   <div className="relative">
@@ -167,7 +167,7 @@ const EmployerRegistrationPage = () => {
                       value={formData.employerId}
                       onChange={(e) => handleFormChange('employerId', e.target.value)}
                       placeholder="Enter employer ID"
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-700"
                     />
                     <Hash className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
                   </div>
@@ -175,7 +175,7 @@ const EmployerRegistrationPage = () => {
 
                 <div className="space-y-1.5 sm:space-y-2">
                   <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
-                    <User className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                    {/* <User className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> */}
                     Employer Name
                   </label>
                   <div className="relative">
@@ -184,7 +184,7 @@ const EmployerRegistrationPage = () => {
                       value={formData.employerName}
                       onChange={(e) => handleFormChange('employerName', e.target.value)}
                       placeholder="Enter full name"
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-700"
                     />
                     <User className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
                   </div>
@@ -192,7 +192,7 @@ const EmployerRegistrationPage = () => {
 
                 <div className="space-y-1.5 sm:space-y-2">
                   <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
-                    <Briefcase className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                    {/* <Briefcase className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> */}
                     Position
                   </label>
                   <div className="relative">
@@ -201,7 +201,7 @@ const EmployerRegistrationPage = () => {
                       value={formData.employerPosition}
                       onChange={(e) => handleFormChange('employerPosition', e.target.value)}
                       placeholder="Enter position"
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-700"
                     />
                     <Briefcase className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
                   </div>

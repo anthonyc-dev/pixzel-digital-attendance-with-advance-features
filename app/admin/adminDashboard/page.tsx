@@ -64,7 +64,7 @@ const employees = [
     }
 ];
 
-const EmployeeDashboard = () => {
+const AttendancePage = () => {
     return (
         <Layout>
             <div className="flex flex-col gap-4 sm:gap-6 lg:gap-8 w-full max-w-7xl animate-in fade-in duration-500 ease-out pb-4 sm:pb-6 lg:pb-10">
@@ -205,4 +205,4 @@ const EmployeeDashboard = () => {
     );
 };
 
-export default EmployeeDashboard;
+export default AttendancePage;

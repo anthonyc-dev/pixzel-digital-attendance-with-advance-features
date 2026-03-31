@@ -29,7 +29,7 @@ interface NavItem {
 
 const sidebarItems: NavItem[] = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/adminDashboard' },
-  { name: 'Calendar', icon: Calendar, href: '/admin/adminHome' },
+  { name: 'Calendar', icon: Calendar, href: '/admin/adminCalendar' },
   { 
     name: 'Activities', 
     icon: Clock, 
