@@ -39,7 +39,7 @@ const sidebarItems: NavItem[] = [
       { name: 'Leave', href: '#', badge: '02' }
     ]
   },
-  { name: 'Attendance', icon: ScanFace, href: '/admin/adminAttendance' },
+  { name: 'Register', icon: ScanFace, href: '/admin/employerRegistration' },
 ];
 
 const bottomItems = [

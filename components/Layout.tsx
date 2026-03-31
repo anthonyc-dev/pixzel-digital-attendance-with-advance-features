@@ -18,7 +18,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       
       <main className={cn(
         "flex-1 flex flex-col p-8 overflow-y-auto relative transition-all duration-500 min-h-0",
-        isCollapsed ? "ml-0" : "ml-0" // flex-1 handles it, no margin needed
+        isCollapsed ? "ml-0" : "ml-0"
       )}>
         {/* Decorative Background Elements */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-secondary/5 rounded-full blur-[120px] pointer-events-none" />
