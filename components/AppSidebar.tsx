@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
   Calendar, 
+  ScanFace,
   Clock, 
   Settings, 
   ChevronDown,
@@ -26,18 +27,19 @@ interface NavItem {
 }
 
 const sidebarItems: NavItem[] = [
-  { name: 'Dashboard', icon: LayoutDashboard, href: '/employee/employeeDashboard' },
-  { name: 'Calendar', icon: Calendar, href: '/employee/employeeHome' },
+  { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/adminDashboard' },
+  { name: 'Calendar', icon: Calendar, href: '/admin/adminHome' },
   { 
     name: 'Activities', 
     icon: Clock, 
     href: '#', 
     hasSub: true,
     subItems: [
-      { name: 'Attendance', href: '/employee/employeeDashboard' },
+      { name: 'Attendance', href: '/admin/adminDashboard' },
       { name: 'Leave', href: '#', badge: '02' }
     ]
   },
+  { name: 'Attendance', icon: ScanFace, href: '/admin/adminAttendance' },
 ];
 
 const bottomItems = [
