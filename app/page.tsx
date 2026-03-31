@@ -3,16 +3,23 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Camera,
-  Shield,
-  Square,
-  Clock,
   CheckCircle2,
   LogIn,
   LogOut,
-  ImageIcon,
   RotateCcw,
+  CameraIcon,
+  AlarmClockCheck,
+  AlarmClockOff,
+  Undo2,
+  Search,
+  X,
+
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import Header from '@/components/mainPage/Header';
 
 interface AttendanceRecord {
   id: number;
@@ -30,15 +37,25 @@ const AttendancePage = () => {
   const [attendanceType, setAttendanceType] = useState<'in' | 'out'>('in');
   const [showSuccess, setShowSuccess] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [recordSearch, setRecordSearch] = useState('');
+  const [showAllRecords, setShowAllRecords] = useState(false);
   const [attendanceLog, setAttendanceLog] = useState<AttendanceRecord[]>([
-    { id: 1, name: 'Employee', time: '09:00 AM', type: 'in' },
-    { id: 2, name: 'Employee', time: '09:05 AM', type: 'in' },
-    { id: 3, name: 'Employee', time: '06:00 PM', type: 'out' },
+    { id: 1, name: 'John Doe', time: '09:00 AM', type: 'in' },
+    { id: 2, name: 'Jane Smith', time: '09:05 AM', type: 'in' },
+    { id: 3, name: 'Mike Johnson', time: '06:00 PM', type: 'out' },
+    { id: 4, name: 'Sarah Williams', time: '06:00 PM', type: 'out' },
+    { id: 5, name: 'Robert Brown', time: '06:00 PM', type: 'out' },
+    { id: 6, name: 'Emily Davis', time: '06:00 PM', type: 'out' },
+    { id: 7, name: 'David Miller', time: '06:00 PM', type: 'out' },
+    { id: 8, name: 'Lisa Anderson', time: '09:15 AM', type: 'in' },
+    { id: 9, name: 'James Wilson', time: '09:20 AM', type: 'in' },
+    { id: 10, name: 'Maria Garcia', time: '06:15 PM', type: 'out' },
   ]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const router = useRouter();
 
   const formattedTime = currentTime?.toLocaleTimeString('en-US', {
     hour: '2-digit',
@@ -53,16 +70,12 @@ const AttendancePage = () => {
     day: 'numeric',
   }) ?? '';
 
-  // Seed time on client + tick every second
   useEffect(() => {
-    setCurrentTime(new Date());
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => stopCamera();
+    return () => clearInterval(timer);
   }, []);
 
   const stopCamera = useCallback(() => {
@@ -74,6 +87,10 @@ const AttendancePage = () => {
       videoRef.current.srcObject = null;
     }
   }, []);
+
+  useEffect(() => {
+    return () => stopCamera();
+  }, [stopCamera]);
 
   const startCamera = useCallback(async () => {
     setCameraError(null);
@@ -145,7 +162,7 @@ const AttendancePage = () => {
       setIsScanning(false);
       setIsCaptured(false);
       setCapturedPhoto(null);
-    }, 2500);
+    }, 1500);
   }, [attendanceType, capturedPhoto, formattedTime]);
 
   const retakePhoto = useCallback(async () => {
@@ -162,212 +179,341 @@ const AttendancePage = () => {
     setCameraError(null);
   }, [stopCamera]);
 
+  // Filter attendance records based on search
+  const filteredAttendanceLog = attendanceLog.filter(log =>
+    log.name.toLowerCase().includes(recordSearch.toLowerCase()) ||
+    log.time.toLowerCase().includes(recordSearch.toLowerCase()) ||
+    log.type.toLowerCase().includes(recordSearch.toLowerCase())
+  );
+
+  // Determine which records to display based on showAllRecords state
+  const displayedRecords = showAllRecords
+    ? filteredAttendanceLog
+    : filteredAttendanceLog.slice(0, 7);
+
+  const clearSearch = () => {
+    setRecordSearch('');
+  };
+
+  const toggleShowRecords = () => {
+    setShowAllRecords(!showAllRecords);
+  };
+
+
+  // ... existing state variables
+
+  const handleRecordClick = (log: AttendanceRecord) => {
+    // Store the selected record data in localStorage or state management
+    console.log("User info", log)
+    // Navigate to user record page
+    router.push('/mainPage/userRecord');
+  };
+
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="py-6 px-6 border-b border-border bg-card/50">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-secondary to-pink-600 rounded-xl">
-              <Shield className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-xl font-black tracking-tight text-foreground uppercase">Pixzel</span>
-          </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded-xl border border-border">
-            <Clock className="w-4 h-4 text-muted-foreground animate-pulse" />
-            <span className="text-sm font-semibold text-foreground tabular-nums">{formattedTime}</span>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+
+      {/* ── Header ── */}
+      <Header realTimeClock={formattedTime} />
 
       <main className="flex-1 p-6">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Title */}
-          <div className="text-center">
+        <div className="space-y-6">
+
+          {/* ── Title ── */}
+          <div className="text-center mb-10">
             <p className="text-sm font-medium text-muted-foreground">{currentDate}</p>
-            <h1 className="text-2xl font-bold text-foreground mt-1">Take Photo for Attendance</h1>
+            <h1 className="text-2xl font-bold text-foreground mt-1">
+              Take Photo for Attendance
+            </h1>
           </div>
 
-          {/* Time In / Time Out buttons */}
-          <div className="flex justify-center gap-4">
-            <button
-              onClick={() => handleAttendance('in')}
-              disabled={isScanning}
-              className={cn(
-                'flex items-center gap-2 px-8 py-4 rounded-xl font-semibold transition-all',
-                attendanceType === 'in' && isScanning
-                  ? 'bg-muted text-muted-foreground hover:bg-accent'
-                  : 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25',
-                isScanning && 'opacity-50 cursor-not-allowed',
-              )}
-            >
-              <LogIn className="w-5 h-5" />
-              Time In
-            </button>
-            <button
-              onClick={() => handleAttendance('out')}
-              disabled={isScanning}
-              className={cn(
-                'flex items-center gap-2 px-8 py-4 rounded-xl font-semibold transition-all',
-                attendanceType === 'out' && isScanning
-                  ? 'bg-muted text-muted-foreground hover:bg-accent'
-                  : 'bg-red-500 text-white shadow-lg shadow-red-500/25',
-                isScanning && 'opacity-50 cursor-not-allowed',
-              )}
-            >
-              <LogOut className="w-5 h-5" />
-              Time Out
-            </button>
-          </div>
+          <div className="w-full flex justify-center px-4">
+            <div className="w-full max-w-5xl flex flex-col justify-center lg:flex-row gap-7 space-x-10">
 
-          {/* Camera / Preview area */}
-          <div
-            className="relative w-full max-w-2xl mx-auto rounded-2xl overflow-hidden bg-muted border-2 border-dashed border-border"
-            style={{ minHeight: '480px' }}
-          >
-            {/* Hidden canvas used for snapshot */}
-            <canvas ref={canvasRef} className="hidden" />
+              {/* LEFT SECTION (Camera + Actions) */}
+              <div className="flex flex-col gap-5 w-full lg:w-150 lg:shrink-0">
 
-            {/* Live video */}
-            {isScanning && !isCaptured && !cameraError && (
-              <video
-                ref={videoRefCallback}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-              />
-            )}
+                {/* Camera / Preview Area */}
+                <div className="relative w-full rounded-2xl overflow-hidden bg-muted border-2 border-dashed border-border min-h-105">
 
-            {/* Captured still */}
-            {isCaptured && capturedPhoto && (
-              <img src={capturedPhoto} alt="Captured" className="w-full h-full object-cover" />
-            )}
+                  <canvas ref={canvasRef} className="hidden" />
 
-            {/* Idle state */}
-            {!isScanning && !showSuccess && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                <div className="p-8 rounded-full bg-muted/80">
-                  <ImageIcon className="w-20 h-20 text-muted-foreground" />
-                </div>
-                <p className="text-lg font-semibold text-muted-foreground">Ready to Take Photo</p>
-                <p className="text-sm text-muted-foreground/70">Tap Time In or Time Out to start</p>
-              </div>
-            )}
+                  {/* Video / Photo Frame */}
+                  <div className="relative w-full h-105 overflow-hidden rounded-xl">
 
-            {/* Camera error */}
-            {cameraError && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center bg-muted">
-                <Camera className="w-12 h-12 text-red-400" />
-                <p className="text-sm font-medium text-red-500">{cameraError}</p>
-              </div>
-            )}
-
-            {/* Success overlay */}
-            {showSuccess && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                <div className="text-center">
-                  <div className="w-24 h-24 rounded-full bg-emerald-500 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/30 animate-in zoom-in duration-300">
-                    <CheckCircle2 className="w-12 h-12 text-white" />
-                  </div>
-                  <p className="mt-4 text-xl font-bold text-white">
-                    {attendanceType === 'in' ? 'Time In Recorded!' : 'Time Out Recorded!'}
-                  </p>
-                  <p className="text-white/60 mt-1 tabular-nums">{formattedTime}</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex justify-center gap-4">
-            {isScanning && !isCaptured && !cameraError && (
-              <button
-                onClick={capturePhoto}
-                className="flex items-center gap-2 px-8 py-4 rounded-xl font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-all shadow-lg shadow-secondary/25"
-              >
-                <Camera className="w-5 h-5" />
-                Take Photo
-              </button>
-            )}
-
-            {isCaptured && !showSuccess && (
-              <>
-                <button
-                  onClick={confirmAttendance}
-                  className="flex items-center gap-2 px-8 py-4 rounded-xl font-semibold bg-emerald-500 hover:bg-emerald-600 text-white transition-all shadow-lg shadow-emerald-500/25"
-                >
-                  <CheckCircle2 className="w-5 h-5" />
-                  Confirm
-                </button>
-                <button
-                  onClick={retakePhoto}
-                  className="flex items-center gap-2 px-8 py-4 rounded-xl font-semibold bg-muted text-foreground hover:bg-accent transition-all"
-                >
-                  <RotateCcw className="w-5 h-5" />
-                  Retake
-                </button>
-              </>
-            )}
-
-            {isScanning && !showSuccess && (
-              <button
-                onClick={cancelAttendance}
-                className="flex items-center gap-2 px-8 py-4 rounded-xl font-semibold bg-red-500 hover:bg-red-600 text-white transition-all shadow-lg"
-              >
-                <Square className="w-5 h-5" />
-                Cancel
-              </button>
-            )}
-          </div>
-
-          {/* Recent activity log */}
-          <div className="mt-8">
-            <h2 className="text-lg font-bold text-foreground mb-4">Recent Activity</h2>
-            <div className="space-y-3">
-              {attendanceLog.map((log) => (
-                <div
-                  key={log.id}
-                  className="flex items-center justify-between p-4 rounded-xl bg-card border border-border"
-                >
-                  <div className="flex items-center gap-4">
-                    {log.photo ? (
-                      <img
-                        src={log.photo}
-                        alt="Attendance photo"
-                        className="w-10 h-10 rounded-full object-cover border border-border"
+                    {/* Live Camera */}
+                    {isScanning && !isCaptured && !cameraError && (
+                      <video
+                        ref={videoRefCallback}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="absolute inset-0 w-full h-full object-cover"
                       />
-                    ) : (
-                      <div
-                        className={cn(
-                          'w-10 h-10 rounded-full flex items-center justify-center',
-                          log.type === 'in'
-                            ? 'bg-emerald-100 dark:bg-emerald-900/30'
-                            : 'bg-red-100 dark:bg-red-900/30',
-                        )}
-                      >
-                        {log.type === 'in' ? (
-                          <LogIn className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                        ) : (
-                          <LogOut className="w-5 h-5 text-red-600 dark:text-red-400" />
-                        )}
-                      </div>
                     )}
-                    <div>
-                      <p className="font-semibold text-foreground">{log.name}</p>
+
+                    {/* Captured Photo */}
+                    {isCaptured && capturedPhoto && (
+                      <Image
+                        src={capturedPhoto}
+                        alt="Captured"
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                    )}
+                  </div>
+
+                  {/* Idle Placeholder */}
+                  {!isScanning && !showSuccess && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/50 backdrop-blur-sm">
+                      <div className="p-8 rounded-full bg-muted/60 border border-border">
+                        <CameraIcon className="w-20 h-20 text-muted-foreground" />
+                      </div>
+                      <p className="text-lg font-semibold text-foreground">
+                        Ready to Take Photo
+                      </p>
                       <p className="text-sm text-muted-foreground">
-                        {log.type === 'in' ? 'Time In' : 'Time Out'}
+                        Tap Time In or Time Out to start
                       </p>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-foreground tabular-nums">{log.time}</p>
-                    <p className="text-xs text-emerald-600 dark:text-emerald-400">Recorded</p>
+                  )}
+
+                  {/* Camera Error */}
+                  {cameraError && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center bg-muted">
+                      <Camera className="w-12 h-12 text-destructive" />
+                      <p className="text-sm font-medium text-destructive">
+                        {cameraError}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Success Overlay */}
+                  {showSuccess && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                      <div className="text-center">
+                        <div className="w-24 h-24 rounded-full bg-secondary flex items-center justify-center mx-auto shadow-lg animate-in zoom-in duration-300">
+                          <CheckCircle2 className="w-12 h-12 text-secondary-foreground" />
+                        </div>
+                        <p className="mt-4 text-xl font-bold text-foreground">
+                          {attendanceType === 'in'
+                            ? 'Time In Recorded!'
+                            : 'Time Out Recorded!'}
+                        </p>
+                        <p className="text-muted-foreground mt-1 tabular-nums">
+                          {formattedTime}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-center gap-4 flex-wrap">
+
+                  {!isScanning && !isCaptured && !showSuccess && (
+                    <>
+                      <Button
+                        onClick={() => handleAttendance('in')}
+                        className="flex items-center gap-2 bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity"
+                      >
+                        <AlarmClockCheck className="w-5 h-5" />
+                        Time In
+                      </Button>
+
+                      <Button
+                        onClick={() => handleAttendance('out')}
+                        className="flex items-center gap-2 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity"
+                      >
+                        <AlarmClockOff className="w-5 h-5" />
+                        Time Out
+                      </Button>
+                    </>
+                  )}
+
+                  {isScanning && !isCaptured && (
+                    <>
+                      <Button
+                        onClick={capturePhoto}
+                        className="flex items-center gap-2 bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity"
+                      >
+                        <Camera className="w-5 h-5" />
+                        Take Photo
+                      </Button>
+
+                      <Button
+                        onClick={cancelAttendance}
+                        className="flex items-center gap-2 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity"
+                      >
+                        <Undo2 className="w-5 h-5" />
+                        Cancel
+                      </Button>
+                    </>
+                  )}
+
+                  {isCaptured && !showSuccess && (
+                    <>
+                      <Button
+                        onClick={confirmAttendance}
+                        className="flex items-center gap-2 bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity"
+                      >
+                        <CheckCircle2 className="w-5 h-5" />
+                        Confirm
+                      </Button>
+
+                      <Button
+                        onClick={retakePhoto}
+                        variant={'outline'}
+                        className="flex items-center gap-2 px-8 py-4 rounded-xl font-semibold text-sm bg-muted text-foreground border border-border hover:bg-card transition-colors"
+                      >
+                        <RotateCcw className="w-5 h-5" />
+                        Retake
+                      </Button>
+
+                      <Button
+                        onClick={cancelAttendance}
+                        className="flex items-center gap-2 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity"
+                      >
+                        <Undo2 className="w-5 h-5" />
+                        Cancel
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* RIGHT SECTION (Activity Log) */}
+              <div className="w-full lg:w-150 lg:shrink-0 mt-8 lg:mt-0">
+
+                <div className='flex justify-between items-center mb-4 gap-3'>
+                  <h2 className="text-md font-semibold text-foreground">
+                    Recent Activity
+                  </h2>
+                  <div className="relative flex-1 max-w-xs">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      placeholder="Search by name, time, or type..."
+                      value={recordSearch}
+                      onChange={(e) => {
+                        setRecordSearch(e.target.value);
+                        setShowAllRecords(false); // Reset show all when searching
+                      }}
+                      className="w-full pl-9 pr-8 py-2 rounded-lg bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary/50 transition-all"
+                    />
+                    {recordSearch && (
+                      <button
+                        onClick={clearSearch}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
-              ))}
+
+                {/* Search Results Summary */}
+                {recordSearch && (
+                  <div className="mb-3 text-sm text-muted-foreground">
+                    Found {filteredAttendanceLog.length} record(s) for &ldquo;{recordSearch}&rdquo;
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  {displayedRecords.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-border rounded-xl bg-muted/30">
+                      <div className="p-4 rounded-full bg-muted border border-border mb-3">
+                        <CameraIcon className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                      <p className="font-semibold text-foreground">
+                        {recordSearch ? 'No matching records found' : 'No records yet'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {recordSearch
+                          ? 'Try a different search term'
+                          : 'The attendance activity will appear here'}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className={`space-y-2 ${!showAllRecords && filteredAttendanceLog.length > 7 ? 'max-h-125 overflow-y-auto' : ''}`}>
+                        {displayedRecords.map((log) => (
+                          <div
+                            key={log.id}
+                            onClick={() => handleRecordClick(log)}
+                            className="flex items-center justify-between p-2 rounded-xl bg-card border border-border hover:border-secondary/50 transition-all duration-200"
+                          >
+                            <div className="flex items-center gap-4 flex-1 min-w-0">
+                              {log.photo ? (
+                                <Image
+                                  src={log.photo}
+                                  alt="Attendance photo"
+                                  width={40}
+                                  height={40}
+                                  className="rounded-full object-cover w-10 h-10 border border-border"
+                                  unoptimized
+                                />
+                              ) : (
+                                <div
+                                  className={`w-10 h-10 rounded-full flex items-center justify-center border border-border shrink-0 ${log.type === 'in'
+                                    ? 'bg-secondary/10'
+                                    : 'bg-destructive/10'
+                                    }`}
+                                >
+                                  {log.type === 'in' ? (
+                                    <LogIn className="w-5 h-5 text-secondary" />
+                                  ) : (
+                                    <LogOut className="w-5 h-5 text-destructive" />
+                                  )}
+                                </div>
+                              )}
+
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-foreground text-sm truncate">{log.name}</p>
+                                <p className="text-muted-foreground text-xs">
+                                  {log.type === 'in' ? 'Time In' : 'Time Out'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="text-right ml-4 shrink-0">
+                              <p className="font-semibold text-foreground tabular-nums text-sm">
+                                {log.time}
+                              </p>
+                              <p
+                                className={`text-xs font-medium ${log.type === 'in'
+                                  ? 'text-secondary'
+                                  : 'text-destructive'
+                                  }`}
+                              >
+                                Recorded
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Show More / Show Less Button */}
+                      {filteredAttendanceLog.length > 7 && (
+                        <div className="flex justify-center">
+                          <Button
+                            onClick={toggleShowRecords}
+                            className="flex items-center gap-2 px-6 py-2 hover:text-secondary/70 transition-all duration-200 text-secondary bg-transparent"
+                          >
+                            Show More
+
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+
             </div>
           </div>
+
         </div>
       </main>
     </div>
