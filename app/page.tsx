@@ -1,123 +1,523 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Clock, LogIn, LogOut, Calendar, ShieldCheck, LayoutDashboard } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  Camera,
+  CheckCircle2,
+  LogIn,
+  LogOut,
+  RotateCcw,
+  CameraIcon,
+  AlarmClockCheck,
+  AlarmClockOff,
+  Undo2,
+  Search,
+  X,
 
-export default function Home() {
-  const [time, setTime] = useState<Date | null>(null);
+} from 'lucide-react';
+
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import Header from '@/components/mainPage/Header';
+
+interface AttendanceRecord {
+  id: number;
+  name: string;
+  time: string;
+  type: 'in' | 'out';
+  photo?: string;
+}
+
+const AttendancePage = () => {
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [isCaptured, setIsCaptured] = useState(false);
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+  const [attendanceType, setAttendanceType] = useState<'in' | 'out'>('in');
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [recordSearch, setRecordSearch] = useState('');
+  const [showAllRecords, setShowAllRecords] = useState(false);
+  const [attendanceLog, setAttendanceLog] = useState<AttendanceRecord[]>([
+    { id: 1, name: 'John Doe', time: '09:00 AM', type: 'in' },
+    { id: 2, name: 'Jane Smith', time: '09:05 AM', type: 'in' },
+    { id: 3, name: 'Mike Johnson', time: '06:00 PM', type: 'out' },
+    { id: 4, name: 'Sarah Williams', time: '06:00 PM', type: 'out' },
+    { id: 5, name: 'Robert Brown', time: '06:00 PM', type: 'out' },
+    { id: 6, name: 'Emily Davis', time: '06:00 PM', type: 'out' },
+    { id: 7, name: 'David Miller', time: '06:00 PM', type: 'out' },
+    { id: 8, name: 'Lisa Anderson', time: '09:15 AM', type: 'in' },
+    { id: 9, name: 'James Wilson', time: '09:20 AM', type: 'in' },
+    { id: 10, name: 'Maria Garcia', time: '06:15 PM', type: 'out' },
+  ]);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const router = useRouter();
+
+  const formattedTime = currentTime?.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }) ?? '--:--:--';
+
+  const currentDate = currentTime?.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }) ?? '';
 
   useEffect(() => {
-    setTime(new Date());
-    const timer = setInterval(() => setTime(new Date()), 1000);
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
     return () => clearInterval(timer);
   }, []);
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    });
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => stopCamera();
+  }, [stopCamera]);
+
+  const startCamera = useCallback(async () => {
+    setCameraError(null);
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+      });
+      streamRef.current = mediaStream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (err) {
+      console.error('Camera error:', err);
+      setCameraError('Could not access camera. Please allow camera permission and try again.');
+      setIsScanning(false);
+    }
+  }, []);
+
+  const videoRefCallback = useCallback((node: HTMLVideoElement | null) => {
+    (videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = node;
+    if (node && streamRef.current) {
+      node.srcObject = streamRef.current;
+    }
+  }, []);
+
+  const capturePhoto = useCallback(() => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const photo = canvas.toDataURL('image/jpeg', 0.85);
+    setCapturedPhoto(photo);
+    setIsCaptured(true);
+    stopCamera();
+  }, [stopCamera]);
+
+  const handleAttendance = useCallback(
+    async (type: 'in' | 'out') => {
+      setAttendanceType(type);
+      setShowSuccess(false);
+      setCapturedPhoto(null);
+      setIsCaptured(false);
+      setCameraError(null);
+      setIsScanning(true);
+      await startCamera();
+    },
+    [startCamera],
+  );
+
+  const confirmAttendance = useCallback(() => {
+    const newRecord: AttendanceRecord = {
+      id: Date.now(),
+      name: 'Employee',
+      time: formattedTime,
+      type: attendanceType,
+      photo: capturedPhoto ?? undefined,
+    };
+    setAttendanceLog((prev) => [newRecord, ...prev]);
+    setShowSuccess(true);
+
+    setTimeout(() => {
+      setShowSuccess(false);
+      setIsScanning(false);
+      setIsCaptured(false);
+      setCapturedPhoto(null);
+    }, 1500);
+  }, [attendanceType, capturedPhoto, formattedTime]);
+
+  const retakePhoto = useCallback(async () => {
+    setIsCaptured(false);
+    setCapturedPhoto(null);
+    await startCamera();
+  }, [startCamera]);
+
+  const cancelAttendance = useCallback(() => {
+    stopCamera();
+    setIsScanning(false);
+    setIsCaptured(false);
+    setCapturedPhoto(null);
+    setCameraError(null);
+  }, [stopCamera]);
+
+  // Filter attendance records based on search
+  const filteredAttendanceLog = attendanceLog.filter(log =>
+    log.name.toLowerCase().includes(recordSearch.toLowerCase()) ||
+    log.time.toLowerCase().includes(recordSearch.toLowerCase()) ||
+    log.type.toLowerCase().includes(recordSearch.toLowerCase())
+  );
+
+  // Determine which records to display based on showAllRecords state
+  const displayedRecords = showAllRecords
+    ? filteredAttendanceLog
+    : filteredAttendanceLog.slice(0, 7);
+
+  const clearSearch = () => {
+    setRecordSearch('');
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  const toggleShowRecords = () => {
+    setShowAllRecords(!showAllRecords);
   };
+
+
+  // ... existing state variables
+
+  const handleRecordClick = (log: AttendanceRecord) => {
+    // Store the selected record data in localStorage or state management
+    console.log("User info", log)
+    // Navigate to user record page
+    router.push('/mainPage/userRecord');
+  };
+
 
   return (
-    <main className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans transition-colors duration-500">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
 
-      {/* Background Decor */}
-      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/5 dark:bg-secondary/10 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-secondary/10 dark:bg-secondary/20 rounded-full blur-[120px]" />
+      {/* ── Header ── */}
+      <Header realTimeClock={formattedTime} />
 
-      <div className="w-full max-w-4xl z-10 flex flex-col items-center gap-12">
+      <main className="flex-1 p-6">
+        <div className="space-y-6">
 
-        {/* Branding */}
-        <header className="flex items-center gap-4 animate-in fade-in slide-in-from-top duration-700">
-          <div className="p-3 bg-secondary rounded-2xl shadow-lg shadow-secondary/40">
-            <ShieldCheck className="w-10 h-10 text-white" />
-          </div>
-          <div className="flex flex-col">
-            <h1 className="text-4xl font-black tracking-tighter uppercase leading-none text-foreground">
-              PIXZEL
+          {/* ── Title ── */}
+          <div className="text-center mb-10">
+            <p className="text-sm font-medium text-muted-foreground">{currentDate}</p>
+            <h1 className="text-2xl font-bold text-foreground mt-1">
+              Take Photo for Attendance
             </h1>
-            <span className="text-secondary font-semibold text-sm tracking-widest uppercase">
-              Digital Attendance
-            </span>
-          </div>
-        </header>
-
-        {/* Time and Date Section */}
-        <section className="text-center space-y-4 animate-in fade-in scale-in duration-1000 delay-200">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 rounded-full text-muted-foreground dark:text-white/60 text-sm backdrop-blur-md">
-            <Calendar className="w-4 h-4" />
-            {time ? formatDate(time) : 'Loading date...'}
           </div>
 
-          <div className="text-7xl md:text-9xl font-mono font-bold tracking-tight text-foreground drop-shadow-sm dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-            {time ? formatTime(time) : '--:--:--'}
+          <div className="w-full flex justify-center px-4">
+            <div className="w-full max-w-5xl flex flex-col justify-center lg:flex-row gap-7 space-x-10">
+
+              {/* LEFT SECTION (Camera + Actions) */}
+              <div className="flex flex-col gap-5 w-full lg:w-150 lg:shrink-0">
+
+                {/* Camera / Preview Area */}
+                <div className="relative w-full rounded-2xl overflow-hidden bg-muted border-2 border-dashed border-border min-h-105">
+
+                  <canvas ref={canvasRef} className="hidden" />
+
+                  {/* Video / Photo Frame */}
+                  <div className="relative w-full h-105 overflow-hidden rounded-xl">
+
+                    {/* Live Camera */}
+                    {isScanning && !isCaptured && !cameraError && (
+                      <video
+                        ref={videoRefCallback}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    )}
+
+                    {/* Captured Photo */}
+                    {isCaptured && capturedPhoto && (
+                      <Image
+                        src={capturedPhoto}
+                        alt="Captured"
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                    )}
+                  </div>
+
+                  {/* Idle Placeholder */}
+                  {!isScanning && !showSuccess && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/50 backdrop-blur-sm">
+                      <div className="p-8 rounded-full bg-muted/60 border border-border">
+                        <CameraIcon className="w-20 h-20 text-muted-foreground" />
+                      </div>
+                      <p className="text-lg font-semibold text-foreground">
+                        Ready to Take Photo
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Tap Time In or Time Out to start
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Camera Error */}
+                  {cameraError && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center bg-muted">
+                      <Camera className="w-12 h-12 text-destructive" />
+                      <p className="text-sm font-medium text-destructive">
+                        {cameraError}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Success Overlay */}
+                  {showSuccess && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                      <div className="text-center">
+                        <div className="w-24 h-24 rounded-full bg-secondary flex items-center justify-center mx-auto shadow-lg animate-in zoom-in duration-300">
+                          <CheckCircle2 className="w-12 h-12 text-secondary-foreground" />
+                        </div>
+                        <p className="mt-4 text-xl font-bold text-foreground">
+                          {attendanceType === 'in'
+                            ? 'Time In Recorded!'
+                            : 'Time Out Recorded!'}
+                        </p>
+                        <p className="text-muted-foreground mt-1 tabular-nums">
+                          {formattedTime}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-center gap-4 flex-wrap">
+
+                  {!isScanning && !isCaptured && !showSuccess && (
+                    <>
+                      <Button
+                        onClick={() => handleAttendance('in')}
+                        className="flex items-center gap-2 bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity"
+                      >
+                        <AlarmClockCheck className="w-5 h-5" />
+                        Time In
+                      </Button>
+
+                      <Button
+                        onClick={() => handleAttendance('out')}
+                        className="flex items-center gap-2 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity"
+                      >
+                        <AlarmClockOff className="w-5 h-5" />
+                        Time Out
+                      </Button>
+                    </>
+                  )}
+
+                  {isScanning && !isCaptured && (
+                    <>
+                      <Button
+                        onClick={capturePhoto}
+                        className="flex items-center gap-2 bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity"
+                      >
+                        <Camera className="w-5 h-5" />
+                        Take Photo
+                      </Button>
+
+                      <Button
+                        onClick={cancelAttendance}
+                        className="flex items-center gap-2 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity"
+                      >
+                        <Undo2 className="w-5 h-5" />
+                        Cancel
+                      </Button>
+                    </>
+                  )}
+
+                  {isCaptured && !showSuccess && (
+                    <>
+                      <Button
+                        onClick={confirmAttendance}
+                        className="flex items-center gap-2 bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity"
+                      >
+                        <CheckCircle2 className="w-5 h-5" />
+                        Confirm
+                      </Button>
+
+                      <Button
+                        onClick={retakePhoto}
+                        variant={'outline'}
+                        className="flex items-center gap-2 px-8 py-4 rounded-xl font-semibold text-sm bg-muted text-foreground border border-border hover:bg-card transition-colors"
+                      >
+                        <RotateCcw className="w-5 h-5" />
+                        Retake
+                      </Button>
+
+                      <Button
+                        onClick={cancelAttendance}
+                        className="flex items-center gap-2 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity"
+                      >
+                        <Undo2 className="w-5 h-5" />
+                        Cancel
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* RIGHT SECTION (Activity Log) */}
+              <div className="w-full lg:w-150 lg:shrink-0 mt-8 lg:mt-0">
+
+                <div className='flex justify-between items-center mb-4 gap-3'>
+                  <h2 className="text-md font-semibold text-foreground">
+                    Recent Activity
+                  </h2>
+                  <div className="relative flex-1 max-w-xs">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      placeholder="Search by name, time, or type..."
+                      value={recordSearch}
+                      onChange={(e) => {
+                        setRecordSearch(e.target.value);
+                        setShowAllRecords(false); // Reset show all when searching
+                      }}
+                      className="w-full pl-9 pr-8 py-2 rounded-lg bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary/50 transition-all"
+                    />
+                    {recordSearch && (
+                      <button
+                        onClick={clearSearch}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Search Results Summary */}
+                {recordSearch && (
+                  <div className="mb-3 text-sm text-muted-foreground">
+                    Found {filteredAttendanceLog.length} record(s) for &ldquo;{recordSearch}&rdquo;
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  {displayedRecords.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-border rounded-xl bg-muted/30">
+                      <div className="p-4 rounded-full bg-muted border border-border mb-3">
+                        <CameraIcon className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                      <p className="font-semibold text-foreground">
+                        {recordSearch ? 'No matching records found' : 'No records yet'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {recordSearch
+                          ? 'Try a different search term'
+                          : 'The attendance activity will appear here'}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className={`space-y-2 ${!showAllRecords && filteredAttendanceLog.length > 7 ? 'max-h-125 overflow-y-auto' : ''}`}>
+                        {displayedRecords.map((log) => (
+                          <div
+                            key={log.id}
+                            onClick={() => handleRecordClick(log)}
+                            className="flex items-center justify-between p-2 rounded-xl bg-card border border-border hover:border-secondary/50 transition-all duration-200"
+                          >
+                            <div className="flex items-center gap-4 flex-1 min-w-0">
+                              {log.photo ? (
+                                <Image
+                                  src={log.photo}
+                                  alt="Attendance photo"
+                                  width={40}
+                                  height={40}
+                                  className="rounded-full object-cover w-10 h-10 border border-border"
+                                  unoptimized
+                                />
+                              ) : (
+                                <div
+                                  className={`w-10 h-10 rounded-full flex items-center justify-center border border-border shrink-0 ${log.type === 'in'
+                                    ? 'bg-secondary/10'
+                                    : 'bg-destructive/10'
+                                    }`}
+                                >
+                                  {log.type === 'in' ? (
+                                    <LogIn className="w-5 h-5 text-secondary" />
+                                  ) : (
+                                    <LogOut className="w-5 h-5 text-destructive" />
+                                  )}
+                                </div>
+                              )}
+
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-foreground text-sm truncate">{log.name}</p>
+                                <p className="text-muted-foreground text-xs">
+                                  {log.type === 'in' ? 'Time In' : 'Time Out'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="text-right ml-4 shrink-0">
+                              <p className="font-semibold text-foreground tabular-nums text-sm">
+                                {log.time}
+                              </p>
+                              <p
+                                className={`text-xs font-medium ${log.type === 'in'
+                                  ? 'text-secondary'
+                                  : 'text-destructive'
+                                  }`}
+                              >
+                                Recorded
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Show More / Show Less Button */}
+                      {filteredAttendanceLog.length > 7 && (
+                        <div className="flex justify-center">
+                          <Button
+                            onClick={toggleShowRecords}
+                            className="flex items-center gap-2 px-6 py-2 hover:text-secondary/70 transition-all duration-200 text-secondary bg-transparent"
+                          >
+                            Show More
+
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+
+            </div>
           </div>
 
-          <p className="text-muted-foreground/60 dark:text-white/40 text-lg md:text-xl font-light italic">
-            Ready to log your presence? Select an option below.
-          </p>
-        </section>
-
-        {/* Action Cards */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-3xl animate-in fade-in slide-in-from-bottom duration-1000 delay-500">
-
-          {/* Dashboard Link */}
-          <Link
-            href="/admin/adminDashboard"
-            className="group relative flex flex-col items-center justify-center p-12 bg-secondary border-2 border-secondary rounded-[3rem] shadow-xl shadow-secondary/20 hover:shadow-2xl hover:shadow-secondary/40 hover:-translate-y-2 transition-all duration-300 overflow-hidden cursor-pointer"
-          >
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <LayoutDashboard className="w-32 h-32 text-white" />
-            </div>
-
-            <div className="p-5 bg-white/20 rounded-2xl mb-6 backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
-              <LayoutDashboard className="w-10 h-10 text-white" />
-            </div>
-            <h2 className="text-3xl font-bold text-white mb-2 tracking-tight uppercase">Dashboard</h2>
-            <p className="text-white/80 text-xs uppercase tracking-widest font-black">View Attendance Records</p>
-          </Link>
-
-          {/* Home/Calendar Link */}
-          <Link
-            href="/admin/adminHome"
-            className="group relative flex flex-col items-center justify-center p-12 bg-white dark:bg-white/5 border-2 border-gray-100 dark:border-white/10 rounded-[3rem] shadow-sm hover:shadow-xl dark:shadow-none hover:bg-gray-50 dark:hover:bg-white/10 hover:border-gray-200 dark:hover:border-white/20 hover:-translate-y-2 transition-all duration-300 overflow-hidden cursor-pointer"
-          >
-            <div className="absolute top-0 right-0 p-4 opacity-[0.03] dark:opacity-5 group-hover:opacity-[0.08] dark:group-hover:opacity-10 transition-opacity">
-              <Calendar className="w-32 h-32 text-foreground" />
-            </div>
-
-            <div className="p-5 bg-gray-50 dark:bg-white/10 rounded-2xl mb-6 group-hover:scale-110 transition-transform duration-300 border border-gray-100 dark:border-transparent">
-              <Calendar className="w-10 h-10 text-secondary" />
-            </div>
-            <h2 className="text-3xl font-bold text-foreground mb-2 uppercase tracking-tight">Schedule</h2>
-            <p className="text-muted-foreground/60 dark:text-white/40 text-xs uppercase tracking-widest font-black">Check Your Shifts</p>
-          </Link>
-
-        </section>
-
-        {/* Footer */}
-        <footer className="mt-8 text-muted-foreground/30 dark:text-white/20 text-[10px] tracking-widest uppercase font-black flex items-center gap-2">
-          <span>Secure Authentication</span>
-          <div className="w-1.5 h-1.5 bg-secondary rounded-full" />
-          <span>v1.0.4 - PIXZEL CORP</span>
-        </footer>
-      </div>
-
-    </main>
+        </div>
+      </main>
+    </div>
   );
-}
+};
+
+export default AttendancePage;
