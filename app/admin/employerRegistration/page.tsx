@@ -78,7 +78,7 @@ const EmployerRegistrationPage = () => {
         setScanResult('success');
 
         const newRecord: RegistrationHistory = {
-          id: formData.employerId || Date.now().toString(),
+          id: `reg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           employerName: formData.employerName,
           timestamp: new Date(),
           status: 'success',
