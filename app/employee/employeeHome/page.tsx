@@ -39,7 +39,7 @@ const weeks: { id: string; date: string; events: CalendarEvent[] }[] = [
 const EmployeeHome = () => {
   return (
     <Layout>
-      <div className="flex flex-col gap-8 w-full max-w-7xl animate-in fade-in slide-in-from-bottom duration-700">
+      <div className="flex flex-col gap-8 w-full max-w-7xl animate-in fade-in duration-500 ease-out">
         
         {/* Top Controls Palette */}
         <div className="flex flex-wrap items-center justify-between gap-6">

@@ -4,18 +4,11 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
-  BarChart3, 
   Calendar, 
-  Building2, 
   Clock, 
-  Briefcase, 
-  DollarSign, 
   Settings, 
-  PlusCircle,
-  ChevronRight,
   ChevronDown,
   LayoutDashboard,
-  LogOut,
   Moon,
   Sun,
   ShieldCheck,
@@ -35,7 +28,6 @@ interface NavItem {
 const sidebarItems: NavItem[] = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/employee/employeeDashboard' },
   { name: 'Calendar', icon: Calendar, href: '/employee/employeeHome' },
-  { name: 'Company', icon: Building2, href: '#', hasSub: true, subItems: [{ name: 'Profile', href: '#' }, { name: 'Team', href: '#' }] },
   { 
     name: 'Activities', 
     icon: Clock, 
@@ -46,13 +38,10 @@ const sidebarItems: NavItem[] = [
       { name: 'Leave', href: '#', badge: '02' }
     ]
   },
-  { name: 'Job Management', icon: Briefcase, href: '#', hasSub: true, subItems: [{ name: 'Openings', href: '#' }] },
-  { name: 'Payroll', icon: DollarSign, href: '#' },
 ];
 
 const bottomItems = [
   { name: 'Settings', icon: Settings, href: '#' },
-  { name: 'Integration', icon: PlusCircle, href: '#' },
 ];
 
 const AppSidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean, setIsCollapsed: (v: boolean) => void }) => {
@@ -91,7 +80,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean, set
 
   return (
     <aside className={cn(
-      "min-h-screen bg-white dark:bg-black border-r border-gray-100 dark:border-white/5 flex flex-col transition-all duration-500 ease-in-out relative font-sans overflow-visible",
+      "h-screen bg-white dark:bg-black border-r border-gray-100 dark:border-white/5 flex flex-col transition-all duration-500 ease-in-out relative font-sans overflow-hidden",
       isCollapsed ? "w-20" : "w-64"
     )}>
 
@@ -127,7 +116,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean, set
       </div>
 
       {/* Main Navigation */}
-      <nav className="flex-1 space-y-1 px-4 overflow-y-auto no-scrollbar">
+      <nav className="flex-1 min-h-0 space-y-1 px-4 overflow-y-auto no-scrollbar">
         {sidebarItems.map((item) => {
           const isMenuOpen = openMenus.includes(item.name);
           const isActive = pathname === item.href;
@@ -193,7 +182,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean, set
       </nav>
 
       {/* Bottom Section */}
-      <div className={cn("mt-auto space-y-6 p-4 pt-6 border-t border-gray-100 dark:border-white/5", isCollapsed && "px-0 items-center")}>
+      <div className={cn("mt-auto shrink-0 space-y-6 p-4 pt-6 border-t border-gray-100 dark:border-white/5 bg-white dark:bg-black", isCollapsed && "px-0 items-center")}>
         <div className="space-y-1">
           {bottomItems.map((item) => (
             <button key={item.name} className={cn("w-full flex items-center gap-3 p-3 text-sm font-bold text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-white transition-all rounded-xl", isCollapsed && "justify-center px-0")}>
