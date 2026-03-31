@@ -1,123 +1,377 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Clock, LogIn, LogOut, Calendar, ShieldCheck, LayoutDashboard } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  Camera,
+  Shield,
+  Square,
+  Clock,
+  CheckCircle2,
+  LogIn,
+  LogOut,
+  ImageIcon,
+  RotateCcw,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-export default function Home() {
-  const [time, setTime] = useState<Date | null>(null);
+interface AttendanceRecord {
+  id: number;
+  name: string;
+  time: string;
+  type: 'in' | 'out';
+  photo?: string;
+}
 
+const AttendancePage = () => {
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [isCaptured, setIsCaptured] = useState(false);
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+  const [attendanceType, setAttendanceType] = useState<'in' | 'out'>('in');
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [attendanceLog, setAttendanceLog] = useState<AttendanceRecord[]>([
+    { id: 1, name: 'Employee', time: '09:00 AM', type: 'in' },
+    { id: 2, name: 'Employee', time: '09:05 AM', type: 'in' },
+    { id: 3, name: 'Employee', time: '06:00 PM', type: 'out' },
+  ]);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const formattedTime = currentTime?.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }) ?? '--:--:--';
+
+  const currentDate = currentTime?.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }) ?? '';
+
+  // Seed time on client + tick every second
   useEffect(() => {
-    setTime(new Date());
-    const timer = setInterval(() => setTime(new Date()), 1000);
+    setCurrentTime(new Date());
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    });
-  };
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => stopCamera();
+  }, []);
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  }, []);
+
+  const startCamera = useCallback(async () => {
+    setCameraError(null);
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+      });
+      streamRef.current = mediaStream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (err) {
+      console.error('Camera error:', err);
+      setCameraError('Could not access camera. Please allow camera permission and try again.');
+      setIsScanning(false);
+    }
+  }, []);
+
+  const videoRefCallback = useCallback((node: HTMLVideoElement | null) => {
+    (videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = node;
+    if (node && streamRef.current) {
+      node.srcObject = streamRef.current;
+    }
+  }, []);
+
+  const capturePhoto = useCallback(() => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const photo = canvas.toDataURL('image/jpeg', 0.85);
+    setCapturedPhoto(photo);
+    setIsCaptured(true);
+    stopCamera();
+  }, [stopCamera]);
+
+  const handleAttendance = useCallback(
+    async (type: 'in' | 'out') => {
+      setAttendanceType(type);
+      setShowSuccess(false);
+      setCapturedPhoto(null);
+      setIsCaptured(false);
+      setCameraError(null);
+      setIsScanning(true);
+      await startCamera();
+    },
+    [startCamera],
+  );
+
+  const confirmAttendance = useCallback(() => {
+    const newRecord: AttendanceRecord = {
+      id: Date.now(),
+      name: 'Employee',
+      time: formattedTime,
+      type: attendanceType,
+      photo: capturedPhoto ?? undefined,
+    };
+    setAttendanceLog((prev) => [newRecord, ...prev]);
+    setShowSuccess(true);
+
+    setTimeout(() => {
+      setShowSuccess(false);
+      setIsScanning(false);
+      setIsCaptured(false);
+      setCapturedPhoto(null);
+    }, 2500);
+  }, [attendanceType, capturedPhoto, formattedTime]);
+
+  const retakePhoto = useCallback(async () => {
+    setIsCaptured(false);
+    setCapturedPhoto(null);
+    await startCamera();
+  }, [startCamera]);
+
+  const cancelAttendance = useCallback(() => {
+    stopCamera();
+    setIsScanning(false);
+    setIsCaptured(false);
+    setCapturedPhoto(null);
+    setCameraError(null);
+  }, [stopCamera]);
 
   return (
-    <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
-
-      {/* Background Decor */}
-      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#C01148]/10 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#C01148]/20 rounded-full blur-[120px]" />
-
-      <div className="w-full max-w-4xl z-10 flex flex-col items-center gap-12">
-
-        {/* Branding */}
-        <header className="flex items-center gap-4 animate-in fade-in slide-in-from-top duration-700">
-          <div className="p-3 bg-[#C01148] rounded-2xl shadow-[0_0_20px_rgba(192,17,72,0.4)]">
-            <ShieldCheck className="w-10 h-10 text-white" />
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <header className="py-6 px-6 border-b border-border bg-card/50">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-br from-secondary to-pink-600 rounded-xl">
+              <Shield className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-xl font-black tracking-tight text-foreground uppercase">Pixzel</span>
           </div>
-          <div className="flex flex-col">
-            <h1 className="text-4xl font-black tracking-tighter uppercase leading-none">
-              PIXZEL
-            </h1>
-            <span className="text-[#C01148] font-semibold text-sm tracking-widest uppercase">
-              Digital Attendance
-            </span>
+          <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded-xl border border-border">
+            <Clock className="w-4 h-4 text-muted-foreground animate-pulse" />
+            <span className="text-sm font-semibold text-foreground tabular-nums">{formattedTime}</span>
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* Time and Date Section */}
-        <section className="text-center space-y-4 animate-in fade-in scale-in duration-1000 delay-200">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-white/60 text-sm backdrop-blur-md">
-            <Calendar className="w-4 h-4" />
-            {time ? formatDate(time) : 'Loading date...'}
+      <main className="flex-1 p-6">
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Title */}
+          <div className="text-center">
+            <p className="text-sm font-medium text-muted-foreground">{currentDate}</p>
+            <h1 className="text-2xl font-bold text-foreground mt-1">Take Photo for Attendance</h1>
           </div>
 
-          <div className="text-7xl md:text-9xl font-mono font-bold tracking-tight text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-            {time ? formatTime(time) : '--:--:--'}
+          {/* Time In / Time Out buttons */}
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={() => handleAttendance('in')}
+              disabled={isScanning}
+              className={cn(
+                'flex items-center gap-2 px-8 py-4 rounded-xl font-semibold transition-all',
+                attendanceType === 'in' && isScanning
+                  ? 'bg-muted text-muted-foreground hover:bg-accent'
+                  : 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25',
+                isScanning && 'opacity-50 cursor-not-allowed',
+              )}
+            >
+              <LogIn className="w-5 h-5" />
+              Time In
+            </button>
+            <button
+              onClick={() => handleAttendance('out')}
+              disabled={isScanning}
+              className={cn(
+                'flex items-center gap-2 px-8 py-4 rounded-xl font-semibold transition-all',
+                attendanceType === 'out' && isScanning
+                  ? 'bg-muted text-muted-foreground hover:bg-accent'
+                  : 'bg-red-500 text-white shadow-lg shadow-red-500/25',
+                isScanning && 'opacity-50 cursor-not-allowed',
+              )}
+            >
+              <LogOut className="w-5 h-5" />
+              Time Out
+            </button>
           </div>
 
-          <p className="text-white/40 text-lg md:text-xl font-light">
-            Ready to log your presence? Select an option below.
-          </p>
-        </section>
-
-        {/* Action Cards */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-3xl animate-in fade-in slide-in-from-bottom duration-1000 delay-500">
-
-          {/* Dashboard Link */}
-          <Link
-            href="/employee/employeeDashboard"
-            className="group relative flex flex-col items-center justify-center p-12 bg-[#C01148] border-2 border-[#C01148] rounded-[3rem] shadow-[0_15px_30px_rgba(192,17,72,0.25)] hover:shadow-[0_20px_50px_rgba(192,17,72,0.4)] hover:-translate-y-2 transition-all duration-300 overflow-hidden cursor-pointer"
+          {/* Camera / Preview area */}
+          <div
+            className="relative w-full max-w-2xl mx-auto rounded-2xl overflow-hidden bg-muted border-2 border-dashed border-border"
+            style={{ minHeight: '480px' }}
           >
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <LayoutDashboard className="w-32 h-32 text-white" />
+            {/* Hidden canvas used for snapshot */}
+            <canvas ref={canvasRef} className="hidden" />
+
+            {/* Live video */}
+            {isScanning && !isCaptured && !cameraError && (
+              <video
+                ref={videoRefCallback}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+            )}
+
+            {/* Captured still */}
+            {isCaptured && capturedPhoto && (
+              <img src={capturedPhoto} alt="Captured" className="w-full h-full object-cover" />
+            )}
+
+            {/* Idle state */}
+            {!isScanning && !showSuccess && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                <div className="p-8 rounded-full bg-muted/80">
+                  <ImageIcon className="w-20 h-20 text-muted-foreground" />
+                </div>
+                <p className="text-lg font-semibold text-muted-foreground">Ready to Take Photo</p>
+                <p className="text-sm text-muted-foreground/70">Tap Time In or Time Out to start</p>
+              </div>
+            )}
+
+            {/* Camera error */}
+            {cameraError && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center bg-muted">
+                <Camera className="w-12 h-12 text-red-400" />
+                <p className="text-sm font-medium text-red-500">{cameraError}</p>
+              </div>
+            )}
+
+            {/* Success overlay */}
+            {showSuccess && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                <div className="text-center">
+                  <div className="w-24 h-24 rounded-full bg-emerald-500 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/30 animate-in zoom-in duration-300">
+                    <CheckCircle2 className="w-12 h-12 text-white" />
+                  </div>
+                  <p className="mt-4 text-xl font-bold text-white">
+                    {attendanceType === 'in' ? 'Time In Recorded!' : 'Time Out Recorded!'}
+                  </p>
+                  <p className="text-white/60 mt-1 tabular-nums">{formattedTime}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex justify-center gap-4">
+            {isScanning && !isCaptured && !cameraError && (
+              <button
+                onClick={capturePhoto}
+                className="flex items-center gap-2 px-8 py-4 rounded-xl font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-all shadow-lg shadow-secondary/25"
+              >
+                <Camera className="w-5 h-5" />
+                Take Photo
+              </button>
+            )}
+
+            {isCaptured && !showSuccess && (
+              <>
+                <button
+                  onClick={confirmAttendance}
+                  className="flex items-center gap-2 px-8 py-4 rounded-xl font-semibold bg-emerald-500 hover:bg-emerald-600 text-white transition-all shadow-lg shadow-emerald-500/25"
+                >
+                  <CheckCircle2 className="w-5 h-5" />
+                  Confirm
+                </button>
+                <button
+                  onClick={retakePhoto}
+                  className="flex items-center gap-2 px-8 py-4 rounded-xl font-semibold bg-muted text-foreground hover:bg-accent transition-all"
+                >
+                  <RotateCcw className="w-5 h-5" />
+                  Retake
+                </button>
+              </>
+            )}
+
+            {isScanning && !showSuccess && (
+              <button
+                onClick={cancelAttendance}
+                className="flex items-center gap-2 px-8 py-4 rounded-xl font-semibold bg-red-500 hover:bg-red-600 text-white transition-all shadow-lg"
+              >
+                <Square className="w-5 h-5" />
+                Cancel
+              </button>
+            )}
+          </div>
+
+          {/* Recent activity log */}
+          <div className="mt-8">
+            <h2 className="text-lg font-bold text-foreground mb-4">Recent Activity</h2>
+            <div className="space-y-3">
+              {attendanceLog.map((log) => (
+                <div
+                  key={log.id}
+                  className="flex items-center justify-between p-4 rounded-xl bg-card border border-border"
+                >
+                  <div className="flex items-center gap-4">
+                    {log.photo ? (
+                      <img
+                        src={log.photo}
+                        alt="Attendance photo"
+                        className="w-10 h-10 rounded-full object-cover border border-border"
+                      />
+                    ) : (
+                      <div
+                        className={cn(
+                          'w-10 h-10 rounded-full flex items-center justify-center',
+                          log.type === 'in'
+                            ? 'bg-emerald-100 dark:bg-emerald-900/30'
+                            : 'bg-red-100 dark:bg-red-900/30',
+                        )}
+                      >
+                        {log.type === 'in' ? (
+                          <LogIn className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                        ) : (
+                          <LogOut className="w-5 h-5 text-red-600 dark:text-red-400" />
+                        )}
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-semibold text-foreground">{log.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {log.type === 'in' ? 'Time In' : 'Time Out'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-foreground tabular-nums">{log.time}</p>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400">Recorded</p>
+                  </div>
+                </div>
+              ))}
             </div>
-
-            <div className="p-5 bg-white/20 rounded-2xl mb-6 backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
-              <LayoutDashboard className="w-10 h-10 text-white" />
-            </div>
-            <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">DASHBOARD</h2>
-            <p className="text-white/80 text-xs uppercase tracking-widest font-black">View Attendance Records</p>
-          </Link>
-
-          {/* Home/Calendar Link */}
-          <Link
-            href="/employee/employeeHome"
-            className="group relative flex flex-col items-center justify-center p-12 bg-white/5 border-2 border-white/10 rounded-[3rem] hover:bg-white/10 hover:border-white/20 hover:-translate-y-2 transition-all duration-300 overflow-hidden cursor-pointer"
-          >
-            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-              <Calendar className="w-32 h-32 text-white" />
-            </div>
-
-            <div className="p-5 bg-white/10 rounded-2xl mb-6 group-hover:scale-110 transition-transform duration-300">
-              <Calendar className="w-10 h-10 text-white" />
-            </div>
-            <h2 className="text-3xl font-bold text-white mb-2 uppercase tracking-tight">SCHEDULE</h2>
-            <p className="text-white/40 text-xs uppercase tracking-widest font-black">Check Your Shifts</p>
-          </Link>
-
-        </section>
-
-        {/* Footer */}
-        <footer className="mt-8 text-white/20 text-[10px] tracking-widest uppercase font-black flex items-center gap-2">
-          <span>Secure Authentication</span>
-          <div className="w-1.5 h-1.5 bg-[#C01148] rounded-full" />
-          <span>v1.0.4 - PIXZEL CORP</span>
-        </footer>
-      </div>
-
-    </main>
+          </div>
+        </div>
+      </main>
+    </div>
   );
-}
+};
+
+export default AttendancePage;
