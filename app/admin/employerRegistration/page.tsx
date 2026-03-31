@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import { cn } from '@/lib/utils';
-import { Clock, History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck } from 'lucide-react';
+import { Clock, History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, Hash, ScanLine } from 'lucide-react';
 import Webcam from 'react-webcam';
 
 // Registration history type
@@ -14,11 +14,23 @@ type RegistrationHistory = {
   status: 'success' | 'failed';
 };
 
+type EmployerForm = {
+  employerId: string;
+  employerName: string;
+  employerPosition: string;
+};
+
 const EmployerRegistrationPage = () => {
   const [now, setNow] = useState<Date>(() => new Date());
-  const [isCameraOpen, setIsCameraOpen] = useState(true); // Camera is ON by default
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<'success' | 'error' | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(true);
+  const [formData, setFormData] = useState<EmployerForm>({
+    employerId: '',
+    employerName: '',
+    employerPosition: '',
+  });
 
   // Mock registration history
   const [history, setHistory] = useState<RegistrationHistory[]>([
@@ -66,18 +78,30 @@ const EmployerRegistrationPage = () => {
         setScanResult('success');
 
         const newRecord: RegistrationHistory = {
-          id: Date.now().toString(),
-          employerName: 'New Employer',
+          id: formData.employerId || Date.now().toString(),
+          employerName: formData.employerName,
           timestamp: new Date(),
           status: 'success',
         };
+
+        // Create JSON format for static register
+        const staticRegisterJson = {
+          id: newRecord.id,
+          employerName: newRecord.employerName,
+          employerPosition: formData.employerPosition,
+          timestamp: newRecord.timestamp.toISOString(),
+          status: newRecord.status,
+          image: imageSrc,
+        };
+        // Console log the JSON
+        console.log('Static Register JSON:', JSON.stringify(staticRegisterJson, null, 2));
 
         setHistory(prev => [newRecord, ...prev]);
 
         setTimeout(() => setScanResult(null), 3000);
       }, 1500);
     }
-  }, [webcamRef]);
+  }, [webcamRef, formData]);
 
   const toggleCamera = () => {
     setIsCameraOpen(!isCameraOpen);
@@ -85,15 +109,144 @@ const EmployerRegistrationPage = () => {
     setIsScanning(false);
   };
 
+  const handleFormChange = (field: keyof EmployerForm, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleStartRegistration = () => {
+    if (formData.employerId && formData.employerName && formData.employerPosition) {
+      setIsModalOpen(false);
+      setIsCameraOpen(true);
+    }
+  };
+
+  const handleCancel = () => {
+    setFormData({ employerId: '', employerName: '', employerPosition: '' });
+    setIsModalOpen(false);
+  };
+
+  const handleNewRegistration = () => {
+    setFormData({ employerId: '', employerName: '', employerPosition: '' });
+    setIsModalOpen(true);
+    setIsCameraOpen(false);
+    setScanResult(null);
+    setIsScanning(false);
+  };
+
   return (
     <Layout>
+      {/* Employer Info Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative w-full max-w-md bg-white dark:bg-[#0A0A0A] rounded-[2rem] border border-gray-100 dark:border-white/10 shadow-2xl overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_0%,_rgba(0,137,192,0.08)_0%,_transparent_50%)] pointer-events-none" />
+            
+            <div className="relative p-8 md:p-10">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="p-4 rounded-2xl bg-[#0089C0]/10 border border-[#0089C0]/20">
+                  <ScanLine className="w-6 h-6 text-[#0089C0]" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black tracking-tight text-foreground">New Registration</h2>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mt-1">
+                    Enter employer details to begin
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                    <Hash className="w-3 h-3" />
+                    Employer ID
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.employerId}
+                      onChange={(e) => handleFormChange('employerId', e.target.value)}
+                      placeholder="Enter employer ID"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-3.5 px-4 pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-sm font-bold text-primary dark:text-white placeholder:text-gray-400"
+                    />
+                    <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                    <User className="w-3 h-3" />
+                    Employer Name
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.employerName}
+                      onChange={(e) => handleFormChange('employerName', e.target.value)}
+                      placeholder="Enter full name"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-3.5 px-4 pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-sm font-bold text-primary dark:text-white placeholder:text-gray-400"
+                    />
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                    <Briefcase className="w-3 h-3" />
+                    Position
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.employerPosition}
+                      onChange={(e) => handleFormChange('employerPosition', e.target.value)}
+                      placeholder="Enter position"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-3.5 px-4 pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-sm font-bold text-primary dark:text-white placeholder:text-gray-400"
+                    />
+                    <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 mt-8">
+                <button
+                  onClick={handleCancel}
+                  className="flex-1 py-3.5 rounded-2xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-foreground text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleStartRegistration}
+                  disabled={!formData.employerId || !formData.employerName || !formData.employerPosition}
+                  className="flex-1 py-3.5 rounded-2xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[11px] font-black uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <ScanFace className="w-4 h-4" />
+                  Start Scanner
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-8 w-full max-w-7xl animate-in fade-in duration-500 ease-out pb-10">
         <header className="flex flex-wrap items-end justify-between gap-6">
-          <div className="space-y-2">
-            <h1 className="text-4xl font-black tracking-tighter text-foreground">Employer Registration</h1>
-            <p className="text-muted-foreground text-xs font-bold uppercase tracking-[0.2em] leading-none opacity-80">
-              Facial recognition registration for employers
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-black tracking-tighter text-foreground">Employer Registration</h1>
+              <p className="text-muted-foreground text-xs font-bold uppercase tracking-[0.2em] leading-none opacity-80">
+                Facial recognition registration for employers
+              </p>
+            </div>
+            {!isModalOpen && !isCameraOpen && (
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="px-5 py-3 rounded-2xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all flex items-center gap-2"
+              >
+                <UserCheck className="w-4 h-4" />
+                New Registration
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
@@ -123,20 +276,35 @@ const EmployerRegistrationPage = () => {
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/70 mt-2">
                       Position the employer's face inside the frame
                     </p>
+                    <div className="flex items-center gap-3 mt-4 px-4 py-2.5 rounded-2xl bg-[#0089C0]/5 border border-[#0089C0]/20">
+                      <User className="w-4 h-4 text-[#0089C0]" />
+                      <span className="text-xs font-bold text-foreground">{formData.employerName}</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">|</span>
+                      <span className="text-[10px] font-bold text-muted-foreground">{formData.employerPosition}</span>
+                    </div>
                   </div>
 
                   <button
                     onClick={toggleCamera}
                     className={cn(
-                      "flex items-center gap-2 px-4 py-2.5 rounded-2xl border transition-all",
+                      "relative w-14 h-8 rounded-full transition-all duration-300",
                       isCameraOpen
-                        ? "bg-red-500/10 border-red-500/20 text-red-500 hover:bg-red-500/20"
-                        : "bg-blue-50 dark:bg-white/5 border-blue-100 dark:border-white/10 text-[#0089C0] dark:text-white hover:bg-blue-100 dark:hover:bg-white/10"
+                        ? "bg-red-500"
+                        : "bg-gray-200 dark:bg-white/10"
                     )}
+                    aria-label={isCameraOpen ? "Close camera" : "Open camera"}
                   >
-                    {isCameraOpen ? <X className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
-                    <span className="text-[10px] font-black uppercase tracking-widest">
-                      {isCameraOpen ? 'Close Camera' : 'Turn On Camera'}
+                    <span
+                      className={cn(
+                        "absolute top-1 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center transition-all duration-300",
+                        isCameraOpen ? "left-7" : "left-1"
+                      )}
+                    >
+                      {isCameraOpen ? (
+                        <VideoOff className="w-3 h-3 text-red-500" />
+                      ) : (
+                        <Camera className="w-3 h-3 text-[#0089C0]" />
+                      )}
                     </span>
                   </button>
                 </div>
@@ -170,9 +338,18 @@ const EmployerRegistrationPage = () => {
                       {/* Register Button Overlay */}
                       <div className="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black/80 to-transparent flex flex-col items-center justify-end z-20">
                         {scanResult === 'success' ? (
-                          <div className="bg-green-500/90 text-white px-6 py-3 rounded-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom flex-shrink-0">
-                            <UserCheck className="w-5 h-5" />
-                            <span className="font-bold tracking-tight text-sm">Employer Registered Successfully!</span>
+                          <div className="flex flex-col items-center gap-3 animate-in fade-in slide-in-from-bottom">
+                            <div className="bg-green-500/90 text-white px-6 py-3 rounded-2xl flex items-center gap-2">
+                              <UserCheck className="w-5 h-5" />
+                              <span className="font-bold tracking-tight text-sm">Employer Registered Successfully!</span>
+                            </div>
+                            <button
+                              onClick={handleNewRegistration}
+                              className="px-6 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                            >
+                              <UserCheck className="w-3.5 h-3.5" />
+                              New Registration
+                            </button>
                           </div>
                         ) : (
                           <button
@@ -271,7 +448,7 @@ const EmployerRegistrationPage = () => {
                             Facial Recognition Registration
                           </div>
                           <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mt-0.5">
-                            {record.employerName} &middot; {record.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                            {record.employerName} &middot; {record.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
                           </div>
                         </div>
                       </div>
