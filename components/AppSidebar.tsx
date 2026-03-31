@@ -34,11 +34,6 @@ const sidebarItems: NavItem[] = [
     name: 'Activities', 
     icon: Clock, 
     href: '#', 
-    hasSub: true,
-    subItems: [
-      { name: 'Attendance', href: '/admin/adminDashboard' },
-      { name: 'Leave', href: '#', badge: '02' }
-    ]
   },
   { name: 'Register', icon: ScanFace, href: '/admin/employerRegistration' },
 ];
@@ -112,7 +107,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className={cn(
-              "flex items-center justify-center p-1.5 text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-white transition-colors z-[60]",
+              "flex items-center justify-center p-1.5 text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-white transition-colors z-[60] cursor-pointer",
               "hover:bg-gray-50 dark:hover:bg-white/5 rounded-lg"
             )}
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -144,7 +139,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                 <button 
                   onClick={() => handleNavClick(item)}
                   className={cn(
-                    "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-300 group text-sm relative",
+                    "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-300 group text-sm relative cursor-pointer",
                     isActive 
                       ? "bg-secondary text-white shadow-lg shadow-secondary/20" 
                       : "text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-primary dark:hover:text-white"
@@ -171,7 +166,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                         key={sub.name}
                         href={sub.href}
                         className={cn(
-                          "flex items-center justify-between py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors",
+                          "flex items-center justify-between py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer",
                           pathname === sub.href ? "text-secondary" : "text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-white"
                         )}
                       >
@@ -193,7 +188,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
         <div className={cn("mt-auto shrink-0 space-y-3 p-2 pt-3 border-t border-gray-100 dark:border-white/5 bg-white dark:bg-black", isCollapsed && "px-0 items-center")}>
           <div className="space-y-0.5">
             {bottomItems.map((item) => (
-              <button key={item.name} className={cn("w-full flex items-center gap-2.5 p-2.5 text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-white transition-all rounded-lg", isCollapsed && "justify-center px-0")}>
+              <button key={item.name} className={cn("w-full flex items-center gap-2.5 p-2.5 text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-white transition-all rounded-lg cursor-pointer", isCollapsed && "justify-center px-0")}>
                 <item.icon className="w-4 h-4" />
                 {!isCollapsed && <span>{item.name}</span>}
               </button>
@@ -207,7 +202,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
             <button 
               onClick={() => toggleTheme('light')}
               className={cn(
-                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md",
+                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
                 theme === 'light' ? "bg-white text-primary shadow-sm ring-1 ring-gray-100" : "text-gray-400 hover:text-primary"
               )}
               title="Light Mode"
@@ -218,7 +213,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
             <button 
               onClick={() => toggleTheme('dark')}
               className={cn(
-                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md",
+                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
                 theme === 'dark' ? "bg-black dark:bg-white/10 text-white shadow-sm ring-1 ring-white/10" : "text-gray-500 hover:text-white"
               )}
               title="Dark Mode"
@@ -238,7 +233,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
         <div className="relative flex items-center justify-between px-4 pt-4 pb-3">
           <button
             onClick={() => setIsMobileOpen?.(false)}
-            className="p-1.5 text-gray-400 hover:text-primary transition-colors"
+            className="p-1.5 text-gray-400 hover:text-primary transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -261,7 +256,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                 <button 
                   onClick={() => handleNavClick(item)}
                   className={cn(
-                    "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-300 group text-sm relative",
+                    "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-300 group text-sm relative cursor-pointer",
                     isActive 
                       ? "bg-secondary text-white shadow-lg shadow-secondary/20" 
                       : "text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-primary dark:hover:text-white"
@@ -285,7 +280,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                         href={sub.href}
                         onClick={() => setIsMobileOpen?.(false)}
                         className={cn(
-                          "flex items-center justify-between py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors",
+                          "flex items-center justify-between py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer",
                           pathname === sub.href ? "text-secondary" : "text-gray-400 dark:text-gray-600 hover:text-primary"
                         )}
                       >
@@ -307,7 +302,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
         <div className="shrink-0 space-y-3 p-2 pt-3 border-t border-gray-100 dark:border-white/5 bg-white dark:bg-black">
           <div className="space-y-0.5">
             {bottomItems.map((item) => (
-              <button key={item.name} className="w-full flex items-center gap-2.5 p-2.5 text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-white transition-all rounded-lg">
+              <button key={item.name} className="w-full flex items-center gap-2.5 p-2.5 text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-white transition-all rounded-lg cursor-pointer">
                 <item.icon className="w-4 h-4" />
                 <span>{item.name}</span>
               </button>
@@ -318,7 +313,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
             <button 
               onClick={() => toggleTheme('light')}
               className={cn(
-                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md",
+                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
                 theme === 'light' ? "bg-white text-primary shadow-sm ring-1 ring-gray-100" : "text-gray-400 hover:text-primary"
               )}
             >
@@ -328,7 +323,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
             <button 
               onClick={() => toggleTheme('dark')}
               className={cn(
-                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md",
+                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
                 theme === 'dark' ? "bg-black dark:bg-white/10 text-white shadow-sm ring-1 ring-white/10" : "text-gray-500 hover:text-white"
               )}
             >
