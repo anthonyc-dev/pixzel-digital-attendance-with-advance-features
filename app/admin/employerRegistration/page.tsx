@@ -3,8 +3,8 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import { cn } from '@/lib/utils';
-import { Clock, History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, Hash, ScanLine } from 'lucide-react';
-import Webcam from 'react-webcam';
+import { Clock, History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, Hash, ScanLine, AlertCircle, Loader2 } from 'lucide-react';
+import * as faceapi from 'face-api.js';
 
 // Registration history type
 type RegistrationHistory = {
@@ -12,6 +12,7 @@ type RegistrationHistory = {
   employerName: string;
   timestamp: Date;
   status: 'success' | 'failed';
+  imageSrc?: string;
 };
 
 type EmployerForm = {
@@ -21,11 +22,14 @@ type EmployerForm = {
 };
 
 const EmployerRegistrationPage = () => {
-  const [now, setNow] = useState<Date>(() => new Date());
+  const [now, setNow] = useState<Date | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<'success' | 'error' | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(true);
+  const [isModelLoading, setIsModelLoading] = useState(true);
+  const [modelError, setModelError] = useState<string | null>(null);
+  const [detectedFaces, setDetectedFaces] = useState<number>(0);
   const [formData, setFormData] = useState<EmployerForm>({
     employerId: '',
     employerName: '',
@@ -39,14 +43,210 @@ const EmployerRegistrationPage = () => {
     { id: '3', employerName: 'Carlos Reyes', timestamp: new Date(new Date().setHours(10, 45, 0, 0)), status: 'success' },
   ]);
 
-  const webcamRef = useRef<Webcam>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load face-api.js models
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        setIsModelLoading(true);
+        setModelError(null);
+
+        const MODEL_URL = '/models';
+
+        // Only load TinyFaceDetector for simplicity
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+
+        setIsModelLoading(false);
+      } catch (error) {
+        console.error('Failed to load face-api models:', error);
+        setModelError('Using basic camera mode. Face detection unavailable.');
+        setIsModelLoading(false);
+      }
+    };
+
+    loadModels();
+
+    return () => {
+      if (detectionIntervalRef.current) {
+        clearInterval(detectionIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Start camera
+  const startCamera = useCallback(async () => {
+    if (isModelLoading) return;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: 'user'
+        }
+      });
+
+      streamRef.current = stream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+
+        // Wait for video to be ready
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play().then(() => {
+              // Small delay to let video dimensions settle
+              setTimeout(() => startDetection(), 500);
+            }).catch(err => console.error("Video play error:", err));
+          }
+        };
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      setModelError('Camera access denied or unavailable');
+      setIsCameraOpen(false);
+    }
+  }, [isModelLoading]);
+
+  // Stop camera
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (detectionIntervalRef.current) {
+      clearInterval(detectionIntervalRef.current);
+      detectionIntervalRef.current = null;
+    }
+    setDetectedFaces(0);
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  }, []);
+
+  // Start face detection
+  const startDetection = useCallback(() => {
+    if (detectionIntervalRef.current) {
+      clearInterval(detectionIntervalRef.current);
+    }
+
+    let warmUpCount = 0;
+    const maxWarmUp = 5;
+
+    detectionIntervalRef.current = setInterval(async () => {
+      if (!videoRef.current || !canvasRef.current) return;
+
+      // Check if video has valid dimensions
+      const videoWidth = videoRef.current.videoWidth;
+      const videoHeight = videoRef.current.videoHeight;
+
+      if (!videoWidth || !videoHeight || videoRef.current.readyState < 2) {
+        warmUpCount++;
+        if (warmUpCount <= maxWarmUp) {
+          console.log(`Warming up... ${warmUpCount}/${maxWarmUp}`);
+        }
+        return;
+      }
+
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+
+      canvas.width = videoWidth;
+      canvas.height = videoHeight;
+
+      try {
+        const detections = await faceapi.detectAllFaces(
+          video,
+          new faceapi.TinyFaceDetectorOptions({
+            inputSize: 320,
+            scoreThreshold: 0.5
+          })
+        );
+
+        setDetectedFaces(detections.length);
+
+        // Draw detections
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          // Draw face boxes
+          detections.forEach((detection) => {
+            const box = detection.box;
+
+            // Draw face box with glow
+            ctx.shadowColor = '#0089C0';
+            ctx.shadowBlur = 20;
+            ctx.strokeStyle = '#0089C0';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+            // Draw corner accents
+            const cornerSize = Math.max(15, Math.min(box.width, box.height) * 0.1);
+            ctx.shadowBlur = 0;
+            ctx.lineWidth = 4;
+
+            // Top-left corner
+            ctx.beginPath();
+            ctx.moveTo(box.x, box.y + cornerSize);
+            ctx.lineTo(box.x, box.y);
+            ctx.lineTo(box.x + cornerSize, box.y);
+            ctx.stroke();
+
+            // Top-right corner
+            ctx.beginPath();
+            ctx.moveTo(box.x + box.width - cornerSize, box.y);
+            ctx.lineTo(box.x + box.width, box.y);
+            ctx.lineTo(box.x + box.width, box.y + cornerSize);
+            ctx.stroke();
+
+            // Bottom-left corner
+            ctx.beginPath();
+            ctx.moveTo(box.x, box.y + box.height - cornerSize);
+            ctx.lineTo(box.x, box.y + box.height);
+            ctx.lineTo(box.x + cornerSize, box.y + box.height);
+            ctx.stroke();
+
+            // Bottom-right corner
+            ctx.beginPath();
+            ctx.moveTo(box.x + box.width - cornerSize, box.y + box.height);
+            ctx.lineTo(box.x + box.width, box.y + box.height);
+            ctx.lineTo(box.x + box.width, box.y + box.height - cornerSize);
+            ctx.stroke();
+          });
+        }
+      } catch (error) {
+        console.error('Detection error:', error);
+      }
+    }, 200);
+  }, []);
+
+  // Effect to handle camera lifecycle
+  useEffect(() => {
+    if (isCameraOpen) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+
+    return () => {
+      stopCamera();
+    };
+  }, [isCameraOpen, startCamera, stopCamera]);
 
   useEffect(() => {
+    setNow(new Date());
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
 
   const formatted = useMemo(() => {
+    if (!now) return { time: '--:--:--', date: 'Loading...' };
+
     const time = now.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
@@ -65,14 +265,22 @@ const EmployerRegistrationPage = () => {
   }, [now]);
 
   const captureAndRegister = useCallback(() => {
-    if (!webcamRef.current) return;
+    if (!videoRef.current || detectedFaces === 0) return;
 
-    const imageSrc = webcamRef.current.getScreenshot();
-    if (imageSrc) {
+    const video = videoRef.current;
+
+    // Create canvas from video
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(video, 0, 0);
+      const imageSrc = canvas.toDataURL('image/jpeg');
+
       setIsScanning(true);
       setScanResult(null);
 
-      // Simulate API call
       setTimeout(() => {
         setIsScanning(false);
         setScanResult('success');
@@ -82,18 +290,18 @@ const EmployerRegistrationPage = () => {
           employerName: formData.employerName,
           timestamp: new Date(),
           status: 'success',
+          imageSrc: imageSrc,
         };
 
-        // Create JSON format for static register
         const staticRegisterJson = {
           id: newRecord.id,
           employerName: newRecord.employerName,
           employerPosition: formData.employerPosition,
           timestamp: newRecord.timestamp.toISOString(),
           status: newRecord.status,
+          faceDetected: true,
           image: imageSrc,
         };
-        // Console log the JSON
         console.log('Static Register JSON:', JSON.stringify(staticRegisterJson, null, 2));
 
         setHistory(prev => [newRecord, ...prev]);
@@ -101,10 +309,14 @@ const EmployerRegistrationPage = () => {
         setTimeout(() => setScanResult(null), 3000);
       }, 1500);
     }
-  }, [webcamRef, formData]);
+  }, [detectedFaces, formData]);
 
   const toggleCamera = () => {
-    setIsCameraOpen(!isCameraOpen);
+    if (isCameraOpen) {
+      stopCamera();
+    } else {
+      startCamera();
+    }
     setScanResult(null);
     setIsScanning(false);
   };
@@ -141,7 +353,7 @@ const EmployerRegistrationPage = () => {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div className="relative w-full max-w-sm sm:max-w-md bg-white dark:bg-[#0A0A0A] rounded-2xl sm:rounded-[2rem] border border-gray-100 dark:border-white/10 shadow-2xl overflow-hidden">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_0%,_rgba(0,137,192,0.08)_0%,_transparent_50%)] pointer-events-none" />
-            
+
             <div className="relative p-5 sm:p-6 md:p-8">
               <div className="flex items-center gap-3 mb-5 sm:mb-6">
                 <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-[#0089C0]/10 border border-[#0089C0]/20">
@@ -254,7 +466,7 @@ const EmployerRegistrationPage = () => {
               <div className="flex items-center gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-600">
                 <Clock className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
                 <span className="hidden sm:block">{formatted.date}</span>
-                <span className="sm:hidden">{now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                <span className="sm:hidden">{now ? now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--'}</span>
               </div>
               <div className="text-lg sm:text-xl md:text-2xl font-black tracking-tight text-foreground tabular-nums mt-0.5">{formatted.time}</div>
             </div>
@@ -273,7 +485,7 @@ const EmployerRegistrationPage = () => {
                     <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground">Registration Station</div>
                     <h2 className="text-lg sm:text-xl md:text-2xl font-black tracking-tight text-foreground mt-1 sm:mt-2">Facial Recognition</h2>
                     <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/70 mt-1 sm:mt-2">
-                      Position the employer's face inside the frame
+                      Position the employer&apos;s face inside the frame
                     </p>
                     <div className="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-[#0089C0]/5 border border-[#0089C0]/20">
                       <User className="w-3 sm:w-4 h-3 sm:h-4 text-[#0089C0]" />
@@ -311,19 +523,69 @@ const EmployerRegistrationPage = () => {
                 <div className="flex-1 flex flex-col items-center justify-center relative w-full min-h-[250px] sm:min-h-[300px] md:min-h-[350px]">
                   {isCameraOpen ? (
                     <div className="relative w-full h-full max-w-xl sm:max-w-2xl bg-black rounded-xl sm:rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl group flex flex-col justify-center items-center">
-                      <Webcam
-                        audio={false}
-                        ref={webcamRef}
-                        screenshotFormat="image/jpeg"
-                        videoConstraints={{ facingMode: "user" }}
-                        className={cn("absolute inset-0 w-full h-full object-cover transition-opacity duration-300",
+                      {/* Video Element */}
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className={cn(
+                          "absolute inset-0 w-full h-full object-cover transition-opacity duration-300",
                           isScanning ? "opacity-50 blur-sm" : "opacity-100"
                         )}
                       />
 
+                      {/* Canvas for face detection overlay */}
+                      <canvas
+                        ref={canvasRef}
+                        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                      />
+
+                      {/* Face Detection Status */}
+                      <div className="absolute top-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-b from-black/60 to-transparent z-10">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className={cn(
+                            "flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all",
+                            detectedFaces > 0
+                              ? "bg-green-500/80 text-white"
+                              : isModelLoading
+                                ? "bg-yellow-500/80 text-white"
+                                : "bg-[#0089C0]/60 text-white"
+                          )}>
+                            {isModelLoading ? (
+                              <>
+                                <Loader2 className="w-3 sm:w-4 h-3 sm:h-4 animate-spin" />
+                                <span>Loading AI Model...</span>
+                              </>
+                            ) : detectedFaces > 0 ? (
+                              <>
+                                <CheckCircle className="w-3 sm:w-4 h-3 sm:h-4" />
+                                <span>{detectedFaces} Face{detectedFaces > 1 ? 's' : ''} Detected</span>
+                              </>
+                            ) : (
+                              <>
+                                <AlertCircle className="w-3 sm:w-4 h-3 sm:h-4" />
+                                <span>Look at Camera</span>
+                              </>
+                            )}
+                          </div>
+
+                          {modelError && (
+                            <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-red-500/80 text-white text-[10px] sm:text-xs font-black uppercase tracking-widest">
+                              <AlertCircle className="w-3 sm:w-4 h-3 sm:h-4" />
+                              <span className="hidden sm:inline">{modelError}</span>
+                              <span className="sm:hidden">Error</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
                       {/* Scanning Overlay Viewfinder */}
                       <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                        <div className="relative w-48 sm:w-64 md:w-80 h-48 sm:h-64 md:h-80 border-y-2 border-[#0089C0]/50 bg-[#0089C0]/10">
+                        <div className={cn(
+                          "relative w-48 sm:w-64 md:w-80 h-48 sm:h-64 md:h-80 border-y-2 border-[#0089C0]/50 bg-[#0089C0]/10",
+                          detectedFaces === 0 && isCameraOpen && "animate-pulse-subtle"
+                        )}>
                           <div className="absolute top-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-l-4 border-[#0089C0] rounded-tl-2xl sm:rounded-tl-3xl -mt-0.5 -ml-0.5" />
                           <div className="absolute top-0 right-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-r-4 border-[#0089C0] rounded-tr-2xl sm:rounded-tr-3xl -mt-0.5 -mr-0.5" />
                           <div className="absolute bottom-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-b-4 border-l-4 border-[#0089C0] rounded-bl-2xl sm:rounded-bl-3xl -mb-0.5 -ml-0.5" />
@@ -352,12 +614,12 @@ const EmployerRegistrationPage = () => {
                           </div>
                         ) : (
                           <button
-                            disabled={isScanning}
+                            disabled={isScanning || detectedFaces === 0}
                             onClick={captureAndRegister}
                             className="px-6 sm:px-10 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[10px] sm:text-[11px] font-black uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-1.5 sm:gap-2 cursor-pointer"
                           >
                             <ScanFace className="w-3 sm:w-4 h-3 sm:h-4" />
-                            {isScanning ? 'Scanning...' : 'Register Face'}
+                            {isScanning ? 'Scanning...' : detectedFaces === 0 ? 'Position Face in Frame' : 'Register Face'}
                           </button>
                         )}
                       </div>
@@ -365,26 +627,34 @@ const EmployerRegistrationPage = () => {
                   ) : (
                     <button
                       onClick={toggleCamera}
+                      disabled={isModelLoading}
                       className={cn(
                         "group relative w-full h-full max-w-xl sm:max-w-2xl",
                         "rounded-xl sm:rounded-[2rem] p-6 sm:p-10 md:p-14",
                         "bg-[#0089C0]/5 border-2 border-[#0089C0]/20 border-dashed",
                         "hover:bg-[#0089C0]/10 hover:border-[#0089C0]/40 hover:border-solid",
                         "active:scale-[0.99]",
-                        "transition-all duration-300 overflow-hidden flex flex-col items-center justify-center cursor-pointer"
+                        "transition-all duration-300 overflow-hidden flex flex-col items-center justify-center cursor-pointer",
+                        isModelLoading && "opacity-50 cursor-not-allowed"
                       )}
                     >
                       <div className="absolute -top-16 sm:-top-24 -right-16 sm:-right-24 w-48 sm:w-72 h-48 sm:h-72 bg-[#0089C0]/10 rounded-full blur-[30px] sm:blur-[40px]" />
                       <div className="absolute -bottom-16 sm:-bottom-24 -left-16 sm:-left-24 w-48 sm:w-72 h-48 sm:h-72 bg-[#0089C0]/5 rounded-full blur-[30px] sm:blur-[40px]" />
 
                       <div className="w-16 sm:w-20 md:w-24 h-16 sm:h-20 md:h-24 rounded-xl sm:rounded-[2rem] bg-white dark:bg-[#0089C0]/10 shadow-xl border border-white/20 dark:border-[#0089C0]/20 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform duration-300 mb-4 sm:mb-6 relative z-10">
-                        <VideoOff className="w-8 sm:w-10 md:w-12 h-8 sm:w-10 md:h-12 text-[#0089C0]/60 dark:text-[#0089C0]" />
+                        {isModelLoading ? (
+                          <Loader2 className="w-8 sm:w-10 md:w-12 h-8 sm:w-10 md:h-12 text-[#0089C0]/60 dark:text-[#0089C0] animate-spin" />
+                        ) : (
+                          <VideoOff className="w-8 sm:w-10 md:w-12 h-8 sm:w-10 md:h-12 text-[#0089C0]/60 dark:text-[#0089C0]" />
+                        )}
                       </div>
 
                       <div className="relative z-10 text-center">
-                        <div className="text-lg sm:text-xl md:text-2xl font-black tracking-tighter text-[#0089C0]/80 dark:text-white/90">Camera is Inactive</div>
+                        <div className="text-lg sm:text-xl md:text-2xl font-black tracking-tighter text-[#0089C0]/80 dark:text-white/90">
+                          {isModelLoading ? "Loading AI Model..." : "Camera is Inactive"}
+                        </div>
                         <div className="mt-1 sm:mt-2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] text-[#0089C0]/60 dark:text-white/50">
-                          Click to enable scanner
+                          {isModelLoading ? "Please wait..." : "Click to enable scanner"}
                         </div>
                       </div>
                     </button>
@@ -392,20 +662,24 @@ const EmployerRegistrationPage = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 mt-4 sm:mt-6 lg:mt-8 pt-4 sm:pt-6 border-t border-gray-100 dark:border-white/10 w-full flex-shrink-0">
-                  <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center">
-                    Scanner Status
-                    {isCameraOpen ? (
-                      <span className="ml-2 sm:ml-3 flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">
+                  <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center flex-wrap gap-2">
+                    <span>Scanner Status</span>
+                    {isModelLoading ? (
+                      <span className="flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20">
+                        <Loader2 className="w-2 sm:w-2.5 h-2 sm:h-2.5 animate-spin" /> Loading AI
+                      </span>
+                    ) : isCameraOpen ? (
+                      <span className="flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">
                         <span className="w-1 sm:w-1.5 h-1 sm:h-1.5 rounded-full bg-green-500 animate-pulse" /> Active
                       </span>
                     ) : (
-                      <span className="ml-2 sm:ml-3 flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg bg-gray-500/10 text-gray-500 dark:text-gray-400 border border-gray-500/20">
+                      <span className="flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg bg-gray-500/10 text-gray-500 dark:text-gray-400 border border-gray-500/20">
                         <span className="w-1 sm:w-1.5 h-1 sm:h-1.5 rounded-full bg-gray-500" /> Inactive
                       </span>
                     )}
                   </div>
                   <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 hidden sm:block">
-                    Press Register Face to capture
+                    {isModelLoading ? "Waiting for AI model..." : isCameraOpen ? (detectedFaces > 0 ? "Face detected - Ready to register" : "Position your face in the frame") : "Enable camera to scan"}
                   </div>
                 </div>
               </div>
@@ -439,8 +713,12 @@ const EmployerRegistrationPage = () => {
                       className="p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 flex items-center justify-between gap-2"
                     >
                       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                        <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl border bg-[#0089C0]/10 border-[#0089C0]/20 text-[#0089C0]">
-                          <ScanFace className="w-3 sm:w-4 h-3 sm:h-4" />
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl border bg-[#0089C0]/10 border-[#0089C0]/20 overflow-hidden flex items-center justify-center text-[#0089C0]">
+                          {record.imageSrc ? (
+                            <img src={record.imageSrc} alt="Captured" className="w-full h-full object-cover" />
+                          ) : (
+                            <ScanFace className="w-5 h-5 sm:w-6 sm:h-6" />
+                          )}
                         </div>
                         <div className="min-w-0">
                           <div className="text-xs sm:text-sm font-bold text-foreground truncate">
@@ -464,7 +742,8 @@ const EmployerRegistrationPage = () => {
           </div>
         </section>
       </div>
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes scan {
           0% { top: 0%; transform: translateY(0); }
           50% { top: 100%; transform: translateY(-100%); }
@@ -472,6 +751,13 @@ const EmployerRegistrationPage = () => {
         }
         .animate-scan {
           animation: scan 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+        @keyframes pulse-subtle {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.7; transform: scale(0.98); }
+        }
+        .animate-pulse-subtle {
+          animation: pulse-subtle 2s ease-in-out infinite;
         }
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
