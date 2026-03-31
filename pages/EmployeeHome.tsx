@@ -6,7 +6,21 @@ import { cn } from '@/lib/utils';
 
 const hours = Array.from({ length: 7 }, (_, i) => ({ day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i], date: 29 + i }));
 
-const weeks = [
+interface CalendarEvent {
+  type: string;
+  title?: string;
+  title2?: string;
+  color: string;
+  left: string;
+  width: string;
+  avatar?: string;
+  avatars?: string[];
+  extra?: string;
+  top?: string;
+  active?: boolean;
+}
+
+const weeks: { id: string; date: string; events: CalendarEvent[] }[] = [
   { id: '16', date: 'Jun 2023', events: [
     { type: 'available', title: 'Available', color: 'bg-emerald-50 text-emerald-600 border-emerald-100', left: '60%', width: '35%', avatars: ['https://i.pravatar.cc/150?u=1', 'https://i.pravatar.cc/150?u=2', 'https://i.pravatar.cc/150?u=3'], extra: '+22' }
   ]},
@@ -18,7 +32,7 @@ const weeks = [
   { id: '18', date: 'Jun 2023', events: [
     { type: 'meeting', title: 'Meeting', color: 'bg-blue-50 text-blue-600 border-blue-100', left: '42%', width: '15%', avatars: ['https://i.pravatar.cc/150?u=9', 'https://i.pravatar.cc/150?u=10'] },
     { type: 'available', title: 'Available', color: 'bg-emerald-50 text-emerald-600 border-emerald-100', left: '42%', width: '45%', avatars: ['https://i.pravatar.cc/150?u=11', 'https://i.pravatar.cc/150?u=12'], extra: '+17', top: '45px' },
-    { type: 'available', title: 'Available', color: 'bg-emerald-50 text-emerald-600 border-emerald-100', left: '88%', width: '12%', active: true, title2: 'Available' }
+    { type: 'available', title2: 'Available', color: 'bg-emerald-50 text-emerald-600 border-emerald-100', left: '88%', width: '12%', active: true }
   ]}
 ];
 
