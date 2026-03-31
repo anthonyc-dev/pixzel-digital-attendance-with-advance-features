@@ -10,7 +10,7 @@ import { usePathname } from 'next/navigation';
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
-  const hideQuickSearch = pathname === '/employee/attendance';
+  const hideQuickSearch = pathname === '/employee/attendance' || pathname === '/admin/employerRegistration';
 
   return (
     <div className="flex bg-white dark:bg-black h-screen overflow-hidden text-primary dark:text-white font-sans transition-colors duration-500 selection:bg-secondary/40">
