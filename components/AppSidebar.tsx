@@ -19,7 +19,8 @@ import {
   Moon,
   Sun,
   ShieldCheck,
-  ChevronLeft
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -90,25 +91,38 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean, set
 
   return (
     <aside className={cn(
-      "min-h-screen bg-white dark:bg-black border-r border-gray-100 dark:border-white/5 flex flex-col transition-all duration-500 ease-in-out relative font-sans overflow-hidden",
+      "min-h-screen bg-white dark:bg-black border-r border-gray-100 dark:border-white/5 flex flex-col transition-all duration-500 ease-in-out relative font-sans overflow-visible",
       isCollapsed ? "w-20" : "w-64"
     )}>
-      
-      {/* Collapse Toggle Button */}
-      <button 
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-20 bg-secondary text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg border border-white/20 hover:scale-110 active:scale-95 transition-all z-50 group"
-      >
-        <ChevronLeft className={cn("w-4 h-4 transition-transform duration-500", isCollapsed && "rotate-180")} />
-      </button>
 
-      {/* Header / Logo */}
-      <div className={cn("flex items-center gap-3 mb-10 px-6 pt-8", isCollapsed && "px-0 justify-center")}>
-        <div className="p-2 bg-secondary rounded-xl shadow-lg shadow-secondary/20">
-          <ShieldCheck className="w-6 h-6 text-white" />
-        </div>
+      <div className={cn(
+        "relative flex items-center justify-end px-6 pt-8 pb-6",
+        isCollapsed && "px-4"
+      )}>
+        {/* Collapse Toggle Button */}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className={cn(
+            "flex items-center justify-center p-1 text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-white transition-colors z-[60]",
+            "hover:bg-gray-50 dark:hover:bg-white/5 rounded-lg"
+          )}
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {isCollapsed ? (
+            <ChevronsRight className="w-5 h-5" />
+          ) : (
+            <ChevronsLeft className="w-5 h-5" />
+          )}
+        </button>
+
+        {/* Header / Logo */}
         {!isCollapsed && (
-          <span className="text-2xl font-black tracking-tight text-primary dark:text-white uppercase transition-all duration-300">PIXZEL</span>
+          <div className="absolute left-6 top-8 flex items-center gap-3">
+            <div className="p-2 bg-secondary rounded-xl shadow-lg shadow-secondary/20">
+              <ShieldCheck className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-2xl font-black tracking-tight text-primary dark:text-white uppercase transition-all duration-300">PIXZEL</span>
+          </div>
         )}
       </div>
 
