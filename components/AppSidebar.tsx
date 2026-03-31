@@ -4,22 +4,18 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
-  BarChart3, 
   Calendar, 
-  Building2, 
+  ScanFace,
   Clock, 
-  Briefcase, 
-  DollarSign, 
   Settings, 
-  PlusCircle,
-  ChevronRight,
   ChevronDown,
   LayoutDashboard,
-  LogOut,
   Moon,
   Sun,
   ShieldCheck,
-  ChevronLeft
+  ChevronsLeft,
+  ChevronsRight,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -32,35 +28,33 @@ interface NavItem {
 }
 
 const sidebarItems: NavItem[] = [
-  { name: 'Dashboard', icon: LayoutDashboard, href: '/employee/employeeDashboard' },
-  { name: 'Calendar', icon: Calendar, href: '/employee/employeeHome' },
-  { name: 'Company', icon: Building2, href: '#', hasSub: true, subItems: [{ name: 'Profile', href: '#' }, { name: 'Team', href: '#' }] },
+  { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/adminDashboard' },
+  { name: 'Calendar', icon: Calendar, href: '/admin/adminCalendar' },
   { 
     name: 'Activities', 
     icon: Clock, 
     href: '#', 
-    hasSub: true,
-    subItems: [
-      { name: 'Attendance', href: '/employee/employeeDashboard' },
-      { name: 'Leave', href: '#', badge: '02' }
-    ]
   },
-  { name: 'Job Management', icon: Briefcase, href: '#', hasSub: true, subItems: [{ name: 'Openings', href: '#' }] },
-  { name: 'Payroll', icon: DollarSign, href: '#' },
+  { name: 'Register', icon: ScanFace, href: '/admin/employerRegistration' },
 ];
 
 const bottomItems = [
   { name: 'Settings', icon: Settings, href: '#' },
-  { name: 'Integration', icon: PlusCircle, href: '#' },
 ];
 
-const AppSidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean, setIsCollapsed: (v: boolean) => void }) => {
+interface AppSidebarProps {
+  isCollapsed: boolean;
+  setIsCollapsed: (v: boolean) => void;
+  isMobileOpen?: boolean;
+  setIsMobileOpen?: (v: boolean) => void;
+}
+
+const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen }: AppSidebarProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [openMenus, setOpenMenus] = useState<string[]>(['Activities']);
 
-  // Handle Dark Mode Toggle
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
     if (savedTheme) {
@@ -88,137 +82,258 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean, set
     );
   };
 
+  const handleNavClick = (item: NavItem) => {
+    if (item.hasSub) {
+      toggleMenu(item.name);
+      return;
+    }
+    if (item.href && item.href !== '#') {
+      router.push(item.href);
+      if (setIsMobileOpen) setIsMobileOpen(false);
+    }
+  };
+
   return (
-    <aside className={cn(
-      "min-h-screen bg-white dark:bg-black border-r border-gray-100 dark:border-white/5 flex flex-col transition-all duration-500 ease-in-out relative font-sans overflow-hidden",
-      isCollapsed ? "w-20" : "w-64"
-    )}>
-      
-      {/* Collapse Toggle Button */}
-      <button 
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-20 bg-secondary text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg border border-white/20 hover:scale-110 active:scale-95 transition-all z-50 group"
-      >
-        <ChevronLeft className={cn("w-4 h-4 transition-transform duration-500", isCollapsed && "rotate-180")} />
-      </button>
-
-      {/* Header / Logo */}
-      <div className={cn("flex items-center gap-3 mb-10 px-6 pt-8", isCollapsed && "px-0 justify-center")}>
-        <div className="p-2 bg-secondary rounded-xl shadow-lg shadow-secondary/20">
-          <ShieldCheck className="w-6 h-6 text-white" />
-        </div>
-        {!isCollapsed && (
-          <span className="text-2xl font-black tracking-tight text-primary dark:text-white uppercase transition-all duration-300">PIXZEL</span>
-        )}
-      </div>
-
-      {/* Main Navigation */}
-      <nav className="flex-1 space-y-1 px-4 overflow-y-auto no-scrollbar">
-        {sidebarItems.map((item) => {
-          const isMenuOpen = openMenus.includes(item.name);
-          const isActive = pathname === item.href;
-          
-          return (
-            <div key={item.name} className="space-y-1">
-              <button 
-                onClick={() => {
-                  if (item.hasSub) {
-                    toggleMenu(item.name);
-                    return;
-                  }
-
-                  if (item.href && item.href !== '#') {
-                    router.push(item.href);
-                  }
-                }}
-                className={cn(
-                  "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group text-sm relative",
-                  isActive 
-                    ? "bg-secondary text-white shadow-lg shadow-secondary/20" 
-                    : "text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-primary dark:hover:text-white"
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <item.icon className="w-5 h-5 flex-shrink-0" />
-                  {!isCollapsed && <span className="font-bold tracking-tight">{item.name}</span>}
-                </div>
-                
-                {!isCollapsed && item.hasSub && (
-                  <ChevronDown className={cn("w-4 h-4 opacity-30 transition-transform duration-300", isMenuOpen && "rotate-180")} />
-                )}
-
-                {isCollapsed && isActive && (
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-secondary rounded-l-full" />
-                )}
-              </button>
-              
-              {!isCollapsed && item.subItems && isMenuOpen && (
-                <div className="ml-6 space-y-1 mt-1 border-l border-gray-100 dark:border-white/5 pl-4 py-1 animate-in slide-in-from-top-2 duration-300">
-                  {item.subItems.map((sub) => (
-                    <Link 
-                      key={sub.name}
-                      href={sub.href}
-                      className={cn(
-                        "flex items-center justify-between py-2 text-[11px] font-black uppercase tracking-widest transition-colors",
-                        pathname === sub.href ? "text-secondary" : "text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-white"
-                      )}
-                    >
-                      <span>{sub.name}</span>
-                      {sub.badge && (
-                        <span className="px-2 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-[9px] font-black">
-                          {sub.badge}
-                        </span>
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </nav>
-
-      {/* Bottom Section */}
-      <div className={cn("mt-auto space-y-6 p-4 pt-6 border-t border-gray-100 dark:border-white/5", isCollapsed && "px-0 items-center")}>
-        <div className="space-y-1">
-          {bottomItems.map((item) => (
-            <button key={item.name} className={cn("w-full flex items-center gap-3 p-3 text-sm font-bold text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-white transition-all rounded-xl", isCollapsed && "justify-center px-0")}>
-              <item.icon className="w-5 h-5" />
-              {!isCollapsed && <span>{item.name}</span>}
-            </button>
-          ))}
-        </div>
-
-        {/* Theme Toggler Buttons */}
+    <>
+      {/* Desktop Sidebar */}
+      <aside className={cn(
+        "hidden lg:flex h-screen bg-white dark:bg-black border-r border-gray-100 dark:border-white/5 flex-col transition-all duration-500 ease-in-out relative font-sans overflow-hidden",
+        isCollapsed ? "w-20" : "w-52 xl:w-64"
+      )}>
         <div className={cn(
-          "p-1 bg-gray-50 dark:bg-white/5 rounded-xl flex items-center shadow-inner border border-gray-100 dark:border-white/5 transition-all overflow-hidden",
-          isCollapsed ? "flex-col gap-1 w-fit mx-auto" : "flex-row"
+          "relative flex items-center justify-end px-4 pt-6 pb-4",
+          isCollapsed && "px-2"
         )}>
-          <button 
-            onClick={() => toggleTheme('light')}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
             className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-2 text-[10px] uppercase font-black transition-all rounded-lg",
-              theme === 'light' ? "bg-white text-primary shadow-sm ring-1 ring-gray-100" : "text-gray-400 hover:text-primary"
+              "flex items-center justify-center p-1.5 text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-white transition-colors z-[60] cursor-pointer",
+              "hover:bg-gray-50 dark:hover:bg-white/5 rounded-lg"
             )}
-            title="Light Mode"
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            <Sun className="w-4 h-4" />
-            {!isCollapsed && <span>Light</span>}
-          </button>
-          <button 
-                onClick={() => toggleTheme('dark')}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-2 text-[10px] uppercase font-black transition-all rounded-lg",
-              theme === 'dark' ? "bg-black dark:bg-white/10 text-white shadow-sm ring-1 ring-white/10" : "text-gray-500 hover:text-white"
+            {isCollapsed ? (
+              <ChevronsRight className="w-4 h-4" />
+            ) : (
+              <ChevronsLeft className="w-4 h-4" />
             )}
-            title="Dark Mode"
-          >
-            <Moon className="w-4 h-4" />
-            {!isCollapsed && <span>Dark</span>}
           </button>
+
+          {!isCollapsed && (
+            <div className="absolute left-4 top-6 flex items-center gap-2">
+              <div className="p-1.5 bg-secondary rounded-lg shadow-lg shadow-secondary/20">
+                <ShieldCheck className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-lg font-black tracking-tight text-primary dark:text-white uppercase transition-all duration-300">PIXZEL</span>
+            </div>
+          )}
         </div>
-      </div>
-    </aside>
+
+        <nav className="flex-1 min-h-0 space-y-0.5 px-2 overflow-y-auto no-scrollbar">
+          {sidebarItems.map((item) => {
+            const isMenuOpen = openMenus.includes(item.name);
+            const isActive = pathname === item.href;
+            
+            return (
+              <div key={item.name} className="space-y-0.5">
+                <button 
+                  onClick={() => handleNavClick(item)}
+                  className={cn(
+                    "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-300 group text-sm relative cursor-pointer",
+                    isActive 
+                      ? "bg-secondary text-white shadow-lg shadow-secondary/20" 
+                      : "text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-primary dark:hover:text-white"
+                  )}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <item.icon className="w-4 h-4 flex-shrink-0" />
+                    {!isCollapsed && <span className="font-bold tracking-tight text-xs">{item.name}</span>}
+                  </div>
+                  
+                  {!isCollapsed && item.hasSub && (
+                    <ChevronDown className={cn("w-3 h-3 opacity-30 transition-transform duration-300", isMenuOpen && "rotate-180")} />
+                  )}
+
+                  {isCollapsed && isActive && (
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-secondary rounded-l-full" />
+                  )}
+                </button>
+                
+                {!isCollapsed && item.subItems && isMenuOpen && (
+                  <div className="ml-5 space-y-0.5 mt-0.5 border-l border-gray-100 dark:border-white/5 pl-3 py-0.5 animate-in slide-in-from-top-2 duration-300">
+                    {item.subItems.map((sub) => (
+                      <Link 
+                        key={sub.name}
+                        href={sub.href}
+                        className={cn(
+                          "flex items-center justify-between py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer",
+                          pathname === sub.href ? "text-secondary" : "text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-white"
+                        )}
+                      >
+                        <span>{sub.name}</span>
+                        {sub.badge && (
+                          <span className="px-1.5 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-[8px] font-black">
+                            {sub.badge}
+                          </span>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </nav>
+
+        <div className={cn("mt-auto shrink-0 space-y-3 p-2 pt-3 border-t border-gray-100 dark:border-white/5 bg-white dark:bg-black", isCollapsed && "px-0 items-center")}>
+          <div className="space-y-0.5">
+            {bottomItems.map((item) => (
+              <button key={item.name} className={cn("w-full flex items-center gap-2.5 p-2.5 text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-white transition-all rounded-lg cursor-pointer", isCollapsed && "justify-center px-0")}>
+                <item.icon className="w-4 h-4" />
+                {!isCollapsed && <span>{item.name}</span>}
+              </button>
+            ))}
+          </div>
+
+          <div className={cn(
+            "p-1 bg-gray-50 dark:bg-white/5 rounded-lg flex items-center shadow-inner border border-gray-100 dark:border-white/5 transition-all overflow-hidden",
+            isCollapsed ? "flex-col gap-0.5 w-fit mx-auto" : "flex-row"
+          )}>
+            <button 
+              onClick={() => toggleTheme('light')}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
+                theme === 'light' ? "bg-white text-primary shadow-sm ring-1 ring-gray-100" : "text-gray-400 hover:text-primary"
+              )}
+              title="Light Mode"
+            >
+              <Sun className="w-3 h-3" />
+              {!isCollapsed && <span>Light</span>}
+            </button>
+            <button 
+              onClick={() => toggleTheme('dark')}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
+                theme === 'dark' ? "bg-black dark:bg-white/10 text-white shadow-sm ring-1 ring-white/10" : "text-gray-500 hover:text-white"
+              )}
+              title="Dark Mode"
+            >
+              <Moon className="w-3 h-3" />
+              {!isCollapsed && <span>Dark</span>}
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile Sidebar */}
+      <aside className={cn(
+        "fixed inset-y-0 left-0 z-50 h-screen bg-white dark:bg-black border-r border-gray-100 dark:border-white/5 flex flex-col transition-transform duration-500 ease-in-out font-sans overflow-hidden lg:hidden",
+        isMobileOpen ? "translate-x-0 w-64" : "-translate-x-full w-64"
+      )}>
+        <div className="relative flex items-center justify-between px-4 pt-4 pb-3">
+          <button
+            onClick={() => setIsMobileOpen?.(false)}
+            className="p-1.5 text-gray-400 hover:text-primary transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-secondary rounded-lg shadow-lg shadow-secondary/20">
+              <ShieldCheck className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-lg font-black tracking-tight text-primary dark:text-white uppercase">PIXZEL</span>
+          </div>
+          <div className="w-8" />
+        </div>
+
+        <nav className="flex-1 min-h-0 space-y-0.5 px-2 overflow-y-auto no-scrollbar">
+          {sidebarItems.map((item) => {
+            const isMenuOpen = openMenus.includes(item.name);
+            const isActive = pathname === item.href;
+            
+            return (
+              <div key={item.name} className="space-y-0.5">
+                <button 
+                  onClick={() => handleNavClick(item)}
+                  className={cn(
+                    "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-300 group text-sm relative cursor-pointer",
+                    isActive 
+                      ? "bg-secondary text-white shadow-lg shadow-secondary/20" 
+                      : "text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-primary dark:hover:text-white"
+                  )}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <item.icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="font-bold tracking-tight text-xs">{item.name}</span>
+                  </div>
+                  
+                  {item.hasSub && (
+                    <ChevronDown className={cn("w-3 h-3 opacity-30 transition-transform duration-300", isMenuOpen && "rotate-180")} />
+                  )}
+                </button>
+                
+                {item.subItems && isMenuOpen && (
+                  <div className="ml-5 space-y-0.5 mt-0.5 border-l border-gray-100 dark:border-white/5 pl-3 py-0.5">
+                    {item.subItems.map((sub) => (
+                      <Link 
+                        key={sub.name}
+                        href={sub.href}
+                        onClick={() => setIsMobileOpen?.(false)}
+                        className={cn(
+                          "flex items-center justify-between py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer",
+                          pathname === sub.href ? "text-secondary" : "text-gray-400 dark:text-gray-600 hover:text-primary"
+                        )}
+                      >
+                        <span>{sub.name}</span>
+                        {sub.badge && (
+                          <span className="px-1.5 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-[8px] font-black">
+                            {sub.badge}
+                          </span>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </nav>
+
+        <div className="shrink-0 space-y-3 p-2 pt-3 border-t border-gray-100 dark:border-white/5 bg-white dark:bg-black">
+          <div className="space-y-0.5">
+            {bottomItems.map((item) => (
+              <button key={item.name} className="w-full flex items-center gap-2.5 p-2.5 text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-white transition-all rounded-lg cursor-pointer">
+                <item.icon className="w-4 h-4" />
+                <span>{item.name}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="p-1 bg-gray-50 dark:bg-white/5 rounded-lg flex items-center shadow-inner border border-gray-100 dark:border-white/5">
+            <button 
+              onClick={() => toggleTheme('light')}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
+                theme === 'light' ? "bg-white text-primary shadow-sm ring-1 ring-gray-100" : "text-gray-400 hover:text-primary"
+              )}
+            >
+              <Sun className="w-3 h-3" />
+              <span>Light</span>
+            </button>
+            <button 
+              onClick={() => toggleTheme('dark')}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
+                theme === 'dark' ? "bg-black dark:bg-white/10 text-white shadow-sm ring-1 ring-white/10" : "text-gray-500 hover:text-white"
+              )}
+            >
+              <Moon className="w-3 h-3" />
+              <span>Dark</span>
+            </button>
+          </div>
+        </div>
+      </aside>
+    </>
   );
 };
 
