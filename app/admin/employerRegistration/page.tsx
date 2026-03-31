@@ -99,7 +99,6 @@ const EmployerRegistrationPage = () => {
         videoRef.current.onloadedmetadata = () => {
           if (videoRef.current) {
             videoRef.current.play().then(() => {
-              // Small delay to let video dimensions settle
               setTimeout(() => startDetection(), 500);
             }).catch(err => console.error("Video play error:", err));
           }
