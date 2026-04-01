@@ -47,19 +47,19 @@ const EmployeeHome = () => {
         <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4 md:gap-6">
            <div className="flex items-center gap-1 sm:gap-1.5 p-1 bg-white/5 border border-white/10 rounded-xl sm:rounded-[1.5rem] w-fit shadow-2xl">
               <button className="px-4 sm:px-6 md:px-8 py-2 sm:py-2.5 bg-secondary text-white text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-widest rounded-lg sm:rounded-xl md:rounded-2xl shadow-lg shadow-secondary/40 border border-secondary/50 hover:scale-105 active:scale-95 transition-all">month</button>
-              <button className="px-4 sm:px-6 md:px-8 py-2 sm:py-2.5 text-gray-500 text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-widest hover:text-white transition-colors">week</button>
-              <button className="px-4 sm:px-6 md:px-8 py-2 sm:py-2.5 text-gray-500 text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-widest hover:text-white transition-colors">day</button>
+              <button className="px-4 sm:px-6 md:px-8 py-2 sm:py-2.5 text-gray-600 dark:text-gray-400 text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-widest hover:text-gray-900 dark:hover:text-white transition-colors">week</button>
+              <button className="px-4 sm:px-6 md:px-8 py-2 sm:py-2.5 text-gray-600 dark:text-gray-400 text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-widest hover:text-gray-900 dark:hover:text-white transition-colors">day</button>
            </div>
 
            <div className="flex items-center gap-3 sm:gap-4 md:gap-6">
-              <div className="flex items-center gap-2 sm:gap-3 p-1 bg-white/5 border border-white/10 rounded-xl sm:rounded-[1.5rem] shadow-2xl">
-                 <button className="p-1.5 sm:p-2 md:p-2.5 text-gray-500 hover:text-white transition-colors hover:bg-white/5 rounded-lg sm:rounded-xl group ring-1 ring-inset ring-transparent hover:ring-white/10"><ChevronLeft className="w-4 sm:w-5 h-4 sm:h-5 group-hover:-translate-x-1 transition-transform" /></button>
-                 <div className="flex items-center gap-1.5 sm:gap-3 px-2 sm:px-4">
-                   <CalendarIcon className="w-4 sm:w-5 h-4 sm:h-5 text-secondary animate-pulse" />
-                   <span className="text-xs sm:text-base font-black text-white uppercase tracking-tight">April 2025</span>
-                 </div>
-                 <button className="p-1.5 sm:p-2 md:p-2.5 text-gray-500 hover:text-white transition-colors hover:bg-white/5 rounded-lg sm:rounded-xl group ring-1 ring-inset ring-transparent hover:ring-white/10"><ChevronRight className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" /></button>
-              </div>
+               <div className="flex items-center gap-2 sm:gap-3 p-1 bg-white/5 border border-white/10 rounded-xl sm:rounded-[1.5rem] shadow-2xl">
+                  <button className="p-1.5 sm:p-2 md:p-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors hover:bg-white/5 rounded-lg sm:rounded-xl group ring-1 ring-inset ring-transparent hover:ring-white/10"><ChevronLeft className="w-4 sm:w-5 h-4 sm:h-5 group-hover:-translate-x-1 transition-transform" /></button>
+                  <div className="flex items-center gap-1.5 sm:gap-3 px-2 sm:px-4">
+                    <CalendarIcon className="w-4 sm:w-5 h-4 sm:h-5 text-secondary animate-pulse" />
+                    <span className="text-xs sm:text-base font-black text-gray-900 dark:text-white uppercase tracking-tight">April 2025</span>
+                  </div>
+                  <button className="p-1.5 sm:p-2 md:p-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors hover:bg-white/5 rounded-lg sm:rounded-xl group ring-1 ring-inset ring-transparent hover:ring-white/10"><ChevronRight className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" /></button>
+               </div>
               <button className="p-2.5 sm:p-3 md:p-4 bg-secondary text-white rounded-xl sm:rounded-[1.5rem] shadow-2xl shadow-secondary/40 hover:scale-[1.05] active:scale-[0.95] transition-all border border-secondary/50 group">
                 <UserPlus className="w-4 sm:w-5 md:w-6 h-4 sm:h-5 md:h-6 group-hover:rotate-[360deg] transition-transform duration-1000" />
               </button>

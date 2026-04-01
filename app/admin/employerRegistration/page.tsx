@@ -649,11 +649,11 @@ const EmployerRegistrationPage = () => {
                       </div>
 
                       <div className="relative z-10 text-center">
-                        <div className="text-lg sm:text-xl md:text-2xl font-black tracking-tighter text-[#0089C0]/80 dark:text-white/90">
-                          {isModelLoading ? "Loading AI Model..." : "Camera is Inactive"}
+                        <div className="text-lg sm:text-xl md:text-2xl font-black tracking-tighter text-[#0089C0]">
+                          {isModelLoading ? "Loading AI Model..." : "Enable Scanner"}
                         </div>
-                        <div className="mt-1 sm:mt-2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] text-[#0089C0]/60 dark:text-white/50">
-                          {isModelLoading ? "Please wait..." : "Click to enable scanner"}
+                        <div className="mt-1 sm:mt-2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] text-[#0089C0]/70">
+                          {isModelLoading ? "Please wait..." : "Click to start scanning"}
                         </div>
                       </div>
                     </button>
