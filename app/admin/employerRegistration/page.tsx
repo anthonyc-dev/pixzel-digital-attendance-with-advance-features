@@ -406,7 +406,7 @@ const EmployerRegistrationPage = () => {
                       value={formData.employerId}
                       onChange={(e) => handleFormChange('employerId', e.target.value)}
                       placeholder="Enter employer ID"
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-700"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
                     />
                     <Hash className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
                   </div>
@@ -423,7 +423,7 @@ const EmployerRegistrationPage = () => {
                       value={formData.employerName}
                       onChange={(e) => handleFormChange('employerName', e.target.value)}
                       placeholder="Enter full name"
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-700"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
                     />
                     <User className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
                   </div>
@@ -440,7 +440,7 @@ const EmployerRegistrationPage = () => {
                       value={formData.employerPosition}
                       onChange={(e) => handleFormChange('employerPosition', e.target.value)}
                       placeholder="Enter position"
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-700"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
                     />
                     <Briefcase className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
                   </div>
@@ -498,12 +498,6 @@ const EmployerRegistrationPage = () => {
                     <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/70 mt-1 sm:mt-2">
                       Position the employer&apos;s face inside the frame
                     </p>
-                    <div className="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-[#0089C0]/5 border border-[#0089C0]/20">
-                      <User className="w-3 sm:w-4 h-3 sm:h-4 text-[#0089C0]" />
-                      <span className="text-[10px] sm:text-xs font-bold text-foreground">{formData.employerName}</span>
-                      <span className="hidden sm:block text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">|</span>
-                      <span className="hidden sm:block text-[10px] sm:text-xs font-bold text-muted-foreground">{formData.employerPosition}</span>
-                    </div>
                   </div>
 
                   <button
@@ -545,6 +539,17 @@ const EmployerRegistrationPage = () => {
                           isScanning ? "opacity-50 blur-sm" : "opacity-100"
                         )}
                       />
+
+                      {/* Employer Info Overlay (Top Left) */}
+                      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-30 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-black/40 dark:bg-white/10 backdrop-blur-md border border-white/20 shadow-xl animate-in slide-in-from-left-4 fade-in duration-700">
+                        <div className="p-1.5 rounded-lg bg-[#0089C0]/20 border border-[#0089C0]/30">
+                          <User className="w-3 sm:w-4 h-3 sm:h-4 text-[#0089C0]" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] sm:text-xs font-black text-white leading-none tracking-tight">{formData.employerName}</span>
+                          <span className="text-[8px] sm:text-[9px] font-bold text-white/60 uppercase tracking-widest mt-1">{formData.employerPosition}</span>
+                        </div>
+                      </div>
 
                       {/* Canvas for face detection overlay */}
                       <canvas

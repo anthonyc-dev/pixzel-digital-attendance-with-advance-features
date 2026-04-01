@@ -149,9 +149,9 @@ const AttendancePage = () => {
                         <table className="w-full text-left border-collapse min-w-[800px]">
                             <thead>
                                 <tr className="bg-gray-50 dark:bg-white/[0.03] border-b border-gray-100 dark:border-white/5">
-                                    <th className="p-4 sm:p-5 md:p-7 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-600">Employee Info</th>
+                                    <th className="p-4 sm:p-5 md:p-7 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Employee Info</th>
                                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                                        <th key={day} className="p-4 sm:p-5 md:p-7 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-600 border-l border-gray-100 dark:border-white/5 text-center">{day}</th>
+                                        <th key={day} className="p-4 sm:p-5 md:p-7 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 text-center">{day}</th>
                                     ))}
                                 </tr>
                             </thead>

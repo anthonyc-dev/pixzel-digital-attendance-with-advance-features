@@ -35,8 +35,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plusJakarta.variable} ${dmSerif.variable} ${firaCode.variable} h-full antialiased dark`}
-      style={{ colorScheme: 'dark' }}
+      className={`${plusJakarta.variable} ${dmSerif.variable} ${firaCode.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <TooltipProvider>{children}</TooltipProvider>
