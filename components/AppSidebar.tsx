@@ -14,7 +14,8 @@ import {
   Sun,
   ChevronsLeft,
   ChevronsRight,
-  X
+  X,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -39,6 +40,7 @@ const sidebarItems: NavItem[] = [
 
 const bottomItems = [
   { name: 'Settings', icon: Settings, href: '#' },
+  { name: 'Logout', icon: LogOut, href: '/', isLogout: true },
 ];
 
 interface AppSidebarProps {
@@ -184,7 +186,17 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
         <div className={cn("mt-auto shrink-0 space-y-3 p-2 pt-3 border-t border-gray-100 dark:border-white/5 bg-white dark:bg-black", isCollapsed && "px-0 items-center")}>
           <div className="space-y-0.5">
             {bottomItems.map((item) => (
-              <button key={item.name} className={cn("w-full flex items-center gap-2.5 p-2.5 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all rounded-lg cursor-pointer", isCollapsed && "justify-center px-0")}>
+              <button 
+                key={item.name} 
+                onClick={() => item.isLogout ? router.push(item.href) : undefined}
+                className={cn(
+                  "w-full flex items-center gap-2.5 p-2.5 text-xs font-bold transition-all rounded-lg cursor-pointer",
+                  item.isLogout 
+                    ? "text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10" 
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white",
+                  isCollapsed && "justify-center px-0"
+                )}
+              >
                 <item.icon className="w-4 h-4" />
                 {!isCollapsed && <span>{item.name}</span>}
               </button>
@@ -295,7 +307,21 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
         <div className="shrink-0 space-y-3 p-2 pt-3 border-t border-gray-100 dark:border-white/5 bg-white dark:bg-black">
           <div className="space-y-0.5">
             {bottomItems.map((item) => (
-              <button key={item.name} className="w-full flex items-center gap-2.5 p-2.5 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all rounded-lg cursor-pointer">
+              <button 
+                key={item.name} 
+                onClick={() => {
+                  if (item.isLogout) {
+                    router.push(item.href);
+                    setIsMobileOpen?.(false);
+                  }
+                }}
+                className={cn(
+                  "w-full flex items-center gap-2.5 p-2.5 text-xs font-bold transition-all rounded-lg cursor-pointer",
+                  item.isLogout 
+                    ? "text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10" 
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                )}
+              >
                 <item.icon className="w-4 h-4" />
                 <span>{item.name}</span>
               </button>

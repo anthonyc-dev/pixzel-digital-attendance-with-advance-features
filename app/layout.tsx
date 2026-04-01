@@ -25,6 +25,9 @@ const firaCode = Fira_Code({
 export const metadata: Metadata = {
   title: "PIXZEL - Digital Attendance",
   description: "Facial recognition digital attendance system for employers",
+  icons: {
+    icon: [{ url: "/pixzel.jpg" }],
+  },
 };
 
 export default function RootLayout({
@@ -37,6 +40,22 @@ export default function RootLayout({
       lang="en"
       className={`${plusJakarta.variable} ${dmSerif.variable} ${firaCode.variable} h-full antialiased`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                const theme = localStorage.getItem('theme');
+                if (theme === 'light') {
+                  document.documentElement.classList.remove('dark');
+                } else {
+                  document.documentElement.classList.add('dark');
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
         <TooltipProvider>{children}</TooltipProvider>
       </body>
