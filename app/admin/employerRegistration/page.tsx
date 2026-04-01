@@ -6,6 +6,38 @@ import { cn } from '@/lib/utils';
 import { Clock, History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, Hash, ScanLine, AlertCircle, Loader2 } from 'lucide-react';
 import * as faceapi from 'face-api.js';
 
+const playSuccessSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    
+    const createTone = (frequency: number, startTime: number, duration: number, type: OscillatorType = 'sine', volume: number = 0.3) => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, startTime);
+      
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    };
+    
+    const now = audioContext.currentTime;
+    createTone(523.25, now, 0.15, 'sine', 0.25);
+    createTone(659.25, now + 0.08, 0.15, 'sine', 0.25);
+    createTone(783.99, now + 0.16, 0.2, 'sine', 0.25);
+    createTone(1046.50, now + 0.28, 0.35, 'sine', 0.2);
+  } catch (error) {
+    console.warn('Audio playback failed:', error);
+  }
+};
+
 // Registration history type
 type RegistrationHistory = {
   id: string;
@@ -284,6 +316,7 @@ const EmployerRegistrationPage = () => {
       setTimeout(() => {
         setIsScanning(false);
         setScanResult('success');
+        playSuccessSound();
 
         const newRecord: RegistrationHistory = {
           id: `reg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -312,11 +345,7 @@ const EmployerRegistrationPage = () => {
   }, [detectedFaces, formData]);
 
   const toggleCamera = () => {
-    if (isCameraOpen) {
-      stopCamera();
-    } else {
-      startCamera();
-    }
+    setIsCameraOpen(prev => !prev);
     setScanResult(null);
     setIsScanning(false);
   };
@@ -421,12 +450,7 @@ const EmployerRegistrationPage = () => {
               </div>
 
               <div className="flex items-center gap-2 sm:gap-3 mt-5 sm:mt-6">
-                <button
-                  onClick={handleCancel}
-                  className="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-foreground text-[10px] sm:text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-all cursor-pointer"
-                >
-                  Cancel
-                </button>
+
                 <button
                   onClick={handleStartRegistration}
                   disabled={!formData.employerId || !formData.employerName || !formData.employerPosition}
@@ -435,20 +459,23 @@ const EmployerRegistrationPage = () => {
                   <ScanFace className="w-3 sm:w-4 h-3 sm:h-4" />
                   Start Scanner
                 </button>
+                <button
+                  onClick={handleCancel}
+                  className="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-foreground text-[10px] sm:text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      <div className="flex flex-col gap-4 sm:gap-6 lg:gap-8 w-full max-w-7xl animate-in fade-in duration-500 ease-out pb-4 sm:pb-6 lg:pb-10">
-        <header className="flex flex-wrap items-start sm:items-end justify-between gap-4 sm:gap-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
-            <div className="space-y-1 sm:space-y-2">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter text-foreground">Employer Registration</h1>
-              <p className="text-muted-foreground text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] leading-none opacity-80">
-                Facial recognition registration for employers
-              </p>
+      <div className="flex flex-col gap-2 sm:gap-3 lg:gap-4 w-full max-w-7xl animate-in fade-in duration-500 ease-out pb-4 sm:pb-6 lg:pb-10">
+        <header className="flex flex-wrap items-start sm:items-end justify-between gap-2 sm:gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <div className="space-y-0.5 sm:space-y-1">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tighter text-foreground">Employer Registration</h1>
             </div>
             {!isModalOpen && !isCameraOpen && (
               <button
@@ -461,39 +488,17 @@ const EmployerRegistrationPage = () => {
             )}
           </div>
 
-          <div className="px-3 sm:px-4 py-2.5 sm:py-3 md:py-4 rounded-xl sm:rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 shadow-sm flex items-center justify-between min-w-[200px] sm:min-w-[240px] md:min-w-[280px]">
-            <div>
-              <div className="flex items-center gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-600">
-                <Clock className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
-                <span className="hidden sm:block">{formatted.date}</span>
-                <span className="sm:hidden">{now ? now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--'}</span>
-              </div>
-              <div className="text-lg sm:text-xl md:text-2xl font-black tracking-tight text-foreground tabular-nums mt-0.5">{formatted.time}</div>
-            </div>
-          </div>
+
         </header>
 
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
           {/* LEFT COLUMN: FACIAL RECOGNITION CAPTURE */}
           <div className="lg:col-span-7 xl:col-span-8 flex flex-col min-h-[500px] sm:min-h-[600px] lg:min-h-[700px]">
             <div className="relative w-full rounded-2xl sm:rounded-[2rem] lg:rounded-[3rem] overflow-hidden bg-white dark:bg-[#0A0A0A] border border-gray-100 dark:border-white/10 shadow-xl flex-1 flex flex-col">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,_rgba(0,137,192,0.06)_0%,_transparent_55%)] pointer-events-none" />
 
-              <div className="p-4 sm:p-6 md:p-8 lg:p-10 flex flex-col h-full relative z-10 w-full">
-                <div className="flex flex-wrap items-start justify-between gap-4 sm:gap-6 mb-4 sm:mb-6 lg:mb-8 w-full flex-shrink-0">
-                  <div className="w-full sm:w-auto">
-                    <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground">Registration Station</div>
-                    <h2 className="text-lg sm:text-xl md:text-2xl font-black tracking-tight text-foreground mt-1 sm:mt-2">Facial Recognition</h2>
-                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/70 mt-1 sm:mt-2">
-                      Position the employer&apos;s face inside the frame
-                    </p>
-                    <div className="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-[#0089C0]/5 border border-[#0089C0]/20">
-                      <User className="w-3 sm:w-4 h-3 sm:h-4 text-[#0089C0]" />
-                      <span className="text-[10px] sm:text-xs font-bold text-foreground">{formData.employerName}</span>
-                      <span className="hidden sm:block text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">|</span>
-                      <span className="hidden sm:block text-[10px] sm:text-xs font-bold text-muted-foreground">{formData.employerPosition}</span>
-                    </div>
-                  </div>
+              <div className="p-2 sm:p-3 md:p-4 flex flex-col h-full relative z-10 w-full">
+                <div className="flex flex-wrap items-start justify-end gap-2 sm:gap-3 mb-2 sm:mb-3 w-full flex-shrink-0">
 
                   <button
                     onClick={toggleCamera}
@@ -523,7 +528,6 @@ const EmployerRegistrationPage = () => {
                 <div className="flex-1 flex flex-col items-center justify-center relative w-full min-h-[250px] sm:min-h-[300px] md:min-h-[350px]">
                   {isCameraOpen ? (
                     <div className="relative w-full h-full max-w-xl sm:max-w-2xl bg-black rounded-xl sm:rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl group flex flex-col justify-center items-center">
-                      {/* Video Element */}
                       <video
                         ref={videoRef}
                         autoPlay
@@ -534,6 +538,45 @@ const EmployerRegistrationPage = () => {
                           isScanning ? "opacity-50 blur-sm" : "opacity-100"
                         )}
                       />
+
+                      {/* Employer Info Overlay (Top Left) */}
+                      {formData.employerName && (
+                        <div className="absolute top-4 left-4 z-30 animate-in fade-in slide-in-from-left duration-500">
+                          <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-[#0089C0] flex items-center justify-center shadow-lg shadow-[#0089C0]/30">
+                              <User className="w-4 h-4 text-white" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-white/70 leading-none mb-1">Target Identity</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-black text-white tracking-tight">{formData.employerName}</span>
+                                <span className="text-white/30 text-[10px]">|</span>
+                                <span className="text-[10px] font-bold text-[#0089C0]">{formData.employerPosition}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Scanning HUD Elements */}
+                      <div className="absolute inset-0 z-20 pointer-events-none">
+                        {/* Top Right HUD */}
+                        <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
+                          <div className="text-[8px] font-black uppercase tracking-[0.2em] text-[#0089C0]">System Ready</div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#0089C0] animate-pulse" />
+                            <div className="text-[8px] font-mono text-white/50">FR-CAPT-PRTCL-024</div>
+                          </div>
+                        </div>
+
+                        {/* Bottom Left HUD */}
+                        <div className="absolute bottom-20 left-4 flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-[1px] bg-[#0089C0]/50" />
+                            <div className="text-[8px] font-mono text-[#0089C0]">SCAN_COORD_Y_${Math.floor(Math.random() * 100)}</div>
+                          </div>
+                        </div>
+                      </div>
 
                       {/* Canvas for face detection overlay */}
                       <canvas
@@ -581,18 +624,35 @@ const EmployerRegistrationPage = () => {
                       </div>
 
                       {/* Scanning Overlay Viewfinder */}
-                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-20">
                         <div className={cn(
-                          "relative w-48 sm:w-64 md:w-80 h-48 sm:h-64 md:h-80 border-y-2 border-[#0089C0]/50 bg-[#0089C0]/10",
-                          detectedFaces === 0 && isCameraOpen && "animate-pulse-subtle"
+                          "relative w-56 sm:w-72 md:w-80 h-56 sm:h-72 md:h-80 transition-all duration-500",
+                          detectedFaces > 0 ? "scale-105" : "scale-100"
                         )}>
-                          <div className="absolute top-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-l-4 border-[#0089C0] rounded-tl-2xl sm:rounded-tl-3xl -mt-0.5 -ml-0.5" />
-                          <div className="absolute top-0 right-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-r-4 border-[#0089C0] rounded-tr-2xl sm:rounded-tr-3xl -mt-0.5 -mr-0.5" />
-                          <div className="absolute bottom-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-b-4 border-l-4 border-[#0089C0] rounded-bl-2xl sm:rounded-bl-3xl -mb-0.5 -ml-0.5" />
-                          <div className="absolute bottom-0 right-0 w-10 sm:w-12 h-10 sm:h-12 border-b-4 border-r-4 border-[#0089C0] rounded-br-2xl sm:rounded-br-3xl -mb-0.5 -mr-0.5" />
+                          {/* Corner Accents - More High Tech */}
+                          <div className="absolute top-0 left-0 w-12 h-12 border-t-2 border-l-2 border-[#0089C0] rounded-tl-3xl shadow-[0_0_15px_rgba(0,137,192,0.5)]" />
+                          <div className="absolute top-0 right-0 w-12 h-12 border-t-2 border-r-2 border-[#0089C0] rounded-tr-3xl shadow-[0_0_15px_rgba(0,137,192,0.5)]" />
+                          <div className="absolute bottom-0 left-0 w-12 h-12 border-b-2 border-l-2 border-[#0089C0] rounded-bl-3xl shadow-[0_0_15px_rgba(0,137,192,0.5)]" />
+                          <div className="absolute bottom-0 right-0 w-12 h-12 border-b-2 border-r-2 border-[#0089C0] rounded-br-3xl shadow-[0_0_15px_rgba(0,137,192,0.5)]" />
+
+                          {/* Center Crosshair */}
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 opacity-40">
+                            <div className="absolute top-1/2 left-0 w-3 h-[1px] bg-white" />
+                            <div className="absolute top-1/2 right-0 w-3 h-[1px] bg-white" />
+                            <div className="absolute top-0 left-1/2 w-[1px] h-3 bg-white" />
+                            <div className="absolute bottom-0 left-1/2 w-[1px] h-3 bg-white" />
+                          </div>
+
+                          {/* Subtle Digital Grid */}
+                          <div className="absolute inset-4 border border-[#0089C0]/10 rounded-2xl overflow-hidden backdrop-blur-[1px]">
+                            <div className="w-full h-full opacity-10 bg-[linear-gradient(rgba(0,137,192,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(0,137,192,0.1)_1px,transparent_1px)] bg-[size:20px_20px]" />
+                          </div>
                         </div>
-                        {isScanning && (
-                          <div className="absolute left-0 right-0 h-0.5 sm:h-1 bg-[#0089C0] shadow-[0_0_20px_4px_rgba(0,137,192,0.6)] animate-scan top-1/2" />
+                        {(isScanning || detectedFaces > 0) && (
+                          <div className={cn(
+                            "absolute left-0 right-0 h-1 bg-[#0089C0] shadow-[0_0_25px_6px_rgba(0,137,192,0.8)] z-30 transition-all",
+                            isScanning ? "animate-scan-fast" : "animate-scan-slow opacity-30"
+                          )} />
                         )}
                       </div>
 
@@ -695,9 +755,6 @@ const EmployerRegistrationPage = () => {
                 </div>
                 <div>
                   <h3 className="text-sm sm:text-lg font-black tracking-tight text-foreground">Registration History</h3>
-                  <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mt-0.5 sm:mt-1">
-                    Facial recognition logs
-                  </div>
                 </div>
               </div>
 
@@ -749,8 +806,11 @@ const EmployerRegistrationPage = () => {
           50% { top: 100%; transform: translateY(-100%); }
           100% { top: 0%; transform: translateY(0); }
         }
-        .animate-scan {
-          animation: scan 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        .animate-scan-fast {
+          animation: scan 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+        .animate-scan-slow {
+          animation: scan 4s ease-in-out infinite;
         }
         @keyframes pulse-subtle {
           0%, 100% { opacity: 1; transform: scale(1); }
