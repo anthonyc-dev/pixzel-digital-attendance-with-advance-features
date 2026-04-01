@@ -9,25 +9,25 @@ import * as faceapi from 'face-api.js';
 const playSuccessSound = () => {
   try {
     const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-    
+
     const createTone = (frequency: number, startTime: number, duration: number, type: OscillatorType = 'sine', volume: number = 0.25) => {
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
-      
+
       oscillator.type = type;
       oscillator.frequency.setValueAtTime(frequency, startTime);
-      
+
       gainNode.gain.setValueAtTime(0, startTime);
       gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
       gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-      
+
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
-      
+
       oscillator.start(startTime);
       oscillator.stop(startTime + duration);
     };
-    
+
     const now = audioContext.currentTime;
     createTone(523.25, now, 0.15, 'sine', 0.25);
     createTone(659.25, now + 0.08, 0.15, 'sine', 0.25);
@@ -41,6 +41,7 @@ const playSuccessSound = () => {
 // Registration history type
 type RegistrationHistory = {
   id: string;
+  employerId: string;
   employerName: string;
   timestamp: Date;
   status: 'success' | 'failed';
@@ -67,13 +68,37 @@ const EmployerRegistrationPage = () => {
     employerName: '',
     employerPosition: '',
   });
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
-  // Mock registration history
-  const [history, setHistory] = useState<RegistrationHistory[]>([
-    { id: '1', employerName: 'Juan Dela Cruz', timestamp: new Date(new Date().setHours(8, 15, 0, 0)), status: 'success' },
-    { id: '2', employerName: 'Maria Santos', timestamp: new Date(new Date().setHours(9, 30, 0, 0)), status: 'success' },
-    { id: '3', employerName: 'Carlos Reyes', timestamp: new Date(new Date().setHours(10, 45, 0, 0)), status: 'success' },
-  ]);
+  // Registration history
+  const [history, setHistory] = useState<RegistrationHistory[]>([]);
+
+  // Fetch history from API
+  const fetchHistory = async () => {
+    try {
+      const response = await fetch('/api/registration');
+      if (response.ok) {
+        const result = await response.json();
+        const historyWithDates = result.data.map((item: any) => ({
+          id: item.id,
+          employerId: item.employer_id,
+          employerName: item.employer_name,
+          timestamp: new Date(item.created_at),
+          status: 'success',
+          imageSrc: item.image,
+        }));
+        setHistory(historyWithDates.reverse());
+      }
+    } catch (e) {
+      console.error('Failed to fetch history:', e);
+    }
+  };
+
+  // Load history from API on mount
+  useEffect(() => {
+    fetchHistory();
+  }, []);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -294,8 +319,37 @@ const EmployerRegistrationPage = () => {
     return { time, date };
   }, [now]);
 
-  const captureAndRegister = useCallback(() => {
+  const captureAndRegister = useCallback(async () => {
     if (!videoRef.current || detectedFaces === 0) return;
+
+    // Check for duplicate employerId or employerName
+    const isDuplicateId = history.some(record =>
+      record.employerId && record.employerId.toLowerCase() === formData.employerId.toLowerCase()
+    );
+
+    const isDuplicateName = history.some(record =>
+      record.employerName && record.employerName.toLowerCase() === formData.employerName.toLowerCase()
+    );
+
+    if (isDuplicateId) {
+      setScanResult('error');
+      setDuplicateError('Employer ID already exists!');
+      setTimeout(() => {
+        setScanResult(null);
+        setDuplicateError(null);
+      }, 3000);
+      return;
+    }
+
+    if (isDuplicateName) {
+      setScanResult('error');
+      setDuplicateError('Employer name already exists!');
+      setTimeout(() => {
+        setScanResult(null);
+        setDuplicateError(null);
+      }, 3000);
+      return;
+    }
 
     const video = videoRef.current;
 
@@ -311,34 +365,49 @@ const EmployerRegistrationPage = () => {
       setIsScanning(true);
       setScanResult(null);
 
-      setTimeout(() => {
+      //display sa registration history
+      try {
+        const response = await fetch('/api/registration', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            employer_id: formData.employerId,
+            employer_name: formData.employerName,
+            employer_position: formData.employerPosition,
+            face_detected: true,
+            status: 'present',
+            image: imageSrc,
+          }),
+        });
+
+        if (response.ok) {
+          setIsScanning(false);
+          setScanResult('success');
+          playSuccessSound();
+
+          fetchHistory();
+
+          setTimeout(() => {
+            setFormData({ employerId: '', employerName: '', employerPosition: '' });
+            setIsModalOpen(true);
+            setIsCameraOpen(false);
+            setScanResult(null);
+            setIsScanning(false);
+          }, 2000);
+        } else {
+          // Attempt to get error message from API
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Registration failed (Status: ${response.status})`);
+        }
+      } catch (error) {
+        console.error('API Error Details:', error);
         setIsScanning(false);
-        setScanResult('success');
-        playSuccessSound();
-
-        const newRecord: RegistrationHistory = {
-          id: `reg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          employerName: formData.employerName,
-          timestamp: new Date(),
-          status: 'success',
-          imageSrc: imageSrc,
-        };
-
-        const staticRegisterJson = {
-          id: newRecord.id,
-          employerName: newRecord.employerName,
-          employerPosition: formData.employerPosition,
-          timestamp: newRecord.timestamp.toISOString(),
-          status: newRecord.status,
-          faceDetected: true,
-          image: imageSrc,
-        };
-        console.log('Static Register JSON:', JSON.stringify(staticRegisterJson, null, 2));
-
-        setHistory(prev => [newRecord, ...prev]);
-
+        setScanResult('error');
+      } finally {
         setTimeout(() => setScanResult(null), 3000);
-      }, 1500);
+      }
     }
   }, [detectedFaces, formData]);
 
@@ -628,6 +697,13 @@ const EmployerRegistrationPage = () => {
                               New Registration
                             </button>
                           </div>
+                        ) : scanResult === 'error' && duplicateError ? (
+                          <div className="flex flex-col items-center gap-2 sm:gap-3 animate-in fade-in slide-in-from-bottom">
+                            <div className="bg-red-500/90 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl flex items-center gap-2">
+                              <AlertCircle className="w-4 sm:w-5 h-4 sm:h-5" />
+                              <span className="font-bold tracking-tight text-xs sm:text-sm">{duplicateError}</span>
+                            </div>
+                          </div>
                         ) : (
                           <button
                             disabled={isScanning || detectedFaces === 0}
@@ -723,35 +799,45 @@ const EmployerRegistrationPage = () => {
                     No employers registered yet today.
                   </div>
                 ) : (
-                  history.map((record) => (
-                    <div
-                      key={record.id}
-                      className="p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 flex items-center justify-between gap-2"
-                    >
-                      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl border bg-[#0089C0]/10 border-[#0089C0]/20 overflow-hidden flex items-center justify-center text-[#0089C0]">
-                          {record.imageSrc ? (
-                            <img src={record.imageSrc} alt="Captured" className="w-full h-full object-cover" />
-                          ) : (
-                            <ScanFace className="w-5 h-5 sm:w-6 sm:h-6" />
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-xs sm:text-sm font-bold text-foreground truncate">
-                            Facial Recognition
+                  <>
+                    {history.slice(0, showAllHistory ? history.length : 5).map((record) => (
+                      <div
+                        key={record.id}
+                        className="p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 flex items-center justify-between gap-2"
+                      >
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl border bg-[#0089C0]/10 border-[#0089C0]/20 overflow-hidden flex items-center justify-center text-[#0089C0]">
+                            {record.imageSrc ? (
+                              <img src={record.imageSrc} alt="Captured" className="w-full h-full object-cover" />
+                            ) : (
+                              <ScanFace className="w-5 h-5 sm:w-6 sm:h-6" />
+                            )}
                           </div>
-                          <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mt-0.5">
-                            {record.employerName} &middot; {record.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                          <div className="min-w-0">
+                            <div className="text-xs sm:text-sm font-bold text-foreground truncate">
+                              {record.employerName}
+                            </div>
+                            <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mt-0.5">
+                              {record.employerId} &middot; {record.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2.5 py-1 rounded-lg bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 flex-shrink-0">
-                        <CheckCircle className="w-2.5 sm:w-3 h-2.5 sm:h-3" />
-                        <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest hidden sm:block">Registered</span>
+                        <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2.5 py-1 rounded-lg bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 flex-shrink-0">
+                          <CheckCircle className="w-2.5 sm:w-3 h-2.5 sm:h-3" />
+                          <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest hidden sm:block">Registered</span>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                    {history.length > 5 && (
+                      <button
+                        onClick={() => setShowAllHistory(!showAllHistory)}
+                        className="w-full py-2 text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#0089C0] hover:text-[#007aaa] transition-colors text-center"
+                      >
+                        {showAllHistory ? 'Show Less' : `Show More (${history.length - 5})`}
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>

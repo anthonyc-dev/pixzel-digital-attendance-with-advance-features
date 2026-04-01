@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { TooltipProvider } from "@/components/ui/tooltip"
+import Script from "next/script";
 import { Plus_Jakarta_Sans, DM_Serif_Display, Fira_Code } from "next/font/google";
 
 import "./globals.css";
@@ -38,26 +39,21 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plusJakarta.variable} ${dmSerif.variable} ${firaCode.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className={`dark ${plusJakarta.variable} ${dmSerif.variable} ${firaCode.variable} h-full antialiased`}
     >
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                const theme = localStorage.getItem('theme');
-                if (theme === 'light') {
-                  document.documentElement.classList.remove('dark');
-                } else {
-                  document.documentElement.classList.add('dark');
-                }
-              })();
-            `,
-          }}
-        />
-      </head>
       <body className="min-h-full flex flex-col">
         <TooltipProvider>{children}</TooltipProvider>
+        <Script id="theme-script" strategy="beforeInteractive">{`
+          (function() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'light') {
+              document.documentElement.classList.remove('dark');
+            } else {
+              document.documentElement.classList.add('dark');
+            }
+          })();
+        `}</Script>
       </body>
     </html>
   );
