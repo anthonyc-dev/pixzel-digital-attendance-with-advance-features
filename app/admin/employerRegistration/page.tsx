@@ -3,8 +3,40 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import { cn } from '@/lib/utils';
-import { Clock, History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, Hash, ScanLine, AlertCircle, Loader2 } from 'lucide-react';
+import { History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, Hash, ScanLine, AlertCircle, Loader2 } from 'lucide-react';
 import * as faceapi from 'face-api.js';
+
+const playSuccessSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    
+    const createTone = (frequency: number, startTime: number, duration: number, type: OscillatorType = 'sine', volume: number = 0.25) => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, startTime);
+      
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    };
+    
+    const now = audioContext.currentTime;
+    createTone(523.25, now, 0.15, 'sine', 0.25);
+    createTone(659.25, now + 0.08, 0.15, 'sine', 0.25);
+    createTone(783.99, now + 0.16, 0.2, 'sine', 0.25);
+    createTone(1046.50, now + 0.28, 0.35, 'sine', 0.2);
+  } catch (error) {
+    console.warn('Audio playback failed:', error);
+  }
+};
 
 // Registration history type
 type RegistrationHistory = {
@@ -107,7 +139,6 @@ const EmployerRegistrationPage = () => {
     } catch (error) {
       console.error('Error accessing camera:', error);
       setModelError('Camera access denied or unavailable');
-      setIsCameraOpen(false);
     }
   }, [isModelLoading]);
 
@@ -283,6 +314,7 @@ const EmployerRegistrationPage = () => {
       setTimeout(() => {
         setIsScanning(false);
         setScanResult('success');
+        playSuccessSound();
 
         const newRecord: RegistrationHistory = {
           id: `reg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -311,11 +343,7 @@ const EmployerRegistrationPage = () => {
   }, [detectedFaces, formData]);
 
   const toggleCamera = () => {
-    if (isCameraOpen) {
-      stopCamera();
-    } else {
-      startCamera();
-    }
+    setIsCameraOpen(prev => !prev);
     setScanResult(null);
     setIsScanning(false);
   };
@@ -441,35 +469,19 @@ const EmployerRegistrationPage = () => {
       )}
 
       <div className="flex flex-col gap-4 sm:gap-6 lg:gap-8 w-full max-w-7xl animate-in fade-in duration-500 ease-out pb-4 sm:pb-6 lg:pb-10">
-        <header className="flex flex-wrap items-start sm:items-end justify-between gap-4 sm:gap-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
-            <div className="space-y-1 sm:space-y-2">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter text-foreground">Employer Registration</h1>
-              <p className="text-muted-foreground text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] leading-none opacity-80">
-                Facial recognition registration for employers
-              </p>
-            </div>
-            {!isModalOpen && !isCameraOpen && (
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all flex items-center gap-1.5 sm:gap-2 w-fit cursor-pointer"
-              >
-                <UserCheck className="w-3 sm:w-4 h-3 sm:h-4" />
-                New Registration
-              </button>
-            )}
+        <header className="flex items-center justify-between gap-4 sm:gap-6">
+          <div className="space-y-1 sm:space-y-2">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter text-foreground">Employer Registration</h1>
           </div>
-
-          <div className="px-3 sm:px-4 py-2.5 sm:py-3 md:py-4 rounded-xl sm:rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 shadow-sm flex items-center justify-between min-w-[200px] sm:min-w-[240px] md:min-w-[280px]">
-            <div>
-              <div className="flex items-center gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-600">
-                <Clock className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
-                <span className="hidden sm:block">{formatted.date}</span>
-                <span className="sm:hidden">{now ? now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--'}</span>
-              </div>
-              <div className="text-lg sm:text-xl md:text-2xl font-black tracking-tight text-foreground tabular-nums mt-0.5">{formatted.time}</div>
-            </div>
-          </div>
+          {!isModalOpen && !isCameraOpen && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all flex items-center gap-1.5 sm:gap-2 w-fit cursor-pointer"
+            >
+              <UserCheck className="w-3 sm:w-4 h-3 sm:h-4" />
+              New Registration
+            </button>
+          )}
         </header>
 
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
