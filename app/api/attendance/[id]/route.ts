@@ -4,8 +4,10 @@ import { createSupabaseServer } from "../../../../utils/supabase/server";
 // UPDATE
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
+
   const supabase = await createSupabaseServer();
 
   const body = await req.json();
@@ -20,7 +22,7 @@ export async function PUT(
       status: body.status,
       image: body.image,
     })
-    .eq("id", params.id)
+    .eq("id", id)
     .select();
 
   if (error) {
@@ -33,14 +35,12 @@ export async function PUT(
 // DELETE
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const supabase = await createSupabaseServer();
 
-  const { error } = await supabase
-    .from("attendance")
-    .delete()
-    .eq("id", params.id);
+  const { error } = await supabase.from("attendance").delete().eq("id", id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

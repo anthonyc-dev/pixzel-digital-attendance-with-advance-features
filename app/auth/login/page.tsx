@@ -68,7 +68,7 @@ const Login = () => {
   }
 
   return (
-    <main className="dark min-h-screen bg-gradient-to-br from-background via-muted to-background p-6 md:p-10">
+    <main className="dark min-h-screen bg-linear-to-br from-background via-muted to-background p-6 md:p-10">
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-lg items-center justify-center">
         <section className="w-full rounded-2xl border border-border bg-card/95 p-8 text-card-foreground shadow-xl backdrop-blur">
           <div className="mb-6 flex flex-col items-center gap-4 text-center">
