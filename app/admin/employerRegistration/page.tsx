@@ -401,13 +401,13 @@ const RegistrationContent = () => {
 
       //display sa registration history
       try {
-        const response = await fetch('/api/registration', {
+        const endpoint = editId ? `/api/registration/${editId}` : '/api/registration';
+        const response = await fetch(endpoint, {
           method: editId ? 'PUT' : 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            id: editId || undefined,
             employer_id: formData.employerId,
             employer_name: formData.employerName,
             employer_position: formData.employerPosition,
