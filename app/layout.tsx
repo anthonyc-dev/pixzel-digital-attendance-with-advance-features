@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { TooltipProvider } from "@/components/ui/tooltip"
+import Script from "next/script";
 import { Plus_Jakarta_Sans, DM_Serif_Display, Fira_Code } from "next/font/google";
 
 import "./globals.css";
@@ -25,6 +26,9 @@ const firaCode = Fira_Code({
 export const metadata: Metadata = {
   title: "PIXZEL - Digital Attendance",
   description: "Facial recognition digital attendance system for employers",
+  icons: {
+    icon: [{ url: "/pixzel.jpg" }],
+  },
 };
 
 export default function RootLayout({
@@ -35,11 +39,21 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plusJakarta.variable} ${dmSerif.variable} ${firaCode.variable} h-full antialiased dark`}
-      style={{ colorScheme: 'dark' }}
+      suppressHydrationWarning
+      className={`dark ${plusJakarta.variable} ${dmSerif.variable} ${firaCode.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <TooltipProvider>{children}</TooltipProvider>
+        <Script id="theme-script" strategy="beforeInteractive">{`
+          (function() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'light') {
+              document.documentElement.classList.remove('dark');
+            } else {
+              document.documentElement.classList.add('dark');
+            }
+          })();
+        `}</Script>
       </body>
     </html>
   );

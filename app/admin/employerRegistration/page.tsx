@@ -1,14 +1,48 @@
 'use client';
 
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { cn } from '@/lib/utils';
-import { Clock, History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, Hash, ScanLine, AlertCircle, Loader2 } from 'lucide-react';
+import { History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, Hash, ScanLine, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import * as faceapi from 'face-api.js';
+
+const playSuccessSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+
+    const createTone = (frequency: number, startTime: number, duration: number, type: OscillatorType = 'sine', volume: number = 0.25) => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, startTime);
+
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    };
+
+    const now = audioContext.currentTime;
+    createTone(523.25, now, 0.15, 'sine', 0.25);
+    createTone(659.25, now + 0.08, 0.15, 'sine', 0.25);
+    createTone(783.99, now + 0.16, 0.2, 'sine', 0.25);
+    createTone(1046.50, now + 0.28, 0.35, 'sine', 0.2);
+  } catch (error) {
+    console.warn('Audio playback failed:', error);
+  }
+};
 
 // Registration history type
 type RegistrationHistory = {
   id: string;
+  employerId: string;
   employerName: string;
   timestamp: Date;
   status: 'success' | 'failed';
@@ -21,7 +55,7 @@ type EmployerForm = {
   employerPosition: string;
 };
 
-const EmployerRegistrationPage = () => {
+const RegistrationContent = () => {
   const [now, setNow] = useState<Date | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
@@ -35,13 +69,65 @@ const EmployerRegistrationPage = () => {
     employerName: '',
     employerPosition: '',
   });
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const editId = searchParams?.get('edit');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
-  // Mock registration history
-  const [history, setHistory] = useState<RegistrationHistory[]>([
-    { id: '1', employerName: 'Juan Dela Cruz', timestamp: new Date(new Date().setHours(8, 15, 0, 0)), status: 'success' },
-    { id: '2', employerName: 'Maria Santos', timestamp: new Date(new Date().setHours(9, 30, 0, 0)), status: 'success' },
-    { id: '3', employerName: 'Carlos Reyes', timestamp: new Date(new Date().setHours(10, 45, 0, 0)), status: 'success' },
-  ]);
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  // Registration history
+  const [history, setHistory] = useState<RegistrationHistory[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+
+  // Fetch history from API
+  const fetchHistory = async () => {
+    try {
+      setIsLoadingHistory(true);
+      const response = await fetch('/api/registration');
+      if (response.ok) {
+        const result = await response.json();
+        const historyWithDates = result.data.map((item: any) => ({
+          id: item.id,
+          employerId: item.employer_id,
+          employerName: item.employer_name,
+          timestamp: new Date(item.created_at),
+          status: 'success',
+          imageSrc: item.image,
+        }));
+        setHistory(historyWithDates.reverse());
+      }
+    } catch (e) {
+      console.error('Failed to fetch history:', e);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  // Load history and check for edit mode
+  useEffect(() => {
+    fetchHistory();
+    
+    if (!searchParams) return;
+    
+    const id = searchParams.get('id');
+    const name = searchParams.get('name');
+    const pos = searchParams.get('pos');
+    
+    if (editId && id && name && pos) {
+      setFormData({
+        employerId: id,
+        employerName: name,
+        employerPosition: pos
+      });
+      setIsModalOpen(true);
+      setIsCameraOpen(false);
+    }
+  }, [searchParams, editId]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -99,7 +185,6 @@ const EmployerRegistrationPage = () => {
         videoRef.current.onloadedmetadata = () => {
           if (videoRef.current) {
             videoRef.current.play().then(() => {
-              // Small delay to let video dimensions settle
               setTimeout(() => startDetection(), 500);
             }).catch(err => console.error("Video play error:", err));
           }
@@ -108,7 +193,6 @@ const EmployerRegistrationPage = () => {
     } catch (error) {
       console.error('Error accessing camera:', error);
       setModelError('Camera access denied or unavailable');
-      setIsCameraOpen(false);
     }
   }, [isModelLoading]);
 
@@ -264,8 +348,42 @@ const EmployerRegistrationPage = () => {
     return { time, date };
   }, [now]);
 
-  const captureAndRegister = useCallback(() => {
+  const captureAndRegister = useCallback(async () => {
     if (!videoRef.current || detectedFaces === 0) return;
+
+    // Skip duplicate checks if we are editing an existing employer
+    if (!editId) {
+      try {
+        const checkResponse = await fetch('/api/employers');
+        if (checkResponse.ok) {
+          const { data: allEmployers } = await checkResponse.json();
+          
+          const isDuplicateId = allEmployers.some((emp: any) => 
+            emp.employer_id.toLowerCase() === formData.employerId.toLowerCase()
+          );
+
+          const isDuplicateName = allEmployers.some((emp: any) => 
+            emp.employer_name.toLowerCase() === formData.employerName.toLowerCase()
+          );
+
+          if (isDuplicateId) {
+            setScanResult('error');
+            showToast('Employer ID already exists!', 'error');
+            setTimeout(() => setScanResult(null), 3000);
+            return;
+          }
+
+          if (isDuplicateName) {
+            setScanResult('error');
+            showToast('Employer name already exists!', 'error');
+            setTimeout(() => setScanResult(null), 3000);
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Check duplicate failed:', e);
+      }
+    }
 
     const video = videoRef.current;
 
@@ -281,42 +399,61 @@ const EmployerRegistrationPage = () => {
       setIsScanning(true);
       setScanResult(null);
 
-      setTimeout(() => {
+      //display sa registration history
+      try {
+        const endpoint = editId ? `/api/registration/${editId}` : '/api/registration';
+        const response = await fetch(endpoint, {
+          method: editId ? 'PUT' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            employer_id: formData.employerId,
+            employer_name: formData.employerName,
+            employer_position: formData.employerPosition,
+            face_detected: true,
+            status: 'present',
+            image: imageSrc,
+          }),
+        });
+
+        if (response.ok) {
+          setIsScanning(false);
+          setScanResult('success');
+          showToast(editId ? 'Employer updated successfully!' : 'Employer registered successfully!', 'success');
+          playSuccessSound();
+
+          if (editId) {
+             setTimeout(() => router.push('/admin/employer'), 2000);
+          }
+          
+          fetchHistory();
+
+          setTimeout(() => {
+            setFormData({ employerId: '', employerName: '', employerPosition: '' });
+            setIsModalOpen(true);
+            setIsCameraOpen(false);
+            setScanResult(null);
+            setIsScanning(false);
+          }, 2000);
+        } else {
+          // Attempt to get error message from API
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Registration failed (Status: ${response.status})`);
+        }
+      } catch (error: any) {
+        console.error('API Error Details:', error);
         setIsScanning(false);
-        setScanResult('success');
-
-        const newRecord: RegistrationHistory = {
-          id: `reg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          employerName: formData.employerName,
-          timestamp: new Date(),
-          status: 'success',
-          imageSrc: imageSrc,
-        };
-
-        const staticRegisterJson = {
-          id: newRecord.id,
-          employerName: newRecord.employerName,
-          employerPosition: formData.employerPosition,
-          timestamp: newRecord.timestamp.toISOString(),
-          status: newRecord.status,
-          faceDetected: true,
-          image: imageSrc,
-        };
-        console.log('Static Register JSON:', JSON.stringify(staticRegisterJson, null, 2));
-
-        setHistory(prev => [newRecord, ...prev]);
-
+        setScanResult('error');
+        showToast(error.message || 'Operation failed', 'error');
+      } finally {
         setTimeout(() => setScanResult(null), 3000);
-      }, 1500);
+      }
     }
   }, [detectedFaces, formData]);
 
   const toggleCamera = () => {
-    if (isCameraOpen) {
-      stopCamera();
-    } else {
-      startCamera();
-    }
+    setIsCameraOpen(prev => !prev);
     setScanResult(null);
     setIsScanning(false);
   };
@@ -351,7 +488,7 @@ const EmployerRegistrationPage = () => {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          <div className="relative w-full max-w-sm sm:max-w-md bg-white dark:bg-[#0A0A0A] rounded-2xl sm:rounded-[2rem] border border-gray-100 dark:border-white/10 shadow-2xl overflow-hidden">
+          <div className="relative w-full max-w-sm sm:max-w-md bg-white dark:bg-[#0A0A0A] rounded-2xl border border-gray-100 dark:border-white/10 shadow-2xl overflow-hidden">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_0%,_rgba(0,137,192,0.08)_0%,_transparent_50%)] pointer-events-none" />
 
             <div className="relative p-5 sm:p-6 md:p-8">
@@ -379,7 +516,7 @@ const EmployerRegistrationPage = () => {
                       value={formData.employerId}
                       onChange={(e) => handleFormChange('employerId', e.target.value)}
                       placeholder="Enter employer ID"
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-700"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
                     />
                     <Hash className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
                   </div>
@@ -396,7 +533,7 @@ const EmployerRegistrationPage = () => {
                       value={formData.employerName}
                       onChange={(e) => handleFormChange('employerName', e.target.value)}
                       placeholder="Enter full name"
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-700"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
                     />
                     <User className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
                   </div>
@@ -413,7 +550,7 @@ const EmployerRegistrationPage = () => {
                       value={formData.employerPosition}
                       onChange={(e) => handleFormChange('employerPosition', e.target.value)}
                       placeholder="Enter position"
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-700"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
                     />
                     <Briefcase className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
                   </div>
@@ -442,41 +579,25 @@ const EmployerRegistrationPage = () => {
       )}
 
       <div className="flex flex-col gap-4 sm:gap-6 lg:gap-8 w-full max-w-7xl animate-in fade-in duration-500 ease-out pb-4 sm:pb-6 lg:pb-10">
-        <header className="flex flex-wrap items-start sm:items-end justify-between gap-4 sm:gap-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
-            <div className="space-y-1 sm:space-y-2">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter text-foreground">Employer Registration</h1>
-              <p className="text-muted-foreground text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] leading-none opacity-80">
-                Facial recognition registration for employers
-              </p>
-            </div>
-            {!isModalOpen && !isCameraOpen && (
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all flex items-center gap-1.5 sm:gap-2 w-fit cursor-pointer"
-              >
-                <UserCheck className="w-3 sm:w-4 h-3 sm:h-4" />
-                New Registration
-              </button>
-            )}
+        <header className="flex items-center justify-between gap-4 sm:gap-6">
+          <div className="space-y-1 sm:space-y-2">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter text-foreground">Employer Registration</h1>
           </div>
-
-          <div className="px-3 sm:px-4 py-2.5 sm:py-3 md:py-4 rounded-xl sm:rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 shadow-sm flex items-center justify-between min-w-[200px] sm:min-w-[240px] md:min-w-[280px]">
-            <div>
-              <div className="flex items-center gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-600">
-                <Clock className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
-                <span className="hidden sm:block">{formatted.date}</span>
-                <span className="sm:hidden">{now ? now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--'}</span>
-              </div>
-              <div className="text-lg sm:text-xl md:text-2xl font-black tracking-tight text-foreground tabular-nums mt-0.5">{formatted.time}</div>
-            </div>
-          </div>
+          {!isModalOpen && !isCameraOpen && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all flex items-center gap-1.5 sm:gap-2 w-fit cursor-pointer"
+            >
+              <UserCheck className="w-3 sm:w-4 h-3 sm:h-4" />
+              New Registration
+            </button>
+          )}
         </header>
 
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
           {/* LEFT COLUMN: FACIAL RECOGNITION CAPTURE */}
           <div className="lg:col-span-7 xl:col-span-8 flex flex-col min-h-[500px] sm:min-h-[600px] lg:min-h-[700px]">
-            <div className="relative w-full rounded-2xl sm:rounded-[2rem] lg:rounded-[3rem] overflow-hidden bg-white dark:bg-[#0A0A0A] border border-gray-100 dark:border-white/10 shadow-xl flex-1 flex flex-col">
+            <div className="relative w-full rounded-2xl overflow-hidden bg-white dark:bg-[#0A0A0A] border border-gray-100 dark:border-white/10 shadow-xl flex-1 flex flex-col">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,_rgba(0,137,192,0.06)_0%,_transparent_55%)] pointer-events-none" />
 
               <div className="p-4 sm:p-6 md:p-8 lg:p-10 flex flex-col h-full relative z-10 w-full">
@@ -487,12 +608,6 @@ const EmployerRegistrationPage = () => {
                     <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/70 mt-1 sm:mt-2">
                       Position the employer&apos;s face inside the frame
                     </p>
-                    <div className="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-[#0089C0]/5 border border-[#0089C0]/20">
-                      <User className="w-3 sm:w-4 h-3 sm:h-4 text-[#0089C0]" />
-                      <span className="text-[10px] sm:text-xs font-bold text-foreground">{formData.employerName}</span>
-                      <span className="hidden sm:block text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">|</span>
-                      <span className="hidden sm:block text-[10px] sm:text-xs font-bold text-muted-foreground">{formData.employerPosition}</span>
-                    </div>
                   </div>
 
                   <button
@@ -522,7 +637,7 @@ const EmployerRegistrationPage = () => {
 
                 <div className="flex-1 flex flex-col items-center justify-center relative w-full min-h-[250px] sm:min-h-[300px] md:min-h-[350px]">
                   {isCameraOpen ? (
-                    <div className="relative w-full h-full max-w-xl sm:max-w-2xl bg-black rounded-xl sm:rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl group flex flex-col justify-center items-center">
+                    <div className="relative w-full h-full max-w-xl sm:max-w-2xl bg-black rounded-xl sm:rounded-2xl overflow-hidden border border-white/10 shadow-2xl group flex flex-col justify-center items-center">
                       {/* Video Element */}
                       <video
                         ref={videoRef}
@@ -534,6 +649,17 @@ const EmployerRegistrationPage = () => {
                           isScanning ? "opacity-50 blur-sm" : "opacity-100"
                         )}
                       />
+
+                      {/* Employer Info Overlay (Top Left) */}
+                      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-30 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-black/40 dark:bg-white/10 backdrop-blur-md border border-white/20 shadow-xl animate-in slide-in-from-left-4 fade-in duration-700">
+                        <div className="p-1.5 rounded-lg bg-[#0089C0]/20 border border-[#0089C0]/30">
+                          <User className="w-3 sm:w-4 h-3 sm:h-4 text-[#0089C0]" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] sm:text-xs font-black text-white leading-none tracking-tight">{formData.employerName}</span>
+                          <span className="text-[8px] sm:text-[9px] font-bold text-white/60 uppercase tracking-widest mt-1">{formData.employerPosition}</span>
+                        </div>
+                      </div>
 
                       {/* Canvas for face detection overlay */}
                       <canvas
@@ -586,10 +712,10 @@ const EmployerRegistrationPage = () => {
                           "relative w-48 sm:w-64 md:w-80 h-48 sm:h-64 md:h-80 border-y-2 border-[#0089C0]/50 bg-[#0089C0]/10",
                           detectedFaces === 0 && isCameraOpen && "animate-pulse-subtle"
                         )}>
-                          <div className="absolute top-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-l-4 border-[#0089C0] rounded-tl-2xl sm:rounded-tl-3xl -mt-0.5 -ml-0.5" />
-                          <div className="absolute top-0 right-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-r-4 border-[#0089C0] rounded-tr-2xl sm:rounded-tr-3xl -mt-0.5 -mr-0.5" />
-                          <div className="absolute bottom-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-b-4 border-l-4 border-[#0089C0] rounded-bl-2xl sm:rounded-bl-3xl -mb-0.5 -ml-0.5" />
-                          <div className="absolute bottom-0 right-0 w-10 sm:w-12 h-10 sm:h-12 border-b-4 border-r-4 border-[#0089C0] rounded-br-2xl sm:rounded-br-3xl -mb-0.5 -mr-0.5" />
+                          <div className="absolute top-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-l-4 border-[#0089C0] rounded-tl-lg sm:rounded-tl-xl -mt-0.5 -ml-0.5" />
+                          <div className="absolute top-0 right-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-r-4 border-[#0089C0] rounded-tr-lg sm:rounded-tr-xl -mt-0.5 -mr-0.5" />
+                          <div className="absolute bottom-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-b-4 border-l-4 border-[#0089C0] rounded-bl-lg sm:rounded-bl-xl -mb-0.5 -ml-0.5" />
+                          <div className="absolute bottom-0 right-0 w-10 sm:w-12 h-10 sm:h-12 border-b-4 border-r-4 border-[#0089C0] rounded-br-lg sm:rounded-br-xl -mb-0.5 -mr-0.5" />
                         </div>
                         {isScanning && (
                           <div className="absolute left-0 right-0 h-0.5 sm:h-1 bg-[#0089C0] shadow-[0_0_20px_4px_rgba(0,137,192,0.6)] animate-scan top-1/2" />
@@ -630,7 +756,7 @@ const EmployerRegistrationPage = () => {
                       disabled={isModelLoading}
                       className={cn(
                         "group relative w-full h-full max-w-xl sm:max-w-2xl",
-                        "rounded-xl sm:rounded-[2rem] p-6 sm:p-10 md:p-14",
+                        "rounded-2xl p-6 sm:p-10 md:p-14",
                         "bg-[#0089C0]/5 border-2 border-[#0089C0]/20 border-dashed",
                         "hover:bg-[#0089C0]/10 hover:border-[#0089C0]/40 hover:border-solid",
                         "active:scale-[0.99]",
@@ -641,7 +767,7 @@ const EmployerRegistrationPage = () => {
                       <div className="absolute -top-16 sm:-top-24 -right-16 sm:-right-24 w-48 sm:w-72 h-48 sm:h-72 bg-[#0089C0]/10 rounded-full blur-[30px] sm:blur-[40px]" />
                       <div className="absolute -bottom-16 sm:-bottom-24 -left-16 sm:-left-24 w-48 sm:w-72 h-48 sm:h-72 bg-[#0089C0]/5 rounded-full blur-[30px] sm:blur-[40px]" />
 
-                      <div className="w-16 sm:w-20 md:w-24 h-16 sm:h-20 md:h-24 rounded-xl sm:rounded-[2rem] bg-white dark:bg-[#0089C0]/10 shadow-xl border border-white/20 dark:border-[#0089C0]/20 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform duration-300 mb-4 sm:mb-6 relative z-10">
+                      <div className="w-16 sm:w-20 md:w-24 h-16 sm:h-20 md:h-24 rounded-2xl bg-white dark:bg-[#0089C0]/10 shadow-xl border border-white/20 dark:border-[#0089C0]/20 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform duration-300 mb-4 sm:mb-6 relative z-10">
                         {isModelLoading ? (
                           <Loader2 className="w-8 sm:w-10 md:w-12 h-8 sm:w-10 md:h-12 text-[#0089C0]/60 dark:text-[#0089C0] animate-spin" />
                         ) : (
@@ -650,11 +776,11 @@ const EmployerRegistrationPage = () => {
                       </div>
 
                       <div className="relative z-10 text-center">
-                        <div className="text-lg sm:text-xl md:text-2xl font-black tracking-tighter text-[#0089C0]/80 dark:text-white/90">
-                          {isModelLoading ? "Loading AI Model..." : "Camera is Inactive"}
+                        <div className="text-lg sm:text-xl md:text-2xl font-black tracking-tighter text-[#0089C0]">
+                          {isModelLoading ? "Loading AI Model..." : "Enable Scanner"}
                         </div>
-                        <div className="mt-1 sm:mt-2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] text-[#0089C0]/60 dark:text-white/50">
-                          {isModelLoading ? "Please wait..." : "Click to enable scanner"}
+                        <div className="mt-1 sm:mt-2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] text-[#0089C0]/70">
+                          {isModelLoading ? "Please wait..." : "Click to start scanning"}
                         </div>
                       </div>
                     </button>
@@ -688,7 +814,7 @@ const EmployerRegistrationPage = () => {
 
           {/* RIGHT COLUMN: REGISTRATION HISTORY */}
           <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-4 sm:gap-6">
-            <div className="p-4 sm:p-5 md:p-7 rounded-2xl sm:rounded-[2.5rem] bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 shadow-sm flex-1 flex flex-col min-h-[300px] sm:min-h-[400px] lg:min-h-[700px]">
+            <div className="p-4 sm:p-5 md:p-7 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 shadow-sm flex-1 flex flex-col min-h-[300px] sm:min-h-[400px] lg:min-h-[700px]">
               <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 flex-shrink-0">
                 <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-[#0089C0]/10 border border-[#0089C0]/20">
                   <History className="w-4 sm:w-5 h-4 sm:h-5 text-[#0089C0]" />
@@ -702,46 +828,91 @@ const EmployerRegistrationPage = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto pr-1 sm:pr-2 space-y-2 sm:space-y-3 custom-scrollbar">
-                {history.length === 0 ? (
+                {isLoadingHistory ? (
+                  <>
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gray-200 dark:bg-white/10 animate-pulse" />
+                          <div className="flex flex-col gap-2">
+                            <div className="h-4 w-32 bg-gray-200 dark:bg-white/10 rounded animate-pulse" />
+                            <div className="h-3 w-24 bg-gray-200 dark:bg-white/10 rounded animate-pulse" />
+                          </div>
+                        </div>
+                        <div className="h-6 w-20 bg-gray-200 dark:bg-white/10 rounded-lg animate-pulse" />
+                      </div>
+                    ))}
+                  </>
+                ) : history.length === 0 ? (
                   <div className="text-center py-8 sm:py-10 text-muted-foreground text-xs sm:text-sm font-medium">
                     No employers registered yet today.
                   </div>
                 ) : (
-                  history.map((record) => (
-                    <div
-                      key={record.id}
-                      className="p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 flex items-center justify-between gap-2"
-                    >
-                      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl border bg-[#0089C0]/10 border-[#0089C0]/20 overflow-hidden flex items-center justify-center text-[#0089C0]">
-                          {record.imageSrc ? (
-                            <img src={record.imageSrc} alt="Captured" className="w-full h-full object-cover" />
-                          ) : (
-                            <ScanFace className="w-5 h-5 sm:w-6 sm:h-6" />
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-xs sm:text-sm font-bold text-foreground truncate">
-                            Facial Recognition
+                  <>
+                    {history.slice(0, showAllHistory ? history.length : 5).map((record) => (
+                      <div
+                        key={record.id}
+                        className="p-3 sm:p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 flex items-center justify-between gap-2"
+                      >
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl border bg-[#0089C0]/10 border-[#0089C0]/20 overflow-hidden flex items-center justify-center text-[#0089C0]">
+                            {record.imageSrc ? (
+                              <img src={record.imageSrc} alt="Captured" className="w-full h-full object-cover" />
+                            ) : (
+                              <ScanFace className="w-5 h-5 sm:w-6 sm:h-6" />
+                            )}
                           </div>
-                          <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mt-0.5">
-                            {record.employerName} &middot; {record.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                          <div className="min-w-0">
+                            <div className="text-xs sm:text-sm font-bold text-foreground truncate">
+                              {record.employerName}
+                            </div>
+                            <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mt-0.5">
+                              {record.employerId} &middot; {record.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2.5 py-1 rounded-lg bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 flex-shrink-0">
-                        <CheckCircle className="w-2.5 sm:w-3 h-2.5 sm:h-3" />
-                        <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest hidden sm:block">Registered</span>
+                        <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2.5 py-1 rounded-lg bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 flex-shrink-0">
+                          <CheckCircle className="w-2.5 sm:w-3 h-2.5 sm:h-3" />
+                          <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest hidden sm:block">Registered</span>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                    {history.length > 5 && (
+                      <button
+                        onClick={() => setShowAllHistory(!showAllHistory)}
+                        className="w-full py-2 text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#0089C0] hover:text-[#007aaa] transition-colors text-center"
+                      >
+                        {showAllHistory ? 'Show Less' : `Show More (${history.length - 5})`}
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
           </div>
         </section>
       </div>
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-8 right-8 z-[200] animate-in slide-in-from-right-10 fade-in duration-300">
+          <div className={cn(
+            "flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border backdrop-blur-md",
+            toast.type === 'success' && "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400",
+            toast.type === 'info' && "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400",
+            toast.type === 'error' && "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400"
+          )}>
+            {toast.type === 'success' && <CheckCircle2 className="w-5 h-5" />}
+            {toast.type === 'info' && <ScanFace className="w-5 h-5" />}
+            {toast.type === 'error' && <AlertCircle className="w-5 h-5" />}
+            <span className="text-xs font-black uppercase tracking-widest">{toast.message}</span>
+            <button onClick={() => setToast(null)} className="ml-2 hover:opacity-70">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <style dangerouslySetInnerHTML={{
         __html: `
         @keyframes scan {
@@ -774,6 +945,22 @@ const EmployerRegistrationPage = () => {
         }
       `}} />
     </Layout>
+  );
+};
+
+import { Suspense } from 'react';
+
+const EmployerRegistrationPage = () => {
+  return (
+    <Suspense fallback={
+      <Layout>
+        <div className="flex items-center justify-center min-h-[600px]">
+          <Loader2 className="w-8 h-8 animate-spin text-[#0089C0]" />
+        </div>
+      </Layout>
+    }>
+      <RegistrationContent />
+    </Suspense>
   );
 };
 
