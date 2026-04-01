@@ -62,9 +62,8 @@ const Login = () => {
       setError(signInError.message)
       return
     }
-
     router.refresh()
-    router.push('/')
+    router.push('/admin/adminDashboard')
   }
 
   return (
@@ -72,6 +71,7 @@ const Login = () => {
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-lg items-center justify-center">
         <section className="w-full rounded-2xl border border-border bg-card/95 p-8 text-card-foreground shadow-xl backdrop-blur">
           <div className="mb-6 flex flex-col items-center gap-4 text-center">
+
             <div className="p-1">
               <Image
                 src="/logo/bizs.png"
