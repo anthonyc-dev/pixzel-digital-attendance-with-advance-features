@@ -472,23 +472,19 @@ const EmployerRegistrationPage = () => {
       )}
 
       <div className="flex flex-col gap-2 sm:gap-3 lg:gap-4 w-full max-w-7xl animate-in fade-in duration-500 ease-out pb-4 sm:pb-6 lg:pb-10">
-        <header className="flex flex-wrap items-start sm:items-end justify-between gap-2 sm:gap-3">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            <div className="space-y-0.5 sm:space-y-1">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tighter text-foreground">Employer Registration</h1>
-            </div>
-            {!isModalOpen && !isCameraOpen && (
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all flex items-center gap-1.5 sm:gap-2 w-fit cursor-pointer"
-              >
-                <UserCheck className="w-3 sm:w-4 h-3 sm:h-4" />
-                New Registration
-              </button>
-            )}
+        <header className="flex items-center justify-between gap-2 sm:gap-3">
+          <div className="space-y-0.5 sm:space-y-1">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tighter text-foreground">Employer Registration</h1>
           </div>
-
-
+          {!isModalOpen && !isCameraOpen && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all flex items-center gap-1.5 sm:gap-2 w-fit cursor-pointer"
+            >
+              <UserCheck className="w-3 sm:w-4 h-3 sm:h-4" />
+              New Registration
+            </button>
+          )}
         </header>
 
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
