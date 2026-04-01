@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { Plus_Jakarta_Sans, DM_Serif_Display, Fira_Code } from "next/font/google";
+
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -36,7 +38,9 @@ export default function RootLayout({
       className={`${plusJakarta.variable} ${dmSerif.variable} ${firaCode.variable} h-full antialiased dark`}
       style={{ colorScheme: 'dark' }}
     >
-      <body className="min-h-full flex flex-col bg-black text-white">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <TooltipProvider>{children}</TooltipProvider>
+      </body>
     </html>
   );
 }
