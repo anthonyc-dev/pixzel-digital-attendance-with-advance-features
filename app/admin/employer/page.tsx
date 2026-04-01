@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import { cn } from '@/lib/utils';
-import { Users, MoreHorizontal, CheckCircle2, ScanFace, Eye, Pencil, Trash2, X, AlertCircle } from 'lucide-react';
+import { Users, MoreHorizontal, CheckCircle2, ScanFace, Pencil, Trash2, X, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface Employer {
@@ -35,7 +35,7 @@ const EmployerPage = () => {
   useEffect(() => {
     const fetchEmployers = async () => {
       try {
-        const response = await fetch('/api/employers');
+        const response = await fetch('/api/registration');
         if (response.ok) {
           const result = await response.json();
           setEmployers(result.data || []);
@@ -66,11 +66,11 @@ const EmployerPage = () => {
 
   const handleDelete = async () => {
     if (!showDeleteConfirm) return;
-    
+
     const id = showDeleteConfirm;
     setIsDeleting(id);
     try {
-      const response = await fetch(`/api/registration?id=${id}`, {
+      const response = await fetch(`/api/registration/${id}`, {
         method: 'DELETE',
       });
       if (response.ok) {
@@ -172,7 +172,7 @@ const EmployerPage = () => {
                   employers.map((employer) => (
                     <tr key={employer.id} className="group hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-all border-b border-gray-100 dark:border-white/5 last:border-0 h-fit">
                       <td className="p-2 w-20 sm:w-24 align-middle text-center border-r border-gray-100 dark:border-white/5">
-                        <button 
+                        <button
                           onClick={() => employer.image && setPreviewImage(employer.image)}
                           className="w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-none border border-gray-100 dark:border-white/10 overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-white/5 hover:opacity-80 transition-opacity cursor-zoom-in"
                         >
@@ -195,8 +195,8 @@ const EmployerPage = () => {
                       <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 align-middle">
                         <div className={cn(
                           "inline-flex items-center gap-1 px-2 py-1 rounded-md text-[8px] sm:text-[9px] font-black uppercase tracking-widest",
-                          employer.face_detected 
-                            ? "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20" 
+                          employer.face_detected
+                            ? "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20"
                             : "bg-gray-500/10 text-gray-500 dark:text-gray-400 border border-gray-500/20"
                         )}>
                           <CheckCircle2 className="w-3 h-3" />
@@ -221,7 +221,7 @@ const EmployerPage = () => {
                           </button>
                           {openMenuId === employer.id && (
                             <div className="action-menu-dropdown absolute right-[calc(100%+12px)] top-1/2 -translate-y-[68%] z-50 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 min-w-[140px] animate-in fade-in slide-in-from-right-4 duration-200">
-                              <button 
+                              <button
                                 onClick={() => {
                                   handleEditRedirect(employer);
                                   setOpenMenuId(null);
@@ -231,7 +231,7 @@ const EmployerPage = () => {
                                 <Pencil className="w-4 h-4 text-secondary" />
                                 Edit Employer
                               </button>
-                              <button 
+                              <button
                                 onClick={() => {
                                   setShowDeleteConfirm(employer.id);
                                   setOpenMenuId(null);
@@ -256,15 +256,15 @@ const EmployerPage = () => {
 
       {/* Image Preview Modal */}
       {previewImage && (
-        <div 
+        <div
           className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md cursor-zoom-out animate-in fade-in duration-200"
           onClick={() => setPreviewImage(null)}
         >
           <div className="relative max-w-4xl max-h-[80vh] w-fit h-fit overflow-hidden animate-in zoom-in-95 duration-200">
-            <img 
-              src={previewImage} 
-              alt="Preview" 
-              className="max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl border border-white/10" 
+            <img
+              src={previewImage}
+              alt="Preview"
+              className="max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl border border-white/10"
             />
             <button className="absolute top-4 right-4 p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-all">
               <X className="w-5 h-5" />
@@ -281,7 +281,7 @@ const EmployerPage = () => {
               <div className="p-4 rounded-3xl bg-red-500/10 border border-red-500/20">
                 <Trash2 className="w-8 h-8 text-red-500" />
               </div>
-              
+
               <div className="space-y-2">
                 <h3 className="text-xl font-black tracking-tight text-foreground">Confirm Deletion</h3>
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
@@ -290,13 +290,13 @@ const EmployerPage = () => {
               </div>
 
               <div className="flex gap-3 w-full">
-                <button 
+                <button
                   onClick={() => setShowDeleteConfirm(null)}
                   className="flex-1 py-3.5 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 text-[10px] font-black uppercase tracking-widest text-foreground hover:bg-gray-100 dark:hover:bg-white/10 transition-all"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={handleDelete}
                   disabled={!!isDeleting}
                   className="flex-1 py-3.5 rounded-2xl bg-red-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-500/20 hover:bg-red-600 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"

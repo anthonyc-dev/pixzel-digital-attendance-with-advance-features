@@ -7,13 +7,13 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 interface Employee {
-  id: string;
-  employer_id: string;
-  employer_name: string;
-  employer_position: string;
-  status: string;
-  image: string | null;
-  created_at: string;
+    id: string;
+    employer_id: string;
+    employer_name: string;
+    employer_position: string;
+    status: string;
+    image: string | null;
+    created_at: string;
 }
 
 const AttendancePage = () => {
@@ -21,21 +21,22 @@ const AttendancePage = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchEmployees = async () => {
+        const fetchEmployers = async () => {
             try {
-                const res = await fetch('/api/employers');
-                const data = await res.json();
-                if (data.success) {
-                    setEmployees(data.data || []);
+                const response = await fetch('/api/registration');
+                if (response.ok) {
+                    const result = await response.json();
+                    setEmployees(result.data || []);
                 }
-            } catch (error) {
-                console.error('Error fetching employees:', error);
+            } catch (e) {
+                console.error('Failed to fetch employers:', e);
             } finally {
                 setLoading(false);
             }
         };
-        fetchEmployees();
+        fetchEmployers();
     }, []);
+
 
     const stats = [
         { title: 'Present Today', value: employees.filter(e => e.status === 'active').length.toString().padStart(2, '0') || '00', sub: `${employees.length} People Total`, icon: CheckCircle2, iconColor: 'text-green-400', bgColor: 'bg-green-400/5', borderColor: 'border-green-400/10' },
@@ -143,65 +144,65 @@ const AttendancePage = () => {
                         ) : employees.length === 0 ? (
                             <div className="p-8 text-center text-muted-foreground">No employees found</div>
                         ) : (
-                        <table className="w-full text-left border-collapse min-w-[800px]">
-                            <thead>
-                                <tr className="bg-gray-50 dark:bg-white/[0.03] border-b border-gray-100 dark:border-white/5">
-                                    <th className="p-4 sm:p-5 md:p-7 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-600">Employee Info</th>
-                                    {days.map((day, idx) => (
-                                        <th key={idx} className="p-4 sm:p-5 md:p-7 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-600 border-l border-gray-100 dark:border-white/5 text-center">{day}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                                {employees.map((emp, i) => (
-                                    <tr key={emp.id} className="group hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-all">
-                                        <td className="p-4 sm:p-5 md:p-7">
-                                            <div className="flex items-center gap-3 sm:gap-5">
-                                                <div className="relative">
-                                                    {emp.image ? (
-                                                        <Image src={emp.image} alt={emp.employer_name} width={56} height={56} className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl transition-all duration-500 border border-gray-100 dark:border-white/10 shadow-lg group-hover:shadow-secondary/20" />
-                                                    ) : (
-                                                        <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-lg font-black text-gray-500">
-                                                            {emp.employer_name.charAt(0)}
-                                                        </div>
-                                                    )}
-                                                    <div className={cn(
-                                                        "absolute -bottom-0.5 -right-0.5 w-3 sm:w-4 h-3 sm:h-4 border-2 border-white dark:border-black rounded-full shadow-sm",
-                                                        emp.status === 'active' ? 'bg-green-500' :
-                                                        emp.status === 'late' ? 'bg-orange-500' :
-                                                        emp.status === 'leave' ? 'bg-purple-500' :
-                                                        emp.status === 'absent' ? 'bg-red-500' : 'bg-green-500'
-                                                    )} />
-                                                </div>
-                                                <div className="flex flex-col gap-0.5">
-                                                    <span className="text-xs sm:text-base font-black text-foreground leading-none tracking-tight group-hover:text-secondary transition-colors">{emp.employer_name}</span>
-                                                    <span className="text-[9px] sm:text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest hidden sm:block">{emp.employer_position || 'Employee'}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        {days.map((_, j) => (
-                                            <td key={j} className="p-4 sm:p-5 md:p-7 border-l border-gray-100 dark:border-white/5 relative group/cell">
-                                                <span className="absolute top-2 sm:top-3 md:top-4 right-3 sm:right-4 md:right-5 text-[9px] sm:text-[10px] font-black text-gray-200 dark:text-gray-800 group-hover/cell:text-gray-400 dark:group-hover/cell:text-gray-600 transition-colors">{j + 1}</span>
-                                                <div className={cn(
-                                                    "mt-4 sm:mt-5 mx-auto flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-2xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all shadow-sm ring-1 ring-inset",
-                                                    emp.status === 'active' && "bg-green-500/10 text-green-600 dark:text-green-400 ring-green-600/20 dark:ring-green-400/20",
-                                                    emp.status === 'late' && "bg-orange-500/10 text-orange-600 dark:text-orange-400 ring-orange-600/20 dark:ring-orange-400/20",
-                                                    emp.status === 'leave' && "bg-purple-500/10 text-purple-600 dark:text-purple-400 ring-purple-600/20 dark:ring-purple-400/20",
-                                                    emp.status === 'absent' && "bg-red-500/10 text-red-600 dark:text-red-400 ring-red-600/20 dark:ring-red-400/20"
-                                                )}>
-                                                    {emp.status === 'active' && <CheckCircle2 className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
-                                                    {emp.status === 'late' && <Clock3 className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
-                                                    {emp.status === 'leave' && <Umbrella className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
-                                                    {emp.status === 'absent' && <UserX className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
-                                                    <span className="hidden sm:inline">{getStatusLabel(emp.status)}</span>
-                                                    <span className="sm:hidden">{getStatusLabel(emp.status).slice(0, 3)}</span>
-                                                </div>
-                                            </td>
+                            <table className="w-full text-left border-collapse min-w-[800px]">
+                                <thead>
+                                    <tr className="bg-gray-50 dark:bg-white/[0.03] border-b border-gray-100 dark:border-white/5">
+                                        <th className="p-4 sm:p-5 md:p-7 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-600">Employee Info</th>
+                                        {days.map((day, idx) => (
+                                            <th key={idx} className="p-4 sm:p-5 md:p-7 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-600 border-l border-gray-100 dark:border-white/5 text-center">{day}</th>
                                         ))}
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                                    {employees.map((emp, i) => (
+                                        <tr key={emp.id} className="group hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-all">
+                                            <td className="p-4 sm:p-5 md:p-7">
+                                                <div className="flex items-center gap-3 sm:gap-5">
+                                                    <div className="relative">
+                                                        {emp.image ? (
+                                                            <Image src={emp.image} alt={emp.employer_name} width={56} height={56} className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl transition-all duration-500 border border-gray-100 dark:border-white/10 shadow-lg group-hover:shadow-secondary/20" />
+                                                        ) : (
+                                                            <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-lg font-black text-gray-500">
+                                                                {emp.employer_name.charAt(0)}
+                                                            </div>
+                                                        )}
+                                                        <div className={cn(
+                                                            "absolute -bottom-0.5 -right-0.5 w-3 sm:w-4 h-3 sm:h-4 border-2 border-white dark:border-black rounded-full shadow-sm",
+                                                            emp.status === 'active' ? 'bg-green-500' :
+                                                                emp.status === 'late' ? 'bg-orange-500' :
+                                                                    emp.status === 'leave' ? 'bg-purple-500' :
+                                                                        emp.status === 'absent' ? 'bg-red-500' : 'bg-green-500'
+                                                        )} />
+                                                    </div>
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-xs sm:text-base font-black text-foreground leading-none tracking-tight group-hover:text-secondary transition-colors">{emp.employer_name}</span>
+                                                        <span className="text-[9px] sm:text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest hidden sm:block">{emp.employer_position || 'Employee'}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            {days.map((_, j) => (
+                                                <td key={j} className="p-4 sm:p-5 md:p-7 border-l border-gray-100 dark:border-white/5 relative group/cell">
+                                                    <span className="absolute top-2 sm:top-3 md:top-4 right-3 sm:right-4 md:right-5 text-[9px] sm:text-[10px] font-black text-gray-200 dark:text-gray-800 group-hover/cell:text-gray-400 dark:group-hover/cell:text-gray-600 transition-colors">{j + 1}</span>
+                                                    <div className={cn(
+                                                        "mt-4 sm:mt-5 mx-auto flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-2xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all shadow-sm ring-1 ring-inset",
+                                                        emp.status === 'active' && "bg-green-500/10 text-green-600 dark:text-green-400 ring-green-600/20 dark:ring-green-400/20",
+                                                        emp.status === 'late' && "bg-orange-500/10 text-orange-600 dark:text-orange-400 ring-orange-600/20 dark:ring-orange-400/20",
+                                                        emp.status === 'leave' && "bg-purple-500/10 text-purple-600 dark:text-purple-400 ring-purple-600/20 dark:ring-purple-400/20",
+                                                        emp.status === 'absent' && "bg-red-500/10 text-red-600 dark:text-red-400 ring-red-600/20 dark:ring-red-400/20"
+                                                    )}>
+                                                        {emp.status === 'active' && <CheckCircle2 className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
+                                                        {emp.status === 'late' && <Clock3 className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
+                                                        {emp.status === 'leave' && <Umbrella className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
+                                                        {emp.status === 'absent' && <UserX className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
+                                                        <span className="hidden sm:inline">{getStatusLabel(emp.status)}</span>
+                                                        <span className="sm:hidden">{getStatusLabel(emp.status).slice(0, 3)}</span>
+                                                    </div>
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         )}
                     </div>
                 </section>
