@@ -12,7 +12,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const mainRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-  const hideQuickSearch = pathname === '/employee/attendance' || pathname === '/admin/employerRegistration';
+  const hideQuickSearch = pathname === '/employee/attendance' || pathname === '/admin/employerRegistration' || pathname === '/admin/employer';
 
   useEffect(() => {
     const handleScroll = () => {

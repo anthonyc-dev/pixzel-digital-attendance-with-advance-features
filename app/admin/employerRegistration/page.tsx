@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { cn } from '@/lib/utils';
-import { History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, Hash, ScanLine, AlertCircle, Loader2 } from 'lucide-react';
+import { History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, Hash, ScanLine, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import * as faceapi from 'face-api.js';
 
 const playSuccessSound = () => {
@@ -54,7 +55,7 @@ type EmployerForm = {
   employerPosition: string;
 };
 
-const EmployerRegistrationPage = () => {
+const RegistrationContent = () => {
   const [now, setNow] = useState<Date | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
@@ -69,7 +70,15 @@ const EmployerRegistrationPage = () => {
     employerPosition: '',
   });
   const [showAllHistory, setShowAllHistory] = useState(false);
-  const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const editId = searchParams?.get('edit');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   // Registration history
   const [history, setHistory] = useState<RegistrationHistory[]>([]);
@@ -99,10 +108,26 @@ const EmployerRegistrationPage = () => {
     }
   };
 
-  // Load history from API on mount
+  // Load history and check for edit mode
   useEffect(() => {
     fetchHistory();
-  }, []);
+    
+    if (!searchParams) return;
+    
+    const id = searchParams.get('id');
+    const name = searchParams.get('name');
+    const pos = searchParams.get('pos');
+    
+    if (editId && id && name && pos) {
+      setFormData({
+        employerId: id,
+        employerName: name,
+        employerPosition: pos
+      });
+      setIsModalOpen(true);
+      setIsCameraOpen(false);
+    }
+  }, [searchParams, editId]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -326,33 +351,38 @@ const EmployerRegistrationPage = () => {
   const captureAndRegister = useCallback(async () => {
     if (!videoRef.current || detectedFaces === 0) return;
 
-    // Check for duplicate employerId or employerName
-    const isDuplicateId = history.some(record =>
-      record.employerId && record.employerId.toLowerCase() === formData.employerId.toLowerCase()
-    );
+    // Skip duplicate checks if we are editing an existing employer
+    if (!editId) {
+      try {
+        const checkResponse = await fetch('/api/employers');
+        if (checkResponse.ok) {
+          const { data: allEmployers } = await checkResponse.json();
+          
+          const isDuplicateId = allEmployers.some((emp: any) => 
+            emp.employer_id.toLowerCase() === formData.employerId.toLowerCase()
+          );
 
-    const isDuplicateName = history.some(record =>
-      record.employerName && record.employerName.toLowerCase() === formData.employerName.toLowerCase()
-    );
+          const isDuplicateName = allEmployers.some((emp: any) => 
+            emp.employer_name.toLowerCase() === formData.employerName.toLowerCase()
+          );
 
-    if (isDuplicateId) {
-      setScanResult('error');
-      setDuplicateError('Employer ID already exists!');
-      setTimeout(() => {
-        setScanResult(null);
-        setDuplicateError(null);
-      }, 3000);
-      return;
-    }
+          if (isDuplicateId) {
+            setScanResult('error');
+            showToast('Employer ID already exists!', 'error');
+            setTimeout(() => setScanResult(null), 3000);
+            return;
+          }
 
-    if (isDuplicateName) {
-      setScanResult('error');
-      setDuplicateError('Employer name already exists!');
-      setTimeout(() => {
-        setScanResult(null);
-        setDuplicateError(null);
-      }, 3000);
-      return;
+          if (isDuplicateName) {
+            setScanResult('error');
+            showToast('Employer name already exists!', 'error');
+            setTimeout(() => setScanResult(null), 3000);
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Check duplicate failed:', e);
+      }
     }
 
     const video = videoRef.current;
@@ -372,11 +402,12 @@ const EmployerRegistrationPage = () => {
       //display sa registration history
       try {
         const response = await fetch('/api/registration', {
-          method: 'POST',
+          method: editId ? 'PUT' : 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            id: editId || undefined,
             employer_id: formData.employerId,
             employer_name: formData.employerName,
             employer_position: formData.employerPosition,
@@ -389,8 +420,13 @@ const EmployerRegistrationPage = () => {
         if (response.ok) {
           setIsScanning(false);
           setScanResult('success');
+          showToast(editId ? 'Employer updated successfully!' : 'Employer registered successfully!', 'success');
           playSuccessSound();
 
+          if (editId) {
+             setTimeout(() => router.push('/admin/employer'), 2000);
+          }
+          
           fetchHistory();
 
           setTimeout(() => {
@@ -405,10 +441,11 @@ const EmployerRegistrationPage = () => {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.error || `Registration failed (Status: ${response.status})`);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('API Error Details:', error);
         setIsScanning(false);
         setScanResult('error');
+        showToast(error.message || 'Operation failed', 'error');
       } finally {
         setTimeout(() => setScanResult(null), 3000);
       }
@@ -451,7 +488,7 @@ const EmployerRegistrationPage = () => {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          <div className="relative w-full max-w-sm sm:max-w-md bg-white dark:bg-[#0A0A0A] rounded-2xl sm:rounded-[2rem] border border-gray-100 dark:border-white/10 shadow-2xl overflow-hidden">
+          <div className="relative w-full max-w-sm sm:max-w-md bg-white dark:bg-[#0A0A0A] rounded-2xl border border-gray-100 dark:border-white/10 shadow-2xl overflow-hidden">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_0%,_rgba(0,137,192,0.08)_0%,_transparent_50%)] pointer-events-none" />
 
             <div className="relative p-5 sm:p-6 md:p-8">
@@ -549,7 +586,7 @@ const EmployerRegistrationPage = () => {
           {!isModalOpen && !isCameraOpen && (
             <button
               onClick={() => setIsModalOpen(true)}
-              className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all flex items-center gap-1.5 sm:gap-2 w-fit cursor-pointer"
+              className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all flex items-center gap-1.5 sm:gap-2 w-fit cursor-pointer"
             >
               <UserCheck className="w-3 sm:w-4 h-3 sm:h-4" />
               New Registration
@@ -560,7 +597,7 @@ const EmployerRegistrationPage = () => {
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
           {/* LEFT COLUMN: FACIAL RECOGNITION CAPTURE */}
           <div className="lg:col-span-7 xl:col-span-8 flex flex-col min-h-[500px] sm:min-h-[600px] lg:min-h-[700px]">
-            <div className="relative w-full rounded-2xl sm:rounded-[2rem] lg:rounded-[3rem] overflow-hidden bg-white dark:bg-[#0A0A0A] border border-gray-100 dark:border-white/10 shadow-xl flex-1 flex flex-col">
+            <div className="relative w-full rounded-2xl overflow-hidden bg-white dark:bg-[#0A0A0A] border border-gray-100 dark:border-white/10 shadow-xl flex-1 flex flex-col">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,_rgba(0,137,192,0.06)_0%,_transparent_55%)] pointer-events-none" />
 
               <div className="p-4 sm:p-6 md:p-8 lg:p-10 flex flex-col h-full relative z-10 w-full">
@@ -600,7 +637,7 @@ const EmployerRegistrationPage = () => {
 
                 <div className="flex-1 flex flex-col items-center justify-center relative w-full min-h-[250px] sm:min-h-[300px] md:min-h-[350px]">
                   {isCameraOpen ? (
-                    <div className="relative w-full h-full max-w-xl sm:max-w-2xl bg-black rounded-xl sm:rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl group flex flex-col justify-center items-center">
+                    <div className="relative w-full h-full max-w-xl sm:max-w-2xl bg-black rounded-xl sm:rounded-2xl overflow-hidden border border-white/10 shadow-2xl group flex flex-col justify-center items-center">
                       {/* Video Element */}
                       <video
                         ref={videoRef}
@@ -614,7 +651,7 @@ const EmployerRegistrationPage = () => {
                       />
 
                       {/* Employer Info Overlay (Top Left) */}
-                      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-30 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-black/40 dark:bg-white/10 backdrop-blur-md border border-white/20 shadow-xl animate-in slide-in-from-left-4 fade-in duration-700">
+                      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-30 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-black/40 dark:bg-white/10 backdrop-blur-md border border-white/20 shadow-xl animate-in slide-in-from-left-4 fade-in duration-700">
                         <div className="p-1.5 rounded-lg bg-[#0089C0]/20 border border-[#0089C0]/30">
                           <User className="w-3 sm:w-4 h-3 sm:h-4 text-[#0089C0]" />
                         </div>
@@ -675,10 +712,10 @@ const EmployerRegistrationPage = () => {
                           "relative w-48 sm:w-64 md:w-80 h-48 sm:h-64 md:h-80 border-y-2 border-[#0089C0]/50 bg-[#0089C0]/10",
                           detectedFaces === 0 && isCameraOpen && "animate-pulse-subtle"
                         )}>
-                          <div className="absolute top-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-l-4 border-[#0089C0] rounded-tl-2xl sm:rounded-tl-3xl -mt-0.5 -ml-0.5" />
-                          <div className="absolute top-0 right-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-r-4 border-[#0089C0] rounded-tr-2xl sm:rounded-tr-3xl -mt-0.5 -mr-0.5" />
-                          <div className="absolute bottom-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-b-4 border-l-4 border-[#0089C0] rounded-bl-2xl sm:rounded-bl-3xl -mb-0.5 -ml-0.5" />
-                          <div className="absolute bottom-0 right-0 w-10 sm:w-12 h-10 sm:h-12 border-b-4 border-r-4 border-[#0089C0] rounded-br-2xl sm:rounded-br-3xl -mb-0.5 -mr-0.5" />
+                          <div className="absolute top-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-l-4 border-[#0089C0] rounded-tl-lg sm:rounded-tl-xl -mt-0.5 -ml-0.5" />
+                          <div className="absolute top-0 right-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-r-4 border-[#0089C0] rounded-tr-lg sm:rounded-tr-xl -mt-0.5 -mr-0.5" />
+                          <div className="absolute bottom-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-b-4 border-l-4 border-[#0089C0] rounded-bl-lg sm:rounded-bl-xl -mb-0.5 -ml-0.5" />
+                          <div className="absolute bottom-0 right-0 w-10 sm:w-12 h-10 sm:h-12 border-b-4 border-r-4 border-[#0089C0] rounded-br-lg sm:rounded-br-xl -mb-0.5 -mr-0.5" />
                         </div>
                         {isScanning && (
                           <div className="absolute left-0 right-0 h-0.5 sm:h-1 bg-[#0089C0] shadow-[0_0_20px_4px_rgba(0,137,192,0.6)] animate-scan top-1/2" />
@@ -701,13 +738,6 @@ const EmployerRegistrationPage = () => {
                               New Registration
                             </button>
                           </div>
-                        ) : scanResult === 'error' && duplicateError ? (
-                          <div className="flex flex-col items-center gap-2 sm:gap-3 animate-in fade-in slide-in-from-bottom">
-                            <div className="bg-red-500/90 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl flex items-center gap-2">
-                              <AlertCircle className="w-4 sm:w-5 h-4 sm:h-5" />
-                              <span className="font-bold tracking-tight text-xs sm:text-sm">{duplicateError}</span>
-                            </div>
-                          </div>
                         ) : (
                           <button
                             disabled={isScanning || detectedFaces === 0}
@@ -726,7 +756,7 @@ const EmployerRegistrationPage = () => {
                       disabled={isModelLoading}
                       className={cn(
                         "group relative w-full h-full max-w-xl sm:max-w-2xl",
-                        "rounded-xl sm:rounded-[2rem] p-6 sm:p-10 md:p-14",
+                        "rounded-2xl p-6 sm:p-10 md:p-14",
                         "bg-[#0089C0]/5 border-2 border-[#0089C0]/20 border-dashed",
                         "hover:bg-[#0089C0]/10 hover:border-[#0089C0]/40 hover:border-solid",
                         "active:scale-[0.99]",
@@ -737,7 +767,7 @@ const EmployerRegistrationPage = () => {
                       <div className="absolute -top-16 sm:-top-24 -right-16 sm:-right-24 w-48 sm:w-72 h-48 sm:h-72 bg-[#0089C0]/10 rounded-full blur-[30px] sm:blur-[40px]" />
                       <div className="absolute -bottom-16 sm:-bottom-24 -left-16 sm:-left-24 w-48 sm:w-72 h-48 sm:h-72 bg-[#0089C0]/5 rounded-full blur-[30px] sm:blur-[40px]" />
 
-                      <div className="w-16 sm:w-20 md:w-24 h-16 sm:h-20 md:h-24 rounded-xl sm:rounded-[2rem] bg-white dark:bg-[#0089C0]/10 shadow-xl border border-white/20 dark:border-[#0089C0]/20 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform duration-300 mb-4 sm:mb-6 relative z-10">
+                      <div className="w-16 sm:w-20 md:w-24 h-16 sm:h-20 md:h-24 rounded-2xl bg-white dark:bg-[#0089C0]/10 shadow-xl border border-white/20 dark:border-[#0089C0]/20 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform duration-300 mb-4 sm:mb-6 relative z-10">
                         {isModelLoading ? (
                           <Loader2 className="w-8 sm:w-10 md:w-12 h-8 sm:w-10 md:h-12 text-[#0089C0]/60 dark:text-[#0089C0] animate-spin" />
                         ) : (
@@ -784,7 +814,7 @@ const EmployerRegistrationPage = () => {
 
           {/* RIGHT COLUMN: REGISTRATION HISTORY */}
           <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-4 sm:gap-6">
-            <div className="p-4 sm:p-5 md:p-7 rounded-2xl sm:rounded-[2.5rem] bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 shadow-sm flex-1 flex flex-col min-h-[300px] sm:min-h-[400px] lg:min-h-[700px]">
+            <div className="p-4 sm:p-5 md:p-7 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 shadow-sm flex-1 flex flex-col min-h-[300px] sm:min-h-[400px] lg:min-h-[700px]">
               <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 flex-shrink-0">
                 <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-[#0089C0]/10 border border-[#0089C0]/20">
                   <History className="w-4 sm:w-5 h-4 sm:h-5 text-[#0089C0]" />
@@ -822,7 +852,7 @@ const EmployerRegistrationPage = () => {
                     {history.slice(0, showAllHistory ? history.length : 5).map((record) => (
                       <div
                         key={record.id}
-                        className="p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 flex items-center justify-between gap-2"
+                        className="p-3 sm:p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 flex items-center justify-between gap-2"
                       >
                         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl border bg-[#0089C0]/10 border-[#0089C0]/20 overflow-hidden flex items-center justify-center text-[#0089C0]">
@@ -863,6 +893,26 @@ const EmployerRegistrationPage = () => {
           </div>
         </section>
       </div>
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-8 right-8 z-[200] animate-in slide-in-from-right-10 fade-in duration-300">
+          <div className={cn(
+            "flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border backdrop-blur-md",
+            toast.type === 'success' && "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400",
+            toast.type === 'info' && "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400",
+            toast.type === 'error' && "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400"
+          )}>
+            {toast.type === 'success' && <CheckCircle2 className="w-5 h-5" />}
+            {toast.type === 'info' && <ScanFace className="w-5 h-5" />}
+            {toast.type === 'error' && <AlertCircle className="w-5 h-5" />}
+            <span className="text-xs font-black uppercase tracking-widest">{toast.message}</span>
+            <button onClick={() => setToast(null)} className="ml-2 hover:opacity-70">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <style dangerouslySetInnerHTML={{
         __html: `
         @keyframes scan {
@@ -895,6 +945,22 @@ const EmployerRegistrationPage = () => {
         }
       `}} />
     </Layout>
+  );
+};
+
+import { Suspense } from 'react';
+
+const EmployerRegistrationPage = () => {
+  return (
+    <Suspense fallback={
+      <Layout>
+        <div className="flex items-center justify-center min-h-[600px]">
+          <Loader2 className="w-8 h-8 animate-spin text-[#0089C0]" />
+        </div>
+      </Layout>
+    }>
+      <RegistrationContent />
+    </Suspense>
   );
 };
 
