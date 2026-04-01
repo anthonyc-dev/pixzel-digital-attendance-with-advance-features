@@ -1,7 +1,66 @@
-import React from 'react'
+'use client'
+
+import React, { useState } from 'react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/utils/supabase/client'
 
 const Login = () => {
+  const router = useRouter()
+  const [identifier, setIdentifier] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+
+    const supabase = createClient()
+    const typedIdentifier = identifier.trim()
+
+    let emailToSignIn = typedIdentifier
+
+    // Supabase Auth signs in with email/phone, so resolve username to email first.
+    if (!typedIdentifier.includes('@')) {
+      const { data: loginIdentity, error: identityError } = await supabase
+        .from('login_identities')
+        .select('email')
+        .eq('username', typedIdentifier)
+        .maybeSingle()
+
+      if (identityError) {
+        setLoading(false)
+        setError('Unable to verify username right now. Please try again.')
+        return
+      }
+
+      if (!loginIdentity?.email) {
+        setLoading(false)
+        setError('Username not found.')
+        return
+      }
+
+      emailToSignIn = loginIdentity.email
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: emailToSignIn,
+      password,
+    })
+
+    setLoading(false)
+
+    if (signInError) {
+      setError(signInError.message)
+      return
+    }
+
+    router.refresh()
+    router.push('/')
+  }
+
   return (
     <main className="dark min-h-screen bg-gradient-to-br from-background via-muted to-background p-6 md:p-10">
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-lg items-center justify-center">
@@ -21,7 +80,13 @@ const Login = () => {
             <p className="text-sm text-muted-foreground">Sign in to continue to your attendance dashboard.</p>
           </div>
 
-          <form className="space-y-5">
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            {error ? (
+              <p className="rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+                {error}
+              </p>
+            ) : null}
+
             <div>
               <div className="group relative">
                 <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted-foreground/80">
@@ -38,15 +103,18 @@ const Login = () => {
                   </svg>
                 </span>
                 <input
-                  id="username"
-                  name="username"
+                  id="identifier"
+                  name="identifier"
                   type="text"
-                  autoComplete="section-login username"
+                  autoComplete="username"
+                  required
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   placeholder=" "
                   className="peer h-14 w-full rounded-xl border border-input bg-background/90 pb-2 pl-10 pr-3 pt-5 text-sm text-foreground outline-none transition focus:border-secondary focus:ring-2 focus:ring-ring/30 autofill:bg-background autofill:text-foreground"
                 />
                 <label
-                  htmlFor="username"
+                  htmlFor="identifier"
                   className="pointer-events-none absolute left-10 top-1/2 -translate-y-1/2 px-1 text-sm text-muted-foreground transition-all duration-200 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[11px] peer-focus:font-medium peer-focus:text-secondary peer-not-placeholder-shown:top-2 peer-not-placeholder-shown:translate-y-0 peer-not-placeholder-shown:text-[11px] peer-not-placeholder-shown:font-medium group-hover:top-2 group-hover:translate-y-0 group-hover:text-[11px]"
                 >
                   Username
@@ -73,7 +141,11 @@ const Login = () => {
                   id="password"
                   name="password"
                   type="password"
-                  autoComplete="section-login current-password"
+                  autoComplete="current-password"
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder=" "
                   className="peer h-14 w-full rounded-xl border border-input bg-background/90 pb-2 pl-10 pr-3 pt-5 text-sm text-foreground outline-none transition focus:border-secondary focus:ring-2 focus:ring-ring/30 autofill:bg-background autofill:text-foreground"
                 />
@@ -88,9 +160,10 @@ const Login = () => {
 
             <button
               type="submit"
-              className="mt-2 h-11 w-full rounded-lg bg-secondary text-sm font-medium text-secondary-foreground transition hover:opacity-90"
+              disabled={loading}
+              className="mt-2 h-11 w-full rounded-lg bg-secondary text-sm font-medium text-secondary-foreground transition hover:opacity-90 disabled:pointer-events-none disabled:opacity-60"
             >
-              Login
+              {loading ? 'Signing in…' : 'Login'}
             </button>
           </form>
         </section>
