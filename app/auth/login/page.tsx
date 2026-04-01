@@ -64,7 +64,7 @@ const Login = () => {
     }
 
     router.refresh()
-    router.push('/')
+    router.push('/admin/adminDashboard')
   }
 
   return (
