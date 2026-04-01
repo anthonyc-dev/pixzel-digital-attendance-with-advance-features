@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -55,15 +55,15 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }: SidebarProps) => {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [openMenus, setOpenMenus] = useState<string[]>([]);
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
-    if (savedTheme) {
-      setTheme(savedTheme);
-      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-    } else {
-      document.documentElement.classList.add('dark');
-    }
-  }, []);
+  // useEffect(() => {
+  //   const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
+  //   if (savedTheme) {
+  //     setTheme(savedTheme);
+  //     document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+  //   } else {
+  //     document.documentElement.classList.add('dark');
+  //   }
+  // }, []);
 
   const toggleTheme = (newTheme: 'light' | 'dark') => {
     setTheme(newTheme);

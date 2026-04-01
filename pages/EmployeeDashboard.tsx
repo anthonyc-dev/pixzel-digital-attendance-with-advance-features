@@ -1,6 +1,6 @@
 import React from 'react';
 import Layout from '@/components/Layout';
-import { Download, Search, SlidersHorizontal, CalendarDays, MoreHorizontal, CheckCircle2, Clock3, Umbrella, UserX, ArrowUpRight } from 'lucide-react';
+import { Download, Search, SlidersHorizontal, CalendarDays, CheckCircle2, Clock3, Umbrella, UserX, ArrowUpRight } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
@@ -12,7 +12,7 @@ const stats = [
 ];
 
 const employees = [
-  { 
+  {
     name: 'Dianne Russell', role: 'UI/UX Designer', avatar: 'https://i.pravatar.cc/150?u=dianne',
     attendance: [
       { day: 'Sun', hours: '8 Hours', status: 'active', icon: 'check' },
@@ -24,7 +24,7 @@ const employees = [
       { day: 'Sat', hours: '', status: 'empty' },
     ]
   },
-  { 
+  {
     name: 'Bessie Cooper', role: 'Product Designer', avatar: 'https://i.pravatar.cc/150?u=bessie',
     attendance: [
       { day: 'Sun', hours: '6h 24m', status: 'late', icon: 'clock' },
@@ -36,7 +36,7 @@ const employees = [
       { day: 'Sat', hours: '', status: 'empty' },
     ]
   },
-  { 
+  {
     name: 'Brooklyn Jones', role: 'Marketing Officer', avatar: 'https://i.pravatar.cc/150?u=brooklyn',
     attendance: [
       { day: 'Sun', hours: '8 Hours', status: 'active', icon: 'check' },
@@ -48,7 +48,7 @@ const employees = [
       { day: 'Sat', hours: '', status: 'empty' },
     ]
   },
-  { 
+  {
     name: 'Eleanor Pena', role: 'Content Writer', avatar: 'https://i.pravatar.cc/150?u=eleanor',
     attendance: [
       { day: 'Sun', hours: '8h 15m', status: 'active', icon: 'check' },
@@ -66,7 +66,7 @@ const EmployeeDashboard = () => {
   return (
     <Layout>
       <div className="flex flex-col gap-8 w-full max-w-7xl animate-in fade-in slide-in-from-bottom duration-700">
-        
+
         {/* Page Title */}
         <header className="flex items-end justify-between">
           <div className="space-y-1">
@@ -83,10 +83,10 @@ const EmployeeDashboard = () => {
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat) => (
             <div key={stat.title} className={cn("p-8 bg-white/5 border border-white/5 rounded-[2.5rem] hover:border-white/10 hover:bg-white/[0.08] hover:shadow-2xl hover:shadow-black transition-all group flex flex-col gap-6 relative overflow-hidden")}>
-               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                 <stat.icon className="w-16 h-16" />
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <div className={cn("p-3 rounded-2xl", stat.bgColor, stat.borderColor, "border")}>
                   <stat.icon className={cn("w-6 h-6", stat.iconColor)} />
@@ -109,23 +109,23 @@ const EmployeeDashboard = () => {
           {/* Filters Bar */}
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-               <div className="relative group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
-                  <input 
-                    type="text" 
-                    placeholder="Search by name or role..." 
-                    className="bg-white/5 border border-white/10 rounded-2xl py-3 pl-11 pr-5 text-[11px] uppercase tracking-widest font-black text-white focus:ring-1 focus:ring-secondary/40 focus:border-secondary/40 transition-all w-80 shadow-inner"
-                  />
-               </div>
-               <div className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/5 rounded-[1.5rem]">
-                  {['Leave', 'Absent', 'Active'].map(f => (
-                    <span key={f} className="px-4 py-2 bg-white/5 text-[9px] font-black text-white/50 uppercase tracking-widest rounded-xl shadow-sm border border-white/5 flex items-center gap-2 hover:bg-white/[0.08] hover:text-white cursor-pointer transition-all">
-                      {f} <span className="opacity-30">×</span>
-                    </span>
-                  ))}
-               </div>
+              <div className="relative group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+                <input
+                  type="text"
+                  placeholder="Search by name or role..."
+                  className="bg-white/5 border border-white/10 rounded-2xl py-3 pl-11 pr-5 text-[11px] uppercase tracking-widest font-black text-white focus:ring-1 focus:ring-secondary/40 focus:border-secondary/40 transition-all w-80 shadow-inner"
+                />
+              </div>
+              <div className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/5 rounded-[1.5rem]">
+                {['Leave', 'Absent', 'Active'].map(f => (
+                  <span key={f} className="px-4 py-2 bg-white/5 text-[9px] font-black text-white/50 uppercase tracking-widest rounded-xl shadow-sm border border-white/5 flex items-center gap-2 hover:bg-white/[0.08] hover:text-white cursor-pointer transition-all">
+                    {f} <span className="opacity-30">×</span>
+                  </span>
+                ))}
+              </div>
             </div>
-            
+
             <div className="flex items-center gap-4">
               <button className="flex items-center gap-3 px-5 py-3 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white/70 hover:bg-white/10 hover:text-white hover:border-white/20 transition-all shadow-xl group">
                 <SlidersHorizontal className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-500" />
@@ -154,19 +154,19 @@ const EmployeeDashboard = () => {
                   <tr key={emp.name} className="group hover:bg-white/[0.03] transition-all">
                     <td className="p-7">
                       <div className="flex items-center gap-5">
-                         <div className="relative">
-                           <Image src={emp.avatar} alt={emp.name} width={50} height={50} className="rounded-2xl grayscale group-hover:grayscale-0 transition-all duration-500 border border-white/10 shadow-lg group-hover:shadow-secondary/20" />
-                           <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-black rounded-full shadow-sm" />
-                         </div>
-                         <div className="flex flex-col gap-0.5">
-                            <span className="text-base font-black text-white leading-none tracking-tight group-hover:text-secondary transition-colors">{emp.name}</span>
-                            <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">{emp.role}</span>
-                         </div>
+                        <div className="relative">
+                          <Image src={emp.avatar} alt={emp.name} width={50} height={50} className="rounded-2xl grayscale group-hover:grayscale-0 transition-all duration-500 border border-white/10 shadow-lg group-hover:shadow-secondary/20" />
+                          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-black rounded-full shadow-sm" />
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-base font-black text-white leading-none tracking-tight group-hover:text-secondary transition-colors">{emp.name}</span>
+                          <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">{emp.role}</span>
+                        </div>
                       </div>
                     </td>
                     {emp.attendance.map((att, j) => (
                       <td key={j} className="p-7 border-l border-white/5 relative group/cell">
-                        <span className="absolute top-4 right-5 text-[10px] font-black text-gray-800 group-hover/cell:text-gray-600 transition-colors">{1 + j + (i*2) % 31}</span>
+                        <span className="absolute top-4 right-5 text-[10px] font-black text-gray-800 group-hover/cell:text-gray-600 transition-colors">{1 + j + (i * 2) % 31}</span>
                         {att.status !== 'empty' ? (
                           <div className={cn(
                             "mt-5 mx-auto flex items-center justify-center gap-2 px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all shadow-sm ring-1 ring-inset",
