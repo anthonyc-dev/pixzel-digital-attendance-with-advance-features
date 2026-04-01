@@ -1,46 +1,43 @@
-import { createClient } from "@/utils/supabase/server";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { createSupabaseServer } from "../../../utils/supabase/server";
 
-export async function POST(req: Request) {
-  try {
-    const data = await req.json();
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
+// GET ALL (SSR)
+export async function GET() {
+  const supabase = await createSupabaseServer();
 
-    const { data: insertedData, error } = await supabase
-      .from("employer_registration")
-      .insert([
-        {
-          employer_id: data.employer_id,
-          employer_name: data.employer_name,
-          employer_position: data.employer_position,
-          face_detected: data.face_detected,
-          status: data.status,
-          image: data.image,
-        },
-      ])
-      .select();
+  const { data, error } = await supabase
+    .from("attendance")
+    .select("*")
+    .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Supabase Insert Error:", error);
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-
-    console.log("Attendance recorded in Supabase:", insertedData);
-
-    return NextResponse.json(
-      {
-        message: "Attendance recorded successfully",
-        data: insertedData,
-      },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("Internal Server Error:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  return NextResponse.json(data);
+}
+
+// CREATE
+export async function POST(req: Request) {
+  const supabase = await createSupabaseServer();
+
+  const body = await req.json();
+
+  const { data, error } = await supabase
+    .from("attendance")
+    .insert({
+      employer_id: body.employer_id,
+      employer_name: body.employer_name,
+      employer_position: body.employer_position,
+      face_detected: body.face_detected,
+      status: body.status,
+      image: body.image,
+    })
+    .select();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(data[0]);
 }
