@@ -15,7 +15,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   X,
-  LogOut
+  LogOut,
+  Users
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -29,6 +30,7 @@ interface NavItem {
 
 const sidebarItems: NavItem[] = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/adminDashboard' },
+  { name: 'Employers', icon: Users, href: '/admin/employer' },
   { name: 'Calendar', icon: Calendar, href: '/admin/adminCalendar' },
   { 
     name: 'Activities', 

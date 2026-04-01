@@ -1,19 +1,37 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
-import { Download, Search, SlidersHorizontal, CalendarDays, MoreHorizontal, CheckCircle2, Clock3, Umbrella, UserX, ArrowUpRight } from 'lucide-react';
+import { Download, Search, SlidersHorizontal, CalendarDays, MoreHorizontal, CheckCircle2, Clock3, Umbrella, UserX, ArrowUpRight, Users } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
-const stats = [
-    { title: 'Present Today', value: '40', sub: '124 People Remaining', icon: CheckCircle2, iconColor: 'text-green-400', bgColor: 'bg-green-400/5', borderColor: 'border-green-400/10' },
-    { title: 'Late Entry', value: '26', sub: '12 People are on Time', icon: Clock3, iconColor: 'text-orange-400', bgColor: 'bg-orange-400/5', borderColor: 'border-orange-400/10' },
-    { title: 'On Leave', value: '04', sub: 'Approved Leave', icon: Umbrella, iconColor: 'text-blue-400', bgColor: 'bg-blue-400/5', borderColor: 'border-blue-400/10' },
-    { title: 'Absent', value: '01', sub: 'Without Informing', icon: UserX, iconColor: 'text-red-400', bgColor: 'bg-red-400/5', borderColor: 'border-red-400/10' },
+interface AttendanceRecord {
+    day: string;
+    hours: string;
+    status: 'active' | 'late' | 'leave' | 'absent' | 'empty';
+    icon: 'check' | 'clock' | 'smile' | 'x' | null;
+}
+
+interface Employee {
+    id: string;
+    employer_id?: string;
+    employer_name: string;
+    employer_position?: string;
+    name?: string;
+    role?: string;
+    avatar?: string;
+    attendance: AttendanceRecord[];
+}
+
+const initialStats = [
+    { title: 'Present Today', value: '-', sub: 'People Present', icon: CheckCircle2, iconColor: 'text-green-400', bgColor: 'bg-green-400/5', borderColor: 'border-green-400/10' },
+    { title: 'Late Entry', value: '-', sub: 'Late Arrivals', icon: Clock3, iconColor: 'text-orange-400', bgColor: 'bg-orange-400/5', borderColor: 'border-orange-400/10' },
+    { title: 'On Leave', value: '-', sub: 'Approved Leave', icon: Umbrella, iconColor: 'text-blue-400', bgColor: 'bg-blue-400/5', borderColor: 'border-blue-400/10' },
+    { title: 'Absent', value: '-', sub: 'Without Informing', icon: UserX, iconColor: 'text-red-400', bgColor: 'bg-red-400/5', borderColor: 'border-red-400/10' },
 ];
 
-const employees = [
+const initialEmployees = [
     {
         name: 'Dianne Russell', role: 'UI/UX Designer', avatar: 'https://i.pravatar.cc/150?u=dianne',
         attendance: [
@@ -65,6 +83,46 @@ const employees = [
 ];
 
 const AttendancePage = () => {
+    const [isLoading, setIsLoading] = useState(true);
+    const [stats, setStats] = useState(initialStats);
+    const [employees, setEmployees] = useState<Employee[]>([]);
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                const response = await fetch('/api/employers');
+                if (response.ok) {
+                    const result = await response.json();
+                    const employerData = result.data || [];
+                    
+                    const present = employerData.filter((e: any) => e.status === 'present').length;
+                    const onLeave = employerData.filter((e: any) => e.status === 'leave').length;
+                    const absent = employerData.filter((e: any) => e.status === 'absent').length;
+                    
+                    setStats([
+                        { ...initialStats[0], value: String(present) },
+                        { ...initialStats[1], value: '-' },
+                        { ...initialStats[2], value: String(onLeave) },
+                        { ...initialStats[3], value: String(absent) },
+                    ]);
+                    
+                    setEmployees(employerData.map((e: any) => ({
+                        id: e.id,
+                        employer_id: e.employer_id,
+                        employer_name: e.employer_name,
+                        employer_position: e.employer_position,
+                        attendance: [],
+                    })));
+                }
+            } catch (e) {
+                console.error('Failed to fetch dashboard data:', e);
+            } finally {
+                setTimeout(() => setIsLoading(false), 500);
+            }
+        };
+        fetchDashboardData();
+    }, []);
+
     return (
         <Layout>
             <div className="flex flex-col gap-4 sm:gap-6 lg:gap-8 w-full max-w-7xl animate-in fade-in duration-500 ease-out pb-4 sm:pb-6 lg:pb-10">
@@ -156,45 +214,77 @@ const AttendancePage = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                                {employees.map((emp, i) => (
-                                    <tr key={emp.name} className="group hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-all">
-                                        <td className="p-4 sm:p-5 md:p-7">
-                                            <div className="flex items-center gap-3 sm:gap-5">
-                                                <div className="relative">
-                                                    <Image src={emp.avatar} alt={emp.name} width={40} height={40} className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl grayscale group-hover:grayscale-0 transition-all duration-500 border border-gray-100 dark:border-white/10 shadow-lg group-hover:shadow-secondary/20" />
-                                                    <div className="absolute -bottom-0.5 -right-0.5 w-3 sm:w-4 h-3 sm:h-4 bg-green-500 border-2 border-white dark:border-black rounded-full shadow-sm" />
-                                                </div>
-                                                <div className="flex flex-col gap-0.5">
-                                                    <span className="text-xs sm:text-base font-black text-foreground leading-none tracking-tight group-hover:text-secondary transition-colors">{emp.name}</span>
-                                                    <span className="text-[9px] sm:text-[10px] font-black text-gray-500 dark:text-gray-600 uppercase tracking-widest hidden sm:block">{emp.role}</span>
-                                                </div>
+                                {isLoading ? (
+                                    <>
+                                        {[1, 2, 3, 4].map((i) => (
+                                            <tr key={i}>
+                                                <td className="p-4 sm:p-5 md:p-7">
+                                                    <div className="flex items-center gap-3 sm:gap-5">
+                                                        <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl bg-gray-200 dark:bg-white/5 animate-pulse" />
+                                                        <div className="flex flex-col gap-2">
+                                                            <div className="h-4 w-32 bg-gray-200 dark:bg-white/5 rounded animate-pulse" />
+                                                            <div className="h-3 w-20 bg-gray-200 dark:bg-white/5 rounded animate-pulse" />
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                {[1, 2, 3, 4, 5, 6, 7].map((j) => (
+                                                    <td key={j} className="p-4 sm:p-5 md:p-7 border-l border-gray-100 dark:border-white/5">
+                                                        <div className="mt-4 sm:mt-5 mx-auto h-[28px] sm:h-[32px] w-[50px] sm:w-[60px] bg-gray-200 dark:bg-white/5 rounded-lg sm:rounded-xl animate-pulse" />
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </>
+                                ) : employees.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} className="p-8 text-center">
+                                            <div className="flex flex-col items-center gap-2 text-gray-500 dark:text-gray-400">
+                                                <Users className="w-8 h-8 opacity-50" />
+                                                <span className="text-sm font-bold">No attendance records found</span>
                                             </div>
                                         </td>
-                                        {emp.attendance.map((att, j) => (
-                                            <td key={j} className="p-4 sm:p-5 md:p-7 border-l border-gray-100 dark:border-white/5 relative group/cell">
-                                                <span className="absolute top-2 sm:top-3 md:top-4 right-3 sm:right-4 md:right-5 text-[9px] sm:text-[10px] font-black text-gray-400 dark:text-gray-800 group-hover/cell:text-gray-600 dark:group-hover/cell:text-gray-600 transition-colors">{1 + j + (i * 2) % 31}</span>
-                                                {att.status !== 'empty' ? (
-                                                    <div className={cn(
-                                                        "mt-4 sm:mt-5 mx-auto flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-2xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all shadow-sm ring-1 ring-inset",
-                                                        att.status === 'active' && "bg-green-500/10 text-green-600 dark:text-green-400 ring-green-600/20 dark:ring-green-400/20",
-                                                        att.status === 'late' && "bg-orange-500/10 text-orange-600 dark:text-orange-400 ring-orange-600/20 dark:ring-orange-400/20",
-                                                        att.status === 'leave' && "bg-purple-500/10 text-purple-600 dark:text-purple-400 ring-purple-600/20 dark:ring-purple-400/20",
-                                                        att.status === 'absent' && "bg-red-500/10 text-red-600 dark:text-red-400 ring-red-600/20 dark:ring-red-400/20"
-                                                    )}>
-                                                        {att.icon === 'check' && <CheckCircle2 className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
-                                                        {att.icon === 'clock' && <Clock3 className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
-                                                        {att.icon === 'smile' && <Umbrella className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
-                                                        {att.icon === 'x' && <UserX className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
-                                                        <span className="hidden sm:inline">{att.hours}</span>
-                                                        <span className="sm:hidden">{att.hours.split(' ')[0]}</span>
-                                                    </div>
-                                                ) : (
-                                                    <div className="mt-4 sm:mt-5 h-[24px] sm:h-[28px] w-full bg-[radial-gradient(circle_at_1px_1px,_rgba(0,0,0,0.05)_1px,_transparent_0)] dark:bg-[radial-gradient(circle_at_1px_1px,_rgba(255,255,255,0.02)_1px,_transparent_0)] bg-[size:8px_8px] sm:bg-[size:10px_10px]" />
-                                                )}
-                                            </td>
-                                        ))}
                                     </tr>
-                                ))}
+                                ) : (
+                                    employees.map((emp, i) => (
+                                        <tr key={emp.employer_name || emp.name || i} className="group hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-all">
+                                            <td className="p-4 sm:p-5 md:p-7">
+                                                <div className="flex items-center gap-3 sm:gap-5">
+                                                    <div className="relative">
+                                                        <Image src={emp.avatar || `https://i.pravatar.cc/150?u=${emp.employer_id || i}`} alt={emp.employer_name || emp.name || ''} width={40} height={40} className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl grayscale group-hover:grayscale-0 transition-all duration-500 border border-gray-100 dark:border-white/10 shadow-lg group-hover:shadow-secondary/20" />
+                                                        <div className="absolute -bottom-0.5 -right-0.5 w-3 sm:w-4 h-3 sm:h-4 bg-green-500 border-2 border-white dark:border-black rounded-full shadow-sm" />
+                                                    </div>
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-xs sm:text-base font-black text-foreground leading-none tracking-tight group-hover:text-secondary transition-colors">{emp.employer_name || emp.name}</span>
+                                                        <span className="text-[9px] sm:text-[10px] font-black text-gray-500 dark:text-gray-600 uppercase tracking-widest hidden sm:block">{emp.employer_position || emp.role}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            {emp.attendance.map((att, j) => (
+                                                <td key={j} className="p-4 sm:p-5 md:p-7 border-l border-gray-100 dark:border-white/5 relative group/cell">
+                                                    <span className="absolute top-2 sm:top-3 md:top-4 right-3 sm:right-4 md:right-5 text-[9px] sm:text-[10px] font-black text-gray-400 dark:text-gray-800 group-hover/cell:text-gray-600 dark:group-hover/cell:text-gray-600 transition-colors">{1 + j + (i * 2) % 31}</span>
+                                                    {att.status !== 'empty' ? (
+                                                        <div className={cn(
+                                                            "mt-4 sm:mt-5 mx-auto flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-2xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all shadow-sm ring-1 ring-inset",
+                                                            att.status === 'active' && "bg-green-500/10 text-green-600 dark:text-green-400 ring-green-600/20 dark:ring-green-400/20",
+                                                            att.status === 'late' && "bg-orange-500/10 text-orange-600 dark:text-orange-400 ring-orange-600/20 dark:ring-orange-400/20",
+                                                            att.status === 'leave' && "bg-purple-500/10 text-purple-600 dark:text-purple-400 ring-purple-600/20 dark:ring-purple-400/20",
+                                                            att.status === 'absent' && "bg-red-500/10 text-red-600 dark:text-red-400 ring-red-600/20 dark:ring-red-400/20"
+                                                        )}>
+                                                            {att.icon === 'check' && <CheckCircle2 className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
+                                                            {att.icon === 'clock' && <Clock3 className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
+                                                            {att.icon === 'smile' && <Umbrella className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
+                                                            {att.icon === 'x' && <UserX className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
+                                                            <span className="hidden sm:inline">{att.hours}</span>
+                                                            <span className="sm:hidden">{att.hours?.split(' ')[0]}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="mt-4 sm:mt-5 h-[24px] sm:h-[28px] w-full bg-[radial-gradient(circle_at_1px_1px,_rgba(0,0,0,0.05)_1px,_transparent_0)] dark:bg-[radial-gradient(circle_at_1px_1px,_rgba(255,255,255,0.02)_1px,_transparent_0)] bg-[size:8px_8px] sm:bg-[size:10px_10px]" />
+                                                    )}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>

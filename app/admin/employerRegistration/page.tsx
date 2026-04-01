@@ -73,10 +73,12 @@ const EmployerRegistrationPage = () => {
 
   // Registration history
   const [history, setHistory] = useState<RegistrationHistory[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
   // Fetch history from API
   const fetchHistory = async () => {
     try {
+      setIsLoadingHistory(true);
       const response = await fetch('/api/registration');
       if (response.ok) {
         const result = await response.json();
@@ -92,6 +94,8 @@ const EmployerRegistrationPage = () => {
       }
     } catch (e) {
       console.error('Failed to fetch history:', e);
+    } finally {
+      setIsLoadingHistory(false);
     }
   };
 
@@ -794,7 +798,22 @@ const EmployerRegistrationPage = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto pr-1 sm:pr-2 space-y-2 sm:space-y-3 custom-scrollbar">
-                {history.length === 0 ? (
+                {isLoadingHistory ? (
+                  <>
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gray-200 dark:bg-white/10 animate-pulse" />
+                          <div className="flex flex-col gap-2">
+                            <div className="h-4 w-32 bg-gray-200 dark:bg-white/10 rounded animate-pulse" />
+                            <div className="h-3 w-24 bg-gray-200 dark:bg-white/10 rounded animate-pulse" />
+                          </div>
+                        </div>
+                        <div className="h-6 w-20 bg-gray-200 dark:bg-white/10 rounded-lg animate-pulse" />
+                      </div>
+                    ))}
+                  </>
+                ) : history.length === 0 ? (
                   <div className="text-center py-8 sm:py-10 text-muted-foreground text-xs sm:text-sm font-medium">
                     No employers registered yet today.
                   </div>
