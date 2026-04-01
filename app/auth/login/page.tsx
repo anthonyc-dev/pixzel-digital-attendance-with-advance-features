@@ -24,25 +24,31 @@ const Login = () => {
 
     // Supabase Auth signs in with email/phone, so resolve username to email first.
     if (!typedIdentifier.includes('@')) {
-      const { data: loginIdentity, error: identityError } = await supabase
-        .from('login_identities')
-        .select('email')
-        .eq('username', typedIdentifier)
-        .maybeSingle()
+      const resolveResponse = await fetch('/api/auth/resolve-username', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: typedIdentifier,
+        }),
+      })
 
-      if (identityError) {
+      if (!resolveResponse.ok) {
         setLoading(false)
         setError('Unable to verify username right now. Please try again.')
         return
       }
 
-      if (!loginIdentity?.email) {
+      const resolvePayload = (await resolveResponse.json()) as { email?: string; error?: string }
+
+      if (!resolvePayload.email) {
         setLoading(false)
-        setError('Username not found.')
+        setError(resolvePayload.error ?? 'Username not found.')
         return
       }
 
-      emailToSignIn = loginIdentity.email
+      emailToSignIn = resolvePayload.email
     }
 
     const { error: signInError } = await supabase.auth.signInWithPassword({
