@@ -7,7 +7,7 @@ import { createClient } from '@/utils/supabase/client'
 
 const Login = () => {
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -18,8 +18,35 @@ const Login = () => {
     setLoading(true)
 
     const supabase = createClient()
+    const typedIdentifier = identifier.trim()
+
+    let emailToSignIn = typedIdentifier
+
+    // Supabase Auth signs in with email/phone, so resolve username to email first.
+    if (!typedIdentifier.includes('@')) {
+      const { data: loginIdentity, error: identityError } = await supabase
+        .from('login_identities')
+        .select('email')
+        .eq('username', typedIdentifier)
+        .maybeSingle()
+
+      if (identityError) {
+        setLoading(false)
+        setError('Unable to verify username right now. Please try again.')
+        return
+      }
+
+      if (!loginIdentity?.email) {
+        setLoading(false)
+        setError('Username not found.')
+        return
+      }
+
+      emailToSignIn = loginIdentity.email
+    }
+
     const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+      email: emailToSignIn,
       password,
     })
 
@@ -76,21 +103,21 @@ const Login = () => {
                   </svg>
                 </span>
                 <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
+                  id="identifier"
+                  name="identifier"
+                  type="text"
+                  autoComplete="username"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   placeholder=" "
                   className="peer h-14 w-full rounded-xl border border-input bg-background/90 pb-2 pl-10 pr-3 pt-5 text-sm text-foreground outline-none transition focus:border-secondary focus:ring-2 focus:ring-ring/30 autofill:bg-background autofill:text-foreground"
                 />
                 <label
-                  htmlFor="email"
+                  htmlFor="identifier"
                   className="pointer-events-none absolute left-10 top-1/2 -translate-y-1/2 px-1 text-sm text-muted-foreground transition-all duration-200 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[11px] peer-focus:font-medium peer-focus:text-secondary peer-not-placeholder-shown:top-2 peer-not-placeholder-shown:translate-y-0 peer-not-placeholder-shown:text-[11px] peer-not-placeholder-shown:font-medium group-hover:top-2 group-hover:translate-y-0 group-hover:text-[11px]"
                 >
-                  Email
+                  Username
                 </label>
               </div>
             </div>
