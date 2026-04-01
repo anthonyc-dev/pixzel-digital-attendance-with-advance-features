@@ -12,10 +12,11 @@ import {
   LayoutDashboard,
   Moon,
   Sun,
-  ShieldCheck,
   ChevronsLeft,
   ChevronsRight,
-  X
+  X,
+  LogOut,
+  Users
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -29,6 +30,7 @@ interface NavItem {
 
 const sidebarItems: NavItem[] = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/adminDashboard' },
+  { name: 'Employers', icon: Users, href: '/admin/employer' },
   { name: 'Calendar', icon: Calendar, href: '/admin/adminCalendar' },
   { 
     name: 'Activities', 
@@ -40,6 +42,7 @@ const sidebarItems: NavItem[] = [
 
 const bottomItems = [
   { name: 'Settings', icon: Settings, href: '#' },
+  { name: 'Logout', icon: LogOut, href: '/', isLogout: true },
 ];
 
 interface AppSidebarProps {
@@ -107,8 +110,8 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className={cn(
-              "flex items-center justify-center p-1.5 text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-white transition-colors z-[60] cursor-pointer",
-              "hover:bg-gray-50 dark:hover:bg-white/5 rounded-lg"
+              "flex items-center justify-center p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors z-[60] cursor-pointer",
+              "hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg"
             )}
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
@@ -120,11 +123,8 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
           </button>
 
           {!isCollapsed && (
-            <div className="absolute left-4 top-6 flex items-center gap-2">
-              <div className="p-1.5 bg-secondary rounded-lg shadow-lg shadow-secondary/20">
-                <ShieldCheck className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-lg font-black tracking-tight text-primary dark:text-white uppercase transition-all duration-300">PIXZEL</span>
+            <div className="absolute left-4 top-6 flex items-center">
+              <img src="/Pixzel-Digital-Logo-Light-Land.png" alt="Pixzel Digital" className="h-8 w-auto" />
             </div>
           )}
         </div>
@@ -142,12 +142,12 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                     "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-300 group text-sm relative cursor-pointer",
                     isActive 
                       ? "bg-secondary text-white shadow-lg shadow-secondary/20" 
-                      : "text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-primary dark:hover:text-white"
+                      : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
                   )}
                 >
                   <div className="flex items-center gap-2.5">
-                    <item.icon className="w-4 h-4 flex-shrink-0" />
-                    {!isCollapsed && <span className="font-bold tracking-tight text-xs">{item.name}</span>}
+                    <item.icon className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-white" : "text-gray-500 dark:text-gray-400")} />
+                    {!isCollapsed && <span className={cn("font-bold tracking-tight text-xs", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>}
                   </div>
                   
                   {!isCollapsed && item.hasSub && (
@@ -160,14 +160,14 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                 </button>
                 
                 {!isCollapsed && item.subItems && isMenuOpen && (
-                  <div className="ml-5 space-y-0.5 mt-0.5 border-l border-gray-100 dark:border-white/5 pl-3 py-0.5 animate-in slide-in-from-top-2 duration-300">
+                  <div className="ml-5 space-y-0.5 mt-0.5 border-l border-gray-200 dark:border-white/5 pl-3 py-0.5 animate-in slide-in-from-top-2 duration-300">
                     {item.subItems.map((sub) => (
                       <Link 
                         key={sub.name}
                         href={sub.href}
                         className={cn(
                           "flex items-center justify-between py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer",
-                          pathname === sub.href ? "text-secondary" : "text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-white"
+                          pathname === sub.href ? "text-secondary" : "text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white"
                         )}
                       >
                         <span>{sub.name}</span>
@@ -188,7 +188,17 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
         <div className={cn("mt-auto shrink-0 space-y-3 p-2 pt-3 border-t border-gray-100 dark:border-white/5 bg-white dark:bg-black", isCollapsed && "px-0 items-center")}>
           <div className="space-y-0.5">
             {bottomItems.map((item) => (
-              <button key={item.name} className={cn("w-full flex items-center gap-2.5 p-2.5 text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-white transition-all rounded-lg cursor-pointer", isCollapsed && "justify-center px-0")}>
+              <button 
+                key={item.name} 
+                onClick={() => item.isLogout ? router.push(item.href) : undefined}
+                className={cn(
+                  "w-full flex items-center gap-2.5 p-2.5 text-xs font-bold transition-all rounded-lg cursor-pointer",
+                  item.isLogout 
+                    ? "text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10" 
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white",
+                  isCollapsed && "justify-center px-0"
+                )}
+              >
                 <item.icon className="w-4 h-4" />
                 {!isCollapsed && <span>{item.name}</span>}
               </button>
@@ -203,7 +213,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
               onClick={() => toggleTheme('light')}
               className={cn(
                 "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
-                theme === 'light' ? "bg-white text-primary shadow-sm ring-1 ring-gray-100" : "text-gray-400 hover:text-primary"
+                theme === 'light' ? "bg-secondary text-white shadow-sm ring-1 ring-secondary/20" : "text-gray-400 hover:text-gray-900"
               )}
               title="Light Mode"
             >
@@ -214,7 +224,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
               onClick={() => toggleTheme('dark')}
               className={cn(
                 "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
-                theme === 'dark' ? "bg-black dark:bg-white/10 text-white shadow-sm ring-1 ring-white/10" : "text-gray-500 hover:text-white"
+                theme === 'dark' ? "bg-black dark:bg-white/10 text-white shadow-sm ring-1 ring-white/10" : "text-gray-400 hover:text-gray-900 dark:hover:text-white"
               )}
               title="Dark Mode"
             >
@@ -233,15 +243,12 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
         <div className="relative flex items-center justify-between px-4 pt-4 pb-3">
           <button
             onClick={() => setIsMobileOpen?.(false)}
-            className="p-1.5 text-gray-400 hover:text-primary transition-colors cursor-pointer"
+            className="p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-secondary rounded-lg shadow-lg shadow-secondary/20">
-              <ShieldCheck className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-lg font-black tracking-tight text-primary dark:text-white uppercase">PIXZEL</span>
+          <div className="flex items-center">
+            <img src="/Pixzel-Digital-Logo-Light-Land.png" alt="Pixzel Digital" className="h-7 w-auto" />
           </div>
           <div className="w-8" />
         </div>
@@ -259,12 +266,12 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                     "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-300 group text-sm relative cursor-pointer",
                     isActive 
                       ? "bg-secondary text-white shadow-lg shadow-secondary/20" 
-                      : "text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-primary dark:hover:text-white"
+                      : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
                   )}
                 >
                   <div className="flex items-center gap-2.5">
-                    <item.icon className="w-4 h-4 flex-shrink-0" />
-                    <span className="font-bold tracking-tight text-xs">{item.name}</span>
+                    <item.icon className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-white" : "text-gray-500 dark:text-gray-400")} />
+                    <span className={cn("font-bold tracking-tight text-xs", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>
                   </div>
                   
                   {item.hasSub && (
@@ -273,7 +280,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                 </button>
                 
                 {item.subItems && isMenuOpen && (
-                  <div className="ml-5 space-y-0.5 mt-0.5 border-l border-gray-100 dark:border-white/5 pl-3 py-0.5">
+                  <div className="ml-5 space-y-0.5 mt-0.5 border-l border-gray-200 dark:border-white/5 pl-3 py-0.5">
                     {item.subItems.map((sub) => (
                       <Link 
                         key={sub.name}
@@ -281,7 +288,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                         onClick={() => setIsMobileOpen?.(false)}
                         className={cn(
                           "flex items-center justify-between py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer",
-                          pathname === sub.href ? "text-secondary" : "text-gray-400 dark:text-gray-600 hover:text-primary"
+                          pathname === sub.href ? "text-secondary" : "text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white"
                         )}
                       >
                         <span>{sub.name}</span>
@@ -302,7 +309,21 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
         <div className="shrink-0 space-y-3 p-2 pt-3 border-t border-gray-100 dark:border-white/5 bg-white dark:bg-black">
           <div className="space-y-0.5">
             {bottomItems.map((item) => (
-              <button key={item.name} className="w-full flex items-center gap-2.5 p-2.5 text-xs font-bold text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-white transition-all rounded-lg cursor-pointer">
+              <button 
+                key={item.name} 
+                onClick={() => {
+                  if (item.isLogout) {
+                    router.push(item.href);
+                    setIsMobileOpen?.(false);
+                  }
+                }}
+                className={cn(
+                  "w-full flex items-center gap-2.5 p-2.5 text-xs font-bold transition-all rounded-lg cursor-pointer",
+                  item.isLogout 
+                    ? "text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10" 
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                )}
+              >
                 <item.icon className="w-4 h-4" />
                 <span>{item.name}</span>
               </button>
@@ -314,7 +335,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
               onClick={() => toggleTheme('light')}
               className={cn(
                 "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
-                theme === 'light' ? "bg-white text-primary shadow-sm ring-1 ring-gray-100" : "text-gray-400 hover:text-primary"
+                theme === 'light' ? "bg-secondary text-white shadow-sm ring-1 ring-secondary/20" : "text-gray-400 hover:text-gray-900"
               )}
             >
               <Sun className="w-3 h-3" />
@@ -324,7 +345,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
               onClick={() => toggleTheme('dark')}
               className={cn(
                 "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
-                theme === 'dark' ? "bg-black dark:bg-white/10 text-white shadow-sm ring-1 ring-white/10" : "text-gray-500 hover:text-white"
+                theme === 'dark' ? "bg-black dark:bg-white/10 text-white shadow-sm ring-1 ring-white/10" : "text-gray-400 hover:text-gray-900 dark:hover:text-white"
               )}
             >
               <Moon className="w-3 h-3" />
