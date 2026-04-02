@@ -51,6 +51,52 @@ interface AttendanceRecord {
     created_at: string;
 }
 
+// Static JSON for API Development Reference - Highly Detailed Mock
+const MOCK_DTR_DATA = {
+    status: "success",
+    message: "DTR data fetched successfully",
+    data: [
+        {
+            id: "att-mock-001",
+            employer_id: "EMP-PIXZ-001",
+            employer_name: "Jesper Ian",
+            employer_position: "Lead UI Developer",
+            status: "active",
+            time_in: "07:55 AM",
+            time_out: "05:15 PM",
+            excuse: null,
+            created_at: new Date().toISOString(),
+            total_hours: 9.3,
+            overtime_minutes: 15,
+            is_late: false,
+            department: "Engineering",
+            image: null
+        },
+        {
+            id: "att-mock-002",
+            employer_id: "EMP-PIXZ-002",
+            employer_name: "Anthony C.",
+            employer_position: "Senior Designer",
+            status: "late",
+            time_in: "09:12 AM",
+            time_out: "06:15 PM",
+            excuse: "Inclement weather",
+            created_at: new Date().toISOString(),
+            total_hours: 9,
+            overtime_minutes: 0,
+            is_late: true,
+            department: "Creatives",
+            image: null
+        }
+    ],
+    metadata: {
+        total_records: 2,
+        current_page: 1,
+        total_pages: 1,
+        filters_applied: ["date_range", "department"]
+    }
+};
+
 const DTRPage = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
@@ -58,6 +104,11 @@ const DTRPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+    useEffect(() => {
+        // Log the static JSON for API structure reference
+        console.log("🛠️ DTR API MOCK DATA STRUCTURE (FOR NEW API):", MOCK_DTR_DATA);
+    }, []);
 
     useEffect(() => {
         const handleClickOutside = (e: Event) => {
@@ -85,6 +136,9 @@ const DTRPage = () => {
 
                 // Fetch attendance records
                 const attRes = await fetch('/api/attendance', { cache: 'no-store' });
+                if (!attRes.ok) {
+                    throw new Error('Failed to fetch attendance');
+                }
                 const attData = await attRes.json();
                 setAttendance(attData || []);
 
@@ -120,7 +174,12 @@ const DTRPage = () => {
             {/* Header Section */}
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-2">
-                    <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-foreground">Daily Time Record</h1>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-foreground">Daily Time Record</h1>
+                        <div className="px-2 py-0.5 rounded-full bg-secondary/10 border border-secondary/20 text-secondary text-[8px] font-black uppercase tracking-widest animate-pulse">
+                            API Ready
+                        </div>
+                    </div>
                     <p className="text-muted-foreground text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] leading-none opacity-80 flex items-center gap-2">
                         Comprehensive attendance activity logs
                     </p>
@@ -309,7 +368,7 @@ const DTRPage = () => {
                                             <th className="p-3 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Time In</th>
                                             <th className="p-3 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Time Out</th>
                                             <th className="p-3 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Status Type</th>
-                                            <th className="p-3 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Remarks</th> 
+                                            <th className="p-3 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Remarks</th>
                                             <th className="p-3 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 text-center">Action</th>
                                         </tr>
                                     </thead>
