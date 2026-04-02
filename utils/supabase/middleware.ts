@@ -40,24 +40,20 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Define which paths are protected (require login)
   const isProtectedPath = 
     pathname.startsWith('/admin') || 
     pathname.startsWith('/employee') ||
     pathname.startsWith('/api/employers') ||
     pathname.startsWith('/api/registration');
 
-  // Define which paths are auth-related (redirect if already logged in)
   const isAuthPath = pathname.startsWith('/auth/login');
 
-  // Redirect to login if accessing protected path without session
   if (isProtectedPath && !user) {
     const url = request.nextUrl.clone();
     url.pathname = '/auth/login';
     return NextResponse.redirect(url);
   }
 
-  // Redirect to dashboard if logged in and accessing login page
   if (isAuthPath && user) {
     const url = request.nextUrl.clone();
     url.pathname = '/admin/adminDashboard';
