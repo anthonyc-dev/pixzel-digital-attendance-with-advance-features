@@ -33,7 +33,8 @@ export const metadata: Metadata = {
   title: "PIXZEL - Digital Attendance",
   description: "Facial recognition digital attendance system for employers",
   icons: {
-    icon: [{ url: "/pixzel.jpg" }],
+    icon: [{ url: "/pixzel-no-bg.png", type: "image/png" }],
+    apple: [{ url: "/pixzel-no-bg.png", type: "image/png" }],
   },
 };
 

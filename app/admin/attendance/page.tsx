@@ -86,7 +86,7 @@ const AttendancePage = () => {
           <p className="text-muted-foreground mt-1">Face Recognition Attendance System</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded-xl border border-border">
+          <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded-lg border border-border">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-sm font-medium text-foreground">System Active</span>
           </div>
@@ -102,7 +102,7 @@ const AttendancePage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="relative aspect-video max-w-lg mx-auto rounded-2xl overflow-hidden bg-muted border-2 border-dashed border-border">
+            <div className="relative aspect-video max-w-lg mx-auto rounded-lg overflow-hidden bg-muted border-2 border-dashed border-border">
               {isScanning && videoRef.current ? (
                 <video 
                   ref={videoRef} 
@@ -156,7 +156,7 @@ const AttendancePage = () => {
               <button
                 onClick={toggleScanning}
                 className={cn(
-                  "flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all",
+                  "flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all",
                   isScanning 
                     ? "bg-red-500 hover:bg-red-600 text-white" 
                     : "bg-secondary hover:bg-secondary/90 text-secondary-foreground"
@@ -177,7 +177,7 @@ const AttendancePage = () => {
               {isScanning && (
                 <button
                   onClick={simulateAttendance}
-                  className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold bg-emerald-500 hover:bg-emerald-600 text-white transition-all"
+                  className="flex items-center gap-2 px-6 py-3 rounded-lg font-semibold bg-emerald-500 hover:bg-emerald-600 text-white transition-all"
                 >
                   <RefreshCw className="w-5 h-5" />
                   Simulate
@@ -194,9 +194,9 @@ const AttendancePage = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-emerald-500">
+                    <div className="p-2 rounded-md bg-emerald-500">
                       <CheckCircle2 className="w-5 h-5 text-white" />
                     </div>
                     <span className="font-semibold text-foreground">Present</span>
@@ -204,9 +204,9 @@ const AttendancePage = () => {
                   <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">198</span>
                 </div>
 
-                <div className="flex items-center justify-between p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-amber-500">
+                    <div className="p-2 rounded-md bg-amber-500">
                       <Clock className="w-5 h-5 text-white" />
                     </div>
                     <span className="font-semibold text-foreground">Late</span>
@@ -214,9 +214,9 @@ const AttendancePage = () => {
                   <span className="text-2xl font-black text-amber-600 dark:text-amber-400">12</span>
                 </div>
 
-                <div className="flex items-center justify-between p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-red-500">
+                    <div className="p-2 rounded-md bg-red-500">
                       <XCircle className="w-5 h-5 text-white" />
                     </div>
                     <span className="font-semibold text-foreground">Absent</span>
@@ -233,7 +233,7 @@ const AttendancePage = () => {
             </CardHeader>
             <CardContent>
               {lastAttendance ? (
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-muted">
+                <div className="flex items-center gap-4 p-4 rounded-lg bg-muted">
                   <div className="w-12 h-12 rounded-full bg-secondary/20 flex items-center justify-center">
                     <User className="w-6 h-6 text-secondary" />
                   </div>

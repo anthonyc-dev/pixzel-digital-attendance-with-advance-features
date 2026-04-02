@@ -1,4 +1,11 @@
-import * as faceapi from "@vladmandic/face-api";
+function euclideanDistance(a: number[], b: number[]): number {
+  if (a.length !== b.length) return 1;
+  let sum = 0;
+  for (let i = 0; i < a.length; i++) {
+    sum += Math.pow(a[i] - b[i], 2);
+  }
+  return Math.sqrt(sum);
+}
 
 export function findBestMatch(
   inputDescriptor: number[],
@@ -18,10 +25,7 @@ export function findBestMatch(
   for (const emp of employees) {
     if (!emp.face_descriptor) continue;
 
-    const distance = faceapi.euclideanDistance(
-      inputDescriptor,
-      emp.face_descriptor,
-    );
+    const distance = euclideanDistance(inputDescriptor, emp.face_descriptor);
 
     if (distance < minDistance) {
       minDistance = distance;

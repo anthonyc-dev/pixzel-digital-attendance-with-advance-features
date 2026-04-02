@@ -49,14 +49,14 @@ const EmployeeHome = () => {
 
         {/* Top Controls Palette */}
         <div className="flex flex-wrap items-center justify-between gap-6">
-          <div className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/10 rounded-[1.5rem] w-fit shadow-2xl">
-            <button className="px-8 py-2.5 bg-secondary text-white text-[11px] font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-secondary/40 border border-secondary/50 hover:scale-105 active:scale-95 transition-all">month</button>
+          <div className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/10 rounded-xl w-fit shadow-2xl">
+            <button className="px-8 py-2.5 bg-secondary text-white text-[11px] font-black uppercase tracking-widest rounded-lg shadow-lg shadow-secondary/40 border border-secondary/50 hover:scale-105 active:scale-95 transition-all">month</button>
             <button className="px-8 py-2.5 text-gray-500 text-[11px] font-black uppercase tracking-widest hover:text-white transition-colors">week</button>
             <button className="px-8 py-2.5 text-gray-500 text-[11px] font-black uppercase tracking-widest hover:text-white transition-colors">day</button>
           </div>
 
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3 p-1.5 bg-white/5 border border-white/10 rounded-[1.5rem] shadow-2xl">
+            <div className="flex items-center gap-3 p-1.5 bg-white/5 border border-white/10 rounded-xl shadow-2xl">
               <button className="p-2.5 text-gray-500 hover:text-white transition-colors hover:bg-white/5 rounded-xl group ring-1 ring-inset ring-transparent hover:ring-white/10"><ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /></button>
               <div className="flex items-center gap-3 px-4">
                 <CalendarIcon className="w-5 h-5 text-secondary animate-pulse" />
@@ -64,14 +64,14 @@ const EmployeeHome = () => {
               </div>
               <button className="p-2.5 text-gray-500 hover:text-white transition-colors hover:bg-white/5 rounded-xl group ring-1 ring-inset ring-transparent hover:ring-white/10"><ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" /></button>
             </div>
-            <button className="p-4 bg-secondary text-white rounded-[1.5rem] shadow-2xl shadow-secondary/40 hover:scale-[1.05] active:scale-[0.95] transition-all border border-secondary/50 group">
+            <button className="p-4 bg-secondary text-white rounded-xl shadow-2xl shadow-secondary/40 hover:scale-[1.05] active:scale-[0.95] transition-all border border-secondary/50 group">
               <UserPlus className="w-6 h-6 group-hover:rotate-[360deg] transition-transform duration-1000" />
             </button>
           </div>
         </div>
 
         {/* Global Calendar Panel */}
-        <div className="bg-white/[0.03] border border-white/10 rounded-[4rem] p-12 shadow-2xl shadow-black flex flex-col min-h-[650px] relative overflow-hidden backdrop-blur-3xl">
+        <div className="bg-white/[0.03] border border-white/10 rounded-xl p-12 shadow-2xl shadow-black flex flex-col min-h-[650px] relative overflow-hidden backdrop-blur-3xl">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,_rgba(192,17,72,0.03)_0%,_transparent_50%)] pointer-events-none" />
 
           {/* Table Header Design */}
@@ -85,7 +85,7 @@ const EmployeeHome = () => {
                 <div key={h.day} className="flex flex-col gap-2 group cursor-pointer">
                   <span className="text-[11px] font-black text-gray-600 uppercase tracking-widest leading-none group-hover:text-secondary transition-colors">{h.day}</span>
                   <div className={cn(
-                    "w-10 h-10 mx-auto flex items-center justify-center rounded-2xl text-xs font-black transition-all",
+                    "w-10 h-10 mx-auto flex items-center justify-center rounded-lg text-xs font-black transition-all",
                     h.date === 31 ? "bg-secondary text-white shadow-lg shadow-secondary/30 ring-2 ring-secondary/50 scale-110" : "text-gray-400 group-hover:bg-white/5 group-hover:text-white"
                   )}>
                     {h.date}
@@ -116,7 +116,7 @@ const EmployeeHome = () => {
                       <div
                         key={eIdx}
                         className={cn(
-                          "absolute h-[42px] rounded-[1.2rem] border px-5 flex items-center gap-3 pointer-events-auto cursor-pointer shadow-xl hover:scale-[1.03] hover:-translate-y-0.5 active:scale-[0.97] transition-all group/event",
+                          "absolute h-[42px] rounded-lg border px-5 flex items-center gap-3 pointer-events-auto cursor-pointer shadow-xl hover:scale-[1.03] hover:-translate-y-0.5 active:scale-[0.97] transition-all group/event",
                           event.color,
                           event.active ? "z-20 animate-in fade-in zoom-in duration-500" : "z-10 bg-black/40 backdrop-blur-md"
                         )}

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
 import {
   Calendar,
   ScanFace,
@@ -39,7 +40,7 @@ const sidebarItems: NavItem[] = [
   {
     name: 'Activities',
     icon: Clock,
-    href: '#',
+    href: '/admin/activities',
   },
   { name: 'Register', icon: ScanFace, href: '/admin/employerRegistration' },
 ];
@@ -61,6 +62,8 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
   const pathname = usePathname();
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [openMenus, setOpenMenus] = useState<string[]>(['Activities']);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const supabase = createClient();
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
@@ -91,6 +94,20 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
     }
     // Mobile menu closing is handled on the Link onClick
     if (setIsMobileOpen) setIsMobileOpen(false);
+  };
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await supabase.auth.signOut();
+      router.push('/auth/login');
+      router.refresh();
+    } catch (error) {
+      console.error('Error logging out:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -208,8 +225,11 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                 key={item.name}
                 href={item.href}
                 prefetch={item.isLogout ? false : true}
-                onClick={(e) => {
-                  if (item.href === '#') {
+                onClick={async (e) => {
+                  if (item.isLogout) {
+                    e.preventDefault();
+                    await handleLogout();
+                  } else if (item.href === '#') {
                     e.preventDefault();
                   }
                 }}
@@ -355,8 +375,10 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                 key={item.name}
                 href={item.href}
                 prefetch={item.isLogout ? false : true}
-                onClick={() => {
+                onClick={async (e) => {
                   if (item.isLogout) {
+                    e.preventDefault();
+                    await handleLogout();
                     setIsMobileOpen?.(false);
                   }
                 }}
