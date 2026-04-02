@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { cn } from '@/lib/utils';
 import { History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, Hash, ScanLine, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
-import * as faceapi from 'face-api.js';
+import * as faceapi from '@vladmandic/face-api';
 
 const playSuccessSound = () => {
   try {
