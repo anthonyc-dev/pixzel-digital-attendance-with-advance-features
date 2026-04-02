@@ -85,7 +85,7 @@ const AttendancePage = () => {
                 <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
                     {loading ? (
                         [...Array(4)].map((_, i) => (
-                            <div key={i} className="p-4 sm:p-5 md:p-6 lg:p-8 rounded-2xl sm:rounded-[2rem] lg:rounded-[2.5rem] bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 animate-pulse flex flex-col gap-3 sm:gap-4 lg:gap-6">
+                            <div key={i} className="p-4 sm:p-5 md:p-6 lg:p-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 animate-pulse flex flex-col gap-3 sm:gap-4 lg:gap-6">
                                 <div className="flex items-center justify-between">
                                     <div className="w-10 h-10 sm:w-12 h-12 rounded-xl sm:rounded-2xl bg-gray-100 dark:bg-white/10" />
                                     <div className="w-8 h-8 rounded-full bg-gray-50 dark:bg-white/5" />
@@ -100,7 +100,7 @@ const AttendancePage = () => {
                     ) : (
                         stats.map((stat) => (
                             <div key={stat.title} className={cn(
-                                "p-4 sm:p-5 md:p-6 lg:p-8 rounded-2xl sm:rounded-[2rem] lg:rounded-[2.5rem] transition-all group flex flex-col gap-3 sm:gap-4 lg:gap-6 relative overflow-hidden",
+                                "p-4 sm:p-5 md:p-6 lg:p-8 rounded-2xl sm:rounded-3xl transition-all group flex flex-col gap-3 sm:gap-4 lg:gap-6 relative overflow-hidden",
                                 "bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-xl dark:shadow-none dark:hover:bg-white/[0.08]"
                             )}>
                                 <div className="absolute top-0 right-0 p-3 sm:p-4 opacity-[0.03] group-hover:opacity-[0.08] dark:opacity-5 dark:group-hover:opacity-10 transition-opacity">
@@ -130,7 +130,7 @@ const AttendancePage = () => {
                     {/* Filters Bar */}
                     <div className="flex flex-wrap items-start md:items-center justify-between gap-3 sm:gap-4">
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full md:w-auto">
-                            <div className="flex items-center gap-1.5 sm:gap-2 p-1 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl sm:rounded-[1.5rem]">
+                            <div className="flex items-center gap-1.5 sm:gap-2 p-1 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl">
                                 {['Leave', 'Absent', 'Active'].map(f => (
                                     <span key={f} className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-white dark:bg-white/5 text-[9px] sm:text-[10px] font-black text-foreground/50 uppercase tracking-widest rounded-lg sm:rounded-xl shadow-sm border border-gray-100 dark:border-white/5 flex items-center gap-1 sm:gap-2 hover:bg-gray-100 dark:hover:bg-white/[0.08] hover:text-foreground cursor-pointer transition-all">
                                         {f} <span className="opacity-30">×</span>
@@ -153,7 +153,7 @@ const AttendancePage = () => {
                     </div>
 
                     {/* Attendance Table Panel */}
-                    <div className="w-full bg-white dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-2xl sm:rounded-[2rem] lg:rounded-[3rem] overflow-hidden shadow-xl dark:shadow-2xl overflow-x-auto">
+                    <div className="w-full bg-white dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl dark:shadow-2xl overflow-x-auto">
                         {loading ? (
                             <table className="w-full text-left border-collapse min-w-[800px]">
                                 <thead>
@@ -204,7 +204,7 @@ const AttendancePage = () => {
                                                 <div className="flex items-center gap-3 sm:gap-5">
                                                     <div className="relative">
                                                         {emp.image ? (
-                                                            <Image src={emp.image} alt={emp.employer_name} width={56} height={56} className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl transition-all duration-500 border border-gray-100 dark:border-white/10 shadow-lg group-hover:shadow-secondary/20" />
+                                                            <Image src={emp.image} alt={emp.employer_name} width={56} height={56} className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl transition-all duration-500 border border-gray-100 dark:border-white/10 shadow-lg group-hover:shadow-secondary/20" unoptimized />
                                                         ) : (
                                                             <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-lg font-black text-gray-500">
                                                                 {emp.employer_name.charAt(0)}
