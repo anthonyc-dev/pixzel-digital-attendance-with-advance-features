@@ -111,13 +111,13 @@ const RegistrationContent = () => {
   // Load history and check for edit mode
   useEffect(() => {
     fetchHistory();
-    
+
     if (!searchParams) return;
-    
+
     const id = searchParams.get('id');
     const name = searchParams.get('name');
     const pos = searchParams.get('pos');
-    
+
     if (editId && id && name && pos) {
       setFormData({
         employerId: id,
@@ -246,8 +246,8 @@ const RegistrationContent = () => {
         const detections = await faceapi.detectAllFaces(
           video,
           new faceapi.TinyFaceDetectorOptions({
-            inputSize: 320,
-            scoreThreshold: 0.5
+            inputSize: 416,
+            scoreThreshold: 0.4
           })
         );
 
@@ -349,7 +349,10 @@ const RegistrationContent = () => {
   }, [now]);
 
   const captureAndRegister = useCallback(async () => {
-    if (!videoRef.current || detectedFaces === 0) return;
+    if (isScanning || !videoRef.current || detectedFaces === 0) return;
+
+    setIsScanning(true);
+    setScanResult(null);
 
     // Skip duplicate checks if we are editing an existing employer
     if (!editId) {
@@ -357,12 +360,12 @@ const RegistrationContent = () => {
         const checkResponse = await fetch('/api/employers');
         if (checkResponse.ok) {
           const { data: allEmployers } = await checkResponse.json();
-          
-          const isDuplicateId = allEmployers.some((emp: any) => 
+
+          const isDuplicateId = allEmployers.some((emp: any) =>
             emp.employer_id.toLowerCase() === formData.employerId.toLowerCase()
           );
 
-          const isDuplicateName = allEmployers.some((emp: any) => 
+          const isDuplicateName = allEmployers.some((emp: any) =>
             emp.employer_name.toLowerCase() === formData.employerName.toLowerCase()
           );
 
@@ -396,10 +399,7 @@ const RegistrationContent = () => {
       ctx.drawImage(video, 0, 0);
       const imageSrc = canvas.toDataURL('image/jpeg');
 
-      setIsScanning(true);
-      setScanResult(null);
-
-      //display sa registration history
+      // Display registration history
       try {
         const endpoint = editId ? `/api/registration/${editId}` : '/api/registration';
         const response = await fetch(endpoint, {
@@ -424,9 +424,9 @@ const RegistrationContent = () => {
           playSuccessSound();
 
           if (editId) {
-             setTimeout(() => router.push('/admin/employer'), 2000);
+            setTimeout(() => router.push('/admin/employer'), 2000);
           }
-          
+
           fetchHistory();
 
           setTimeout(() => {
@@ -450,7 +450,7 @@ const RegistrationContent = () => {
         setTimeout(() => setScanResult(null), 3000);
       }
     }
-  }, [detectedFaces, formData]);
+  }, [detectedFaces, formData, editId, isScanning, fetchHistory, showToast, router]);
 
   const toggleCamera = () => {
     setIsCameraOpen(prev => !prev);
@@ -483,7 +483,7 @@ const RegistrationContent = () => {
   };
 
   return (
-    <Layout>
+    <>
       {/* Employer Info Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
@@ -944,7 +944,7 @@ const RegistrationContent = () => {
           background-color: rgba(255, 255, 255, 0.1);
         }
       `}} />
-    </Layout>
+    </>
   );
 };
 
@@ -953,11 +953,9 @@ import { Suspense } from 'react';
 const EmployerRegistrationPage = () => {
   return (
     <Suspense fallback={
-      <Layout>
         <div className="flex items-center justify-center min-h-[600px]">
           <Loader2 className="w-8 h-8 animate-spin text-[#0089C0]" />
         </div>
-      </Layout>
     }>
       <RegistrationContent />
     </Suspense>

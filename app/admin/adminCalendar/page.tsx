@@ -40,7 +40,6 @@ const weeks: { id: string; date: string; events: CalendarEvent[] }[] = [
 
 const EmployeeHome = () => {
   return (
-    <Layout>
       <div className="flex flex-col gap-4 sm:gap-6 lg:gap-8 w-full max-w-7xl animate-in fade-in duration-500 ease-out">
         
         {/* Top Controls Palette */}
@@ -150,8 +149,7 @@ const EmployeeHome = () => {
         </div>
 
       </div>
-    </Layout>
-  );
+    );
 };
 
 export default EmployeeHome;
