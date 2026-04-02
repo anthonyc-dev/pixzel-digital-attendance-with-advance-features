@@ -13,8 +13,10 @@ import {
   Undo2,
   Search,
   X,
+  Loader2,
 
 } from 'lucide-react';
+import * as faceapi from 'face-api.js';
 
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -27,6 +29,7 @@ interface AttendanceRecord {
   time: string;
   type: 'in' | 'out';
   photo?: string;
+  employer_id?: string;
 }
 
 const AttendancePage = () => {
@@ -39,6 +42,9 @@ const AttendancePage = () => {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [recordSearch, setRecordSearch] = useState('');
   const [showAllRecords, setShowAllRecords] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isModelLoading, setIsModelLoading] = useState(true);
+  const [modelError, setModelError] = useState<string | null>(null);
   const [attendanceLog, setAttendanceLog] = useState<AttendanceRecord[]>([
     { id: 1, name: 'John Doe', time: '09:00 AM', type: 'in' },
     { id: 2, name: 'Jane Smith', time: '09:05 AM', type: 'in' },
@@ -52,10 +58,30 @@ const AttendancePage = () => {
     { id: 10, name: 'Maria Garcia', time: '06:15 PM', type: 'out' },
   ]);
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        setIsModelLoading(true);
+        setModelError(null);
+
+        const MODEL_URL = '/models';
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+
+        setIsModelLoading(false);
+      } catch (error) {
+        console.error('Failed to load face-api models:', error);
+        setModelError('Face detection unavailable');
+        setIsModelLoading(false);
+      }
+    };
+
+    loadModels();
+  }, []);
 
   const formattedTime = currentTime?.toLocaleTimeString('en-US', {
     hour: '2-digit',
@@ -146,24 +172,67 @@ const AttendancePage = () => {
     [startCamera],
   );
 
-  const confirmAttendance = useCallback(() => {
-    const newRecord: AttendanceRecord = {
-      id: Date.now(),
-      name: 'Employee',
-      time: formattedTime,
-      type: attendanceType,
-      photo: capturedPhoto ?? undefined,
-    };
-    setAttendanceLog((prev) => [newRecord, ...prev]);
-    setShowSuccess(true);
+  //Time in and time out face detection api call
+  const confirmAttendance = useCallback(async () => {
+    if (!capturedPhoto || !canvasRef.current) return;
 
-    setTimeout(() => {
-      setShowSuccess(false);
-      setIsScanning(false);
-      setIsCaptured(false);
-      setCapturedPhoto(null);
-    }, 1500);
-  }, [attendanceType, capturedPhoto, formattedTime]);
+    setIsProcessing(true);
+
+    try {
+      const img = await faceapi.bufferToImage(
+        await (await fetch(capturedPhoto)).blob()
+      );
+
+      const detection = await faceapi
+        .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+
+      if (!detection) {
+        setCameraError('No face detected. Please try again.');
+        setIsProcessing(false);
+        return;
+      }
+
+      const descriptor = Array.from(detection.descriptor);
+
+      const response = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ descriptor }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        const data = result.data;
+        const newRecord: AttendanceRecord = {
+          id: Date.now(),
+          name: data.employer_name,
+          time: formattedTime,
+          type: data.type === 'time_in' ? 'in' : 'out',
+          photo: capturedPhoto,
+          employer_id: data.employer_id,
+        };
+        setAttendanceLog((prev) => [newRecord, ...prev]);
+        setShowSuccess(true);
+
+        setTimeout(() => {
+          setShowSuccess(false);
+          setIsScanning(false);
+          setIsCaptured(false);
+          setCapturedPhoto(null);
+        }, 1500);
+      } else {
+        setCameraError(result.message || 'Attendance failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Attendance error:', error);
+      setCameraError('An error occurred. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [capturedPhoto, formattedTime]);
 
   const retakePhoto = useCallback(async () => {
     setIsCaptured(false);
@@ -303,6 +372,21 @@ const AttendancePage = () => {
                         </p>
                         <p className="text-muted-foreground mt-1 tabular-nums">
                           {formattedTime}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Processing Overlay */}
+                  {isProcessing && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                      <div className="text-center">
+                        <Loader2 className="w-12 h-12 animate-spin text-secondary mx-auto" />
+                        <p className="mt-4 text-lg font-semibold text-foreground">
+                          Processing...
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Verifying face and recording attendance
                         </p>
                       </div>
                     </div>
