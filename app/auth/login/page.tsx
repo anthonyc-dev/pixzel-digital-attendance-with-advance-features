@@ -67,14 +67,14 @@ const Login = () => {
       setError(signInError.message)
       return
     }
-    
+
     setIsSuccess(true)
-    
+
     // Sequence the final animations
     setTimeout(() => setShowFinalLogo(true), 600)
     setTimeout(() => setIsWarping(true), 1700)
     setTimeout(() => setIsNavigating(true), 2400)
-    
+
     setTimeout(() => {
       router.refresh()
       router.push('/admin/adminDashboard')
@@ -82,6 +82,7 @@ const Login = () => {
   }
 
   return (
+
     <main className="flex min-h-screen flex-col lg:flex-row bg-black overflow-hidden select-none relative">
       {/* Smooth Final Fade-to-Black Mask */}
       <div className={`fixed inset-0 bg-black z-[100] pointer-events-none transition-opacity duration-700 ${isNavigating ? 'opacity-100' : 'opacity-0'}`} />
@@ -163,7 +164,7 @@ const Login = () => {
                 className="object-contain opacity-80"
               />
             </div>
-            
+
             <div className="space-y-2 text-center">
               <h1 className="text-3xl font-bold tracking-tight text-white font-outfit">
                 Welcome back
@@ -208,7 +209,7 @@ const Login = () => {
                   placeholder=" "
                   className="peer w-full bg-[#111111] border-none text-white px-12 py-3.5 rounded-xl text-sm outline-none ring-1 ring-neutral-800 transition-all focus:ring-2 focus:ring-[#800B30] placeholder:opacity-0"
                 />
-                <label 
+                <label
                   htmlFor="identifier"
                   className="absolute left-12 top-1/2 -translate-y-1/2 text-neutral-500 text-sm font-medium transition-all pointer-events-none
                     peer-focus:top-0 peer-focus:text-xs peer-focus:text-[#C01148] peer-focus:bg-[#111111] peer-focus:px-1
@@ -243,7 +244,7 @@ const Login = () => {
                   placeholder=" "
                   className="peer w-full bg-[#111111] border-none text-white px-12 py-3.5 rounded-xl text-sm outline-none ring-1 ring-neutral-800 transition-all focus:ring-2 focus:ring-[#800B30] placeholder:opacity-0"
                 />
-                <label 
+                <label
                   htmlFor="password"
                   className="absolute left-12 top-1/2 -translate-y-1/2 text-neutral-500 text-sm font-medium transition-all pointer-events-none
                     peer-focus:top-0 peer-focus:text-xs peer-focus:text-[#C01148] peer-focus:bg-[#111111] peer-focus:px-1

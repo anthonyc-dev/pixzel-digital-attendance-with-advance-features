@@ -6,8 +6,9 @@ export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const supabase = await createSupabaseServer();
   const { id } = await params;
+
+  const supabase = await createSupabaseServer();
 
   const body = await req.json();
 
@@ -36,13 +37,10 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const supabase = await createSupabaseServer();
   const { id } = await params;
+  const supabase = await createSupabaseServer();
 
-  const { error } = await supabase
-    .from("attendance")
-    .delete()
-    .eq("id", id);
+  const { error } = await supabase.from("attendance").delete().eq("id", id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
