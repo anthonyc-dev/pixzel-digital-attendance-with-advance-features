@@ -938,7 +938,7 @@ const RegistrationContent = () => {
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
           background-color: rgba(0, 137, 192, 0.2);
-          border-radius: 20px;
+          border-radius: 4px;
         }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb {
           background-color: rgba(255, 255, 255, 0.1);
