@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { TooltipProvider } from "@/components/ui/tooltip"
 import Script from "next/script";
-import { Plus_Jakarta_Sans, DM_Serif_Display, Fira_Code } from "next/font/google";
+import { Plus_Jakarta_Sans, DM_Serif_Display, Fira_Code, Outfit } from "next/font/google";
 
 import "./globals.css";
 
@@ -9,6 +9,12 @@ const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
+});
+
+const outfit = Outfit({
+  variable: "--font-outfit",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
 });
 
 const dmSerif = DM_Serif_Display({
@@ -40,7 +46,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`dark ${plusJakarta.variable} ${dmSerif.variable} ${firaCode.variable} h-full antialiased`}
+      className={`dark ${plusJakarta.variable} ${outfit.variable} ${dmSerif.variable} ${firaCode.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <TooltipProvider>{children}</TooltipProvider>

@@ -13,6 +13,18 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
+    const saved = localStorage.getItem('sidebar-collapsed');
+    if (saved !== null) {
+      setIsCollapsed(saved === 'true');
+    }
+  }, []);
+
+  const handleSetIsCollapsed = (val: boolean) => {
+    setIsCollapsed(val);
+    localStorage.setItem('sidebar-collapsed', val.toString());
+  };
+
+  useEffect(() => {
     const mainElement = mainRef.current;
     if (mainElement) {
       mainElement.addEventListener('scroll', () => {}, { passive: true });
@@ -31,7 +43,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       
       <AppSidebar 
         isCollapsed={isCollapsed} 
-        setIsCollapsed={setIsCollapsed}
+        setIsCollapsed={handleSetIsCollapsed}
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
       />
@@ -39,7 +51,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <main 
         ref={mainRef}
         className={cn(
-          "flex-1 flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto relative transition-all duration-500 min-h-0",
+          "flex-1 flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto relative transition-all duration-300 min-h-0",
         )}
       >
         {/* Mobile Header */}

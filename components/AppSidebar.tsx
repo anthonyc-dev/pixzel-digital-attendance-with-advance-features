@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { 
-  Calendar, 
+import {
+  Calendar,
   ScanFace,
-  Clock, 
-  Settings, 
+  Clock,
+  Settings,
   ChevronDown,
   LayoutDashboard,
   Moon,
@@ -16,7 +16,9 @@ import {
   ChevronsRight,
   X,
   LogOut,
-  Users
+  Users,
+  ClipboardCheck,
+  Banknote
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,18 +33,20 @@ interface NavItem {
 const sidebarItems: NavItem[] = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/adminDashboard' },
   { name: 'Employers', icon: Users, href: '/admin/employer' },
+  { name: 'DTR', icon: ClipboardCheck, href: '/admin/dtr' },
+  { name: 'Payroll', icon: Banknote, href: '/admin/payroll' },
   { name: 'Calendar', icon: Calendar, href: '/admin/adminCalendar' },
-  { 
-    name: 'Activities', 
-    icon: Clock, 
-    href: '#', 
+  {
+    name: 'Activities',
+    icon: Clock,
+    href: '#',
   },
   { name: 'Register', icon: ScanFace, href: '/admin/employerRegistration' },
 ];
 
 const bottomItems = [
   { name: 'Settings', icon: Settings, href: '#' },
-  { name: 'Logout', icon: LogOut, href: '/', isLogout: true },
+  { name: 'Logout', icon: LogOut, href: '/auth/login', isLogout: true },
 ];
 
 interface AppSidebarProps {
@@ -75,12 +79,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
   };
 
   const toggleMenu = (name: string) => {
-    if (isCollapsed) {
-       setIsCollapsed(false);
-       setOpenMenus([name]);
-       return;
-    }
-    setOpenMenus(prev => 
+    setOpenMenus(prev =>
       prev.includes(name) ? prev.filter(i => i !== name) : [...prev, name]
     );
   };
@@ -90,17 +89,15 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
       toggleMenu(item.name);
       return;
     }
-    if (item.href && item.href !== '#') {
-      router.push(item.href);
-      if (setIsMobileOpen) setIsMobileOpen(false);
-    }
+    // Mobile menu closing is handled on the Link onClick
+    if (setIsMobileOpen) setIsMobileOpen(false);
   };
 
   return (
     <>
       {/* Desktop Sidebar */}
       <aside className={cn(
-        "hidden lg:flex h-screen bg-white dark:bg-black border-r border-gray-100 dark:border-white/5 flex-col transition-all duration-500 ease-in-out relative font-sans overflow-hidden",
+        "hidden lg:flex h-screen bg-white dark:bg-black border-r border-gray-100 dark:border-white/5 flex-col transition-all duration-300 ease-out relative font-sans overflow-hidden",
         isCollapsed ? "w-20" : "w-52 xl:w-64"
       )}>
         <div className={cn(
@@ -133,40 +130,59 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
           {sidebarItems.map((item) => {
             const isMenuOpen = openMenus.includes(item.name);
             const isActive = pathname === item.href;
-            
+
             return (
               <div key={item.name} className="space-y-0.5">
-                <button 
-                  onClick={() => handleNavClick(item)}
-                  className={cn(
-                    "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-300 group text-sm relative cursor-pointer",
-                    isActive 
-                      ? "bg-secondary text-white shadow-lg shadow-secondary/20" 
-                      : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
-                  )}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <item.icon className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-white" : "text-gray-500 dark:text-gray-400")} />
-                    {!isCollapsed && <span className={cn("font-bold tracking-tight text-xs", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>}
-                  </div>
-                  
-                  {!isCollapsed && item.hasSub && (
-                    <ChevronDown className={cn("w-3 h-3 opacity-30 transition-transform duration-300", isMenuOpen && "rotate-180")} />
-                  )}
+                {item.href && item.href !== '#' && !item.hasSub ? (
+                  <Link
+                    href={item.href}
+                    prefetch={true}
+                    className={cn(
+                      "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer outline-none",
+                      isActive
+                        ? "bg-secondary text-white shadow-lg shadow-secondary/20 scale-[1.02]"
+                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <item.icon className={cn("w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110", isActive ? "text-white" : "text-gray-500 dark:text-gray-400")} />
+                      {!isCollapsed && <span className={cn("font-bold tracking-tight text-xs", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>}
+                    </div>
 
-                  {isCollapsed && isActive && (
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-secondary rounded-l-full" />
-                  )}
-                </button>
-                
+                    {isCollapsed && isActive && (
+                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-secondary rounded-l-full" />
+                    )}
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => handleNavClick(item)}
+                    className={cn(
+                      "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer outline-none",
+                      isActive
+                        ? "bg-secondary text-white shadow-lg shadow-secondary/20"
+                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <item.icon className={cn("w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110", isActive ? "text-white" : "text-gray-500 dark:text-gray-400")} />
+                      {!isCollapsed && <span className={cn("font-bold tracking-tight text-xs", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>}
+                    </div>
+
+                    {!isCollapsed && item.hasSub && (
+                      <ChevronDown className={cn("w-3 h-3 opacity-30 transition-transform duration-200", isMenuOpen && "rotate-180")} />
+                    )}
+                  </button>
+                )}
+
                 {!isCollapsed && item.subItems && isMenuOpen && (
                   <div className="ml-5 space-y-0.5 mt-0.5 border-l border-gray-200 dark:border-white/5 pl-3 py-0.5 animate-in slide-in-from-top-2 duration-300">
                     {item.subItems.map((sub) => (
-                      <Link 
+                      <Link
                         key={sub.name}
                         href={sub.href}
+                        prefetch={true}
                         className={cn(
-                          "flex items-center justify-between py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer",
+                          "flex items-center justify-between py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors duration-150 cursor-pointer hover:translate-x-0.5 transition-transform",
                           pathname === sub.href ? "text-secondary" : "text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white"
                         )}
                       >
@@ -188,20 +204,26 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
         <div className={cn("mt-auto shrink-0 space-y-3 p-2 pt-3 border-t border-gray-100 dark:border-white/5 bg-white dark:bg-black", isCollapsed && "px-0 items-center")}>
           <div className="space-y-0.5">
             {bottomItems.map((item) => (
-              <button 
-                key={item.name} 
-                onClick={() => item.isLogout ? router.push(item.href) : undefined}
+              <Link
+                key={item.name}
+                href={item.href}
+                prefetch={item.isLogout ? false : true}
+                onClick={(e) => {
+                  if (item.href === '#') {
+                    e.preventDefault();
+                  }
+                }}
                 className={cn(
-                  "w-full flex items-center gap-2.5 p-2.5 text-xs font-bold transition-all rounded-lg cursor-pointer",
-                  item.isLogout 
-                    ? "text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10" 
+                  "w-full flex items-center gap-2.5 p-2.5 text-xs font-bold transition-all duration-200 rounded-lg cursor-pointer",
+                  item.isLogout
+                    ? "text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10"
                     : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white",
                   isCollapsed && "justify-center px-0"
                 )}
               >
-                <item.icon className="w-4 h-4" />
+                <item.icon className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
                 {!isCollapsed && <span>{item.name}</span>}
-              </button>
+              </Link>
             ))}
           </div>
 
@@ -209,7 +231,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
             "p-1 bg-gray-50 dark:bg-white/5 rounded-lg flex items-center shadow-inner border border-gray-100 dark:border-white/5 transition-all overflow-hidden",
             isCollapsed ? "flex-col gap-0.5 w-fit mx-auto" : "flex-row"
           )}>
-            <button 
+            <button
               onClick={() => toggleTheme('light')}
               className={cn(
                 "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
@@ -220,7 +242,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
               <Sun className="w-3 h-3" />
               {!isCollapsed && <span>Light</span>}
             </button>
-            <button 
+            <button
               onClick={() => toggleTheme('dark')}
               className={cn(
                 "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
@@ -237,7 +259,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
 
       {/* Mobile Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 h-screen bg-white dark:bg-black border-r border-gray-100 dark:border-white/5 flex flex-col transition-transform duration-500 ease-in-out font-sans overflow-hidden lg:hidden",
+        "fixed inset-y-0 left-0 z-50 h-screen bg-white dark:bg-black border-r border-gray-100 dark:border-white/5 flex flex-col transition-transform duration-300 ease-out font-sans overflow-hidden lg:hidden",
         isMobileOpen ? "translate-x-0 w-64" : "-translate-x-full w-64"
       )}>
         <div className="relative flex items-center justify-between px-4 pt-4 pb-3">
@@ -257,37 +279,57 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
           {sidebarItems.map((item) => {
             const isMenuOpen = openMenus.includes(item.name);
             const isActive = pathname === item.href;
-            
+
             return (
               <div key={item.name} className="space-y-0.5">
-                <button 
-                  onClick={() => handleNavClick(item)}
-                  className={cn(
-                    "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-300 group text-sm relative cursor-pointer",
-                    isActive 
-                      ? "bg-secondary text-white shadow-lg shadow-secondary/20" 
-                      : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
-                  )}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <item.icon className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-white" : "text-gray-500 dark:text-gray-400")} />
-                    <span className={cn("font-bold tracking-tight text-xs", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>
-                  </div>
-                  
-                  {item.hasSub && (
-                    <ChevronDown className={cn("w-3 h-3 opacity-30 transition-transform duration-300", isMenuOpen && "rotate-180")} />
-                  )}
-                </button>
-                
+                {item.href && item.href !== '#' && !item.hasSub ? (
+                  <Link
+                    href={item.href}
+                    onClick={() => setIsMobileOpen?.(false)}
+                    prefetch={true}
+                    className={cn(
+                      "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer",
+                      isActive
+                        ? "bg-secondary text-white shadow-lg shadow-secondary/20"
+                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <item.icon className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-white" : "text-gray-500 dark:text-gray-400")} />
+                      <span className={cn("font-bold tracking-tight text-xs", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>
+                    </div>
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => handleNavClick(item)}
+                    className={cn(
+                      "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer",
+                      isActive
+                        ? "bg-secondary text-white shadow-lg shadow-secondary/20"
+                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <item.icon className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-white" : "text-gray-500 dark:text-gray-400")} />
+                      <span className={cn("font-bold tracking-tight text-xs", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>
+                    </div>
+
+                    {item.hasSub && (
+                      <ChevronDown className={cn("w-3 h-3 opacity-30 transition-transform duration-200", isMenuOpen && "rotate-180")} />
+                    )}
+                  </button>
+                )}
+
                 {item.subItems && isMenuOpen && (
                   <div className="ml-5 space-y-0.5 mt-0.5 border-l border-gray-200 dark:border-white/5 pl-3 py-0.5">
                     {item.subItems.map((sub) => (
-                      <Link 
+                      <Link
                         key={sub.name}
                         href={sub.href}
+                        prefetch={true}
                         onClick={() => setIsMobileOpen?.(false)}
                         className={cn(
-                          "flex items-center justify-between py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer",
+                          "flex items-center justify-between py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors duration-200 cursor-pointer",
                           pathname === sub.href ? "text-secondary" : "text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white"
                         )}
                       >
@@ -309,29 +351,30 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
         <div className="shrink-0 space-y-3 p-2 pt-3 border-t border-gray-100 dark:border-white/5 bg-white dark:bg-black">
           <div className="space-y-0.5">
             {bottomItems.map((item) => (
-              <button 
-                key={item.name} 
+              <Link
+                key={item.name}
+                href={item.href}
+                prefetch={item.isLogout ? false : true}
                 onClick={() => {
                   if (item.isLogout) {
-                    router.push(item.href);
                     setIsMobileOpen?.(false);
                   }
                 }}
                 className={cn(
-                  "w-full flex items-center gap-2.5 p-2.5 text-xs font-bold transition-all rounded-lg cursor-pointer",
-                  item.isLogout 
-                    ? "text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10" 
+                  "w-full flex items-center gap-2.5 p-2.5 text-xs font-bold transition-all duration-200 rounded-lg cursor-pointer",
+                  item.isLogout
+                    ? "text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10"
                     : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                 )}
               >
                 <item.icon className="w-4 h-4" />
                 <span>{item.name}</span>
-              </button>
+              </Link>
             ))}
           </div>
 
           <div className="p-1 bg-gray-50 dark:bg-white/5 rounded-lg flex items-center shadow-inner border border-gray-100 dark:border-white/5">
-            <button 
+            <button
               onClick={() => toggleTheme('light')}
               className={cn(
                 "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
@@ -341,7 +384,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
               <Sun className="w-3 h-3" />
               <span>Light</span>
             </button>
-            <button 
+            <button
               onClick={() => toggleTheme('dark')}
               className={cn(
                 "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
