@@ -2,12 +2,24 @@ import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/utils/supabase/server";
 import { findBestMatch } from "@/utils/face/matcher";
 
+interface AttendanceLog {
+  id: string;
+  employer_id: string;
+  employer_name: string;
+  employer_position: string;
+  type: string;
+  status: string;
+  timestamp: string;
+  created_at: string;
+}
+
 export async function GET() {
   const supabase = await createSupabaseServer();
 
   const { data, error } = await supabase
     .from("attendance_logs")
-    .select(`
+    .select(
+      `
       *,
       employer_registration (
         employer_id,
@@ -15,24 +27,26 @@ export async function GET() {
         employer_position,
         image
       )
-    `)
+    `,
+    )
     .order("timestamp", { ascending: false });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const mappedData = data?.map((log: any) => ({
-    id: log.id,
-    employer_id: log.employer_registration?.employer_id,
-    employer_name: log.employer_registration?.employer_name,
-    employer_position: log.employer_registration?.employer_position,
-    status: log.status,
-    type: log.type,
-    time_in: log.type === "time_in" ? log.timestamp : undefined,
-    time_out: log.type === "time_out" ? log.timestamp : undefined,
-    created_at: log.timestamp,
-  })) || [];
+  const mappedData =
+    data?.map((log: AttendanceLog) => ({
+      id: log.id,
+      employer_id: log.employer_id,
+      employer_name: log.employer_name,
+      employer_position: log.employer_position,
+      status: log.status,
+      type: log.type,
+      time_in: log.type === "time_in" ? log.timestamp : undefined,
+      time_out: log.type === "time_out" ? log.timestamp : undefined,
+      created_at: log.timestamp,
+    })) || [];
 
   return NextResponse.json(mappedData);
 }
@@ -61,11 +75,18 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log('Employees with descriptors:', employees?.map(e => ({
-      name: e.employer_name,
-      hasDescriptor: !!e.descriptor,
-      descriptorLength: Array.isArray(e.descriptor) ? e.descriptor.length : (typeof e.descriptor === 'string' ? 'string' : 'unknown'),
-    })));
+    console.log(
+      "Employees with descriptors:",
+      employees?.map((e) => ({
+        name: e.employer_name,
+        hasDescriptor: !!e.descriptor,
+        descriptorLength: Array.isArray(e.descriptor)
+          ? e.descriptor.length
+          : typeof e.descriptor === "string"
+            ? "string"
+            : "unknown",
+      })),
+    );
 
     // 2. Face matching
     const match = findBestMatch(descriptor, employees);

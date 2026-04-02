@@ -1,34 +1,29 @@
-CREATE TABLE IF NOT EXISTS payroll (
+CREATE TABLE IF NOT EXISTS dtr_records (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
 
   employer_registration_id BIGINT NOT NULL REFERENCES employer_registration(id) ON DELETE CASCADE,
 
-  full_name TEXT NOT NULL,
-  position TEXT,
+  employer_id TEXT NOT NULL,
+  employer_name TEXT NOT NULL,
+  employer_position TEXT,
+  department TEXT,
 
-  base_salary NUMERIC(12,2) NOT NULL,
-  allowances NUMERIC(12,2) DEFAULT 0,
+  time_in TIME,
+  time_out TIME,
 
-  gross_pay NUMERIC(12,2) NOT NULL,
-  overtime_pay NUMERIC(12,2) DEFAULT 0,
+  total_hours NUMERIC(5,2),
+  overtime_minutes INTEGER DEFAULT 0,
 
-  sss NUMERIC(12,2) DEFAULT 0,
-  philhealth NUMERIC(12,2) DEFAULT 0,
-  pagibig NUMERIC(12,2) DEFAULT 0,
-  tax NUMERIC(12,2) DEFAULT 0,
+  is_late BOOLEAN DEFAULT FALSE,
+  status TEXT CHECK (status IN ('active', 'inactive')) DEFAULT 'active',
 
-  total_deductions NUMERIC(12,2) GENERATED ALWAYS AS (
-    sss + philhealth + pagibig + tax
-  ) STORED,
+  excuse TEXT,
 
-  net_pay NUMERIC(12,2) NOT NULL,
+  image TEXT,
 
-  payment_method TEXT,
-  period TEXT,
-
-  status TEXT CHECK (status IN ('pending', 'processed', 'paid')) DEFAULT 'pending',
-
-  processed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
+-- Indexes (important for performance)
+CREATE INDEX idx_dtr_records_employer_registration_id
+ON dtr_records(employer_registration_id);
+CREATE INDEX idx_dtr_records_created_at ON dtr_records(created_at DESC);
