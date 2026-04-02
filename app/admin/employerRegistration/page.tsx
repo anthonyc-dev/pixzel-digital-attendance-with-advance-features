@@ -143,8 +143,11 @@ const RegistrationContent = () => {
 
         const MODEL_URL = '/models';
 
-        // Only load TinyFaceDetector for simplicity
-        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+          faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+        ]);
 
         setIsModelLoading(false);
       } catch (error) {
@@ -372,6 +375,7 @@ const RegistrationContent = () => {
           if (isDuplicateId) {
             setScanResult('error');
             showToast('Employer ID already exists!', 'error');
+            setIsScanning(false);
             setTimeout(() => setScanResult(null), 3000);
             return;
           }
@@ -379,6 +383,7 @@ const RegistrationContent = () => {
           if (isDuplicateName) {
             setScanResult('error');
             showToast('Employer name already exists!', 'error');
+            setIsScanning(false);
             setTimeout(() => setScanResult(null), 3000);
             return;
           }
@@ -399,7 +404,39 @@ const RegistrationContent = () => {
       ctx.drawImage(video, 0, 0);
       const imageSrc = canvas.toDataURL('image/jpeg');
 
-      // Display registration history
+      let faceDescriptor = null;
+      try {
+        const detection = await faceapi
+          .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+          .withFaceLandmarks()
+          .withFaceDescriptor();
+
+        if (detection) {
+          faceDescriptor = Array.from(detection.descriptor);
+        } else {
+          setIsScanning(false);
+          setScanResult('error');
+          showToast('Could not extract face descriptor. Please try again.', 'error');
+          setTimeout(() => setScanResult(null), 3000);
+          return;
+        }
+      } catch (descError) {
+        console.error('Descriptor extraction error:', descError);
+        setIsScanning(false);
+        setScanResult('error');
+        showToast('Failed to generate face descriptor.', 'error');
+        setTimeout(() => setScanResult(null), 3000);
+        return;
+      }
+
+      if (!faceDescriptor || faceDescriptor.length === 0) {
+        setIsScanning(false);
+        setScanResult('error');
+        showToast('Face descriptor is invalid. Please try again.', 'error');
+        setTimeout(() => setScanResult(null), 3000);
+        return;
+      }
+
       try {
         const endpoint = editId ? `/api/registration/${editId}` : '/api/registration';
         const response = await fetch(endpoint, {
@@ -414,6 +451,7 @@ const RegistrationContent = () => {
             face_detected: true,
             status: 'present',
             image: imageSrc,
+            descriptor: faceDescriptor,
           }),
         });
 
@@ -437,7 +475,6 @@ const RegistrationContent = () => {
             setIsScanning(false);
           }, 2000);
         } else {
-          // Attempt to get error message from API
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.error || `Registration failed (Status: ${response.status})`);
         }
@@ -745,7 +782,7 @@ const RegistrationContent = () => {
                             className="px-6 sm:px-10 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[10px] sm:text-[11px] font-black uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-1.5 sm:gap-2 cursor-pointer"
                           >
                             <ScanFace className="w-3 sm:w-4 h-3 sm:h-4" />
-                            {isScanning ? 'Scanning...' : detectedFaces === 0 ? 'Position Face in Frame' : 'Register Face'}
+                            {isScanning ? 'Generating Descriptor...' : detectedFaces === 0 ? 'Position Face in Frame' : 'Register Face'}
                           </button>
                         )}
                       </div>

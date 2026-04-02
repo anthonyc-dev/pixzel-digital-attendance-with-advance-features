@@ -31,10 +31,73 @@ interface Employee {
     created_at: string;
 }
 
+// Static JSON for API Development Reference - Highly Detailed Payroll Mock
+const MOCK_PAYROLL_DATA = {
+    status: "success",
+    message: "Payroll records fetched successfully",
+    data: [
+        {
+            id: "pay-mock-001",
+            employee_id: "EMP-PIXZ-001",
+            full_name: "Jesper Ian",
+            position: "Lead UI Developer",
+            base_salary: 45000,
+            gross_pay: 48500,
+            net_pay: 42300,
+            allowances: 3500,
+            overtime_pay: 1500,
+            deductions: {
+                tax: 4200,
+                sss: 1200,
+                philhealth: 500,
+                pagibig: 300,
+                total: 6200
+            },
+            status: "processed",
+            period: "August 1 - August 31, 2026",
+            payment_method: "Bank Transfer",
+            processed_at: new Date().toISOString()
+        },
+        {
+            id: "pay-mock-002",
+            employee_id: "EMP-PIXZ-002",
+            full_name: "Anthony C.",
+            position: "Senior Designer",
+            base_salary: 38000,
+            gross_pay: 38000,
+            net_pay: 33500,
+            allowances: 0,
+            overtime_pay: 0,
+            deductions: {
+                tax: 3200,
+                sss: 800,
+                philhealth: 300,
+                pagibig: 200,
+                total: 4500
+            },
+            status: "pending",
+            period: "August 1 - August 31, 2026",
+            payment_method: "G-Cash",
+            processed_at: null
+        }
+    ],
+    summary: {
+        total_gross: 86500,
+        total_net: 75800,
+        total_deductions: 10700,
+        currency: "PHP"
+    }
+};
+
 const PayrollPage = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+
+    useEffect(() => {
+        // Log the static JSON for API structure reference
+        console.log("💰 PAYROLL API MOCK DATA STRUCTURE:", MOCK_PAYROLL_DATA);
+    }, []);
 
     useEffect(() => {
         const fetchEmployees = async () => {
@@ -75,8 +138,11 @@ const PayrollPage = () => {
                             <History className="w-3 h-3" />
                             <span className="text-[9px] font-black uppercase tracking-widest">Aug 1 - Aug 31</span>
                         </div>
-                        <div className="flex items-center gap-2.5">
+                        <div className="flex items-center gap-3">
                             <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-foreground">Employee Payroll</h1>
+                            <div className="px-2 py-0.5 rounded-full bg-secondary/10 border border-secondary/20 text-secondary text-[8px] font-black uppercase tracking-widest animate-pulse">
+                                API Ready
+                            </div>
                         </div>
                     </div>
 
