@@ -61,6 +61,12 @@ export async function POST(req: Request) {
       );
     }
 
+    console.log('Employees with descriptors:', employees?.map(e => ({
+      name: e.employer_name,
+      hasDescriptor: !!e.descriptor,
+      descriptorLength: Array.isArray(e.descriptor) ? e.descriptor.length : (typeof e.descriptor === 'string' ? 'string' : 'unknown'),
+    })));
+
     // 2. Face matching
     const match = findBestMatch(descriptor, employees);
 

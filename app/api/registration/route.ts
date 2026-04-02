@@ -23,6 +23,13 @@ export async function POST(req: Request) {
 
   const body = await req.json();
 
+  if (!body.descriptor) {
+    return NextResponse.json(
+      { error: "Face descriptor is required for registration" },
+      { status: 400 }
+    );
+  }
+
   const { data, error } = await supabase
     .from("employer_registration")
     .insert({
@@ -32,6 +39,7 @@ export async function POST(req: Request) {
       face_detected: body.face_detected,
       status: body.status,
       image: body.image,
+      descriptor: body.descriptor,
     })
     .select();
 

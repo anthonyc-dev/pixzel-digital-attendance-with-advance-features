@@ -51,7 +51,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <TooltipProvider>{children}</TooltipProvider>
-        <Script id="theme-script" strategy="beforeInteractive">{`
+        <Script id="theme-script" strategy="afterInteractive">{`
           (function() {
             const theme = localStorage.getItem('theme');
             if (theme === 'light') {

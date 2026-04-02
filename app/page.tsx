@@ -16,7 +16,7 @@ import {
   Loader2,
 
 } from 'lucide-react';
-import * as faceapi from 'face-api.js';
+import * as faceapi from '@vladmandic/face-api';
 
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -70,7 +70,11 @@ const AttendancePage = () => {
         setModelError(null);
 
         const MODEL_URL = '/models';
-        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+          faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+        ]);
 
         setIsModelLoading(false);
       } catch (error) {

@@ -17,13 +17,14 @@ export function findBestMatch(
     image: string;
     face_descriptor: number[];
   }[],
-  threshold = 0.5,
+  threshold = 0.6,
 ) {
-  let bestMatch = null;
+  let bestMatch: typeof employees[0] | null = null;
   let minDistance = 1;
 
   for (const emp of employees) {
-    if (!emp.face_descriptor) continue;
+    const descriptor = parseDescriptor(emp.face_descriptor);
+    if (!descriptor) continue;
 
     const distance = euclideanDistance(inputDescriptor, emp.face_descriptor);
 
@@ -32,6 +33,13 @@ export function findBestMatch(
       bestMatch = emp;
     }
   }
+
+  console.log('Face match debug:', {
+    inputDescriptorLength: inputDescriptor.length,
+    bestMatch: bestMatch?.employer_name,
+    minDistance,
+    threshold,
+  });
 
   if (!bestMatch || minDistance > threshold) {
     return null;
