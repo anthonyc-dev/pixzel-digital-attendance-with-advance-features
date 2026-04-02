@@ -40,7 +40,7 @@ const sidebarItems: NavItem[] = [
   {
     name: 'Activities',
     icon: Clock,
-    href: '#',
+    href: '/admin/activities',
   },
   { name: 'Register', icon: ScanFace, href: '/admin/employerRegistration' },
 ];

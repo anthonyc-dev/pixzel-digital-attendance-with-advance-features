@@ -197,7 +197,7 @@ const DTRPage = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {loading ? (
                             [...Array(8)].map((_, i) => (
-                                <div key={i} className="h-64 bg-gray-100 dark:bg-white/5 rounded-2xl animate-pulse border border-gray-100 dark:border-white/5" />
+                                <div key={i} className="h-64 bg-gray-100 dark:bg-white/5 rounded-xl animate-pulse border border-gray-100 dark:border-white/5" />
                             ))
                         ) : filteredEmployees.length === 0 ? (
                             <div className="col-span-full py-20 text-center opacity-40">
@@ -209,7 +209,7 @@ const DTRPage = () => {
                                 <button
                                     key={emp.id}
                                     onClick={() => setSelectedEmployee(emp)}
-                                    className="group relative flex flex-col items-center p-6 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-3xl transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-secondary/10 text-center overflow-hidden cursor-pointer"
+                                    className="group relative flex flex-col items-center p-6 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-secondary/10 text-center overflow-hidden cursor-pointer"
                                 >
                                     {/* Watermark Logo */}
                                     {emp.image && (
@@ -235,10 +235,10 @@ const DTRPage = () => {
                                                 alt={emp.employer_name}
                                                 width={80}
                                                 height={80}
-                                                className="relative w-20 h-20 rounded-2xl object-cover border-2 border-white dark:border-white/10 shadow-xl transition-all duration-500"
+                                                className="relative w-20 h-20 rounded-lg object-cover border-2 border-white dark:border-white/10 shadow-xl transition-all duration-500"
                                             />
                                         ) : (
-                                            <div className="relative w-20 h-20 rounded-2xl bg-secondary/10 flex items-center justify-center text-3xl font-black text-secondary border-2 border-white dark:border-white/10 shadow-xl transition-all">
+                                            <div className="relative w-20 h-20 rounded-lg bg-secondary/10 flex items-center justify-center text-3xl font-black text-secondary border-2 border-white dark:border-white/10 shadow-xl transition-all">
                                                 {emp.employer_name.charAt(0)}
                                             </div>
                                         )}
@@ -271,15 +271,15 @@ const DTRPage = () => {
                 ) : (
                     /* Specific Employee DTR Table */
                     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-                        <div className="p-6 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-3xl flex items-center gap-6 shadow-sm relative overflow-hidden group">
+                        <div className="p-6 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl flex items-center gap-6 shadow-sm relative overflow-hidden group">
                             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                                 <ClipboardCheck className="w-24 h-24 text-secondary rotate-12" />
                             </div>
                             <div className="relative">
                                 {selectedEmployee.image ? (
-                                    <Image src={selectedEmployee.image} alt={selectedEmployee.employer_name} width={64} height={64} className="w-16 h-16 rounded-2xl object-cover border-2 border-white dark:border-white/10 shadow-lg" />
+                                    <Image src={selectedEmployee.image} alt={selectedEmployee.employer_name} width={64} height={64} className="w-16 h-16 rounded-lg object-cover border-2 border-white dark:border-white/10 shadow-lg" />
                                 ) : (
-                                    <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center text-2xl font-black text-secondary uppercase">
+                                    <div className="w-16 h-16 rounded-lg bg-secondary/10 flex items-center justify-center text-2xl font-black text-secondary uppercase">
                                         {selectedEmployee.employer_name.charAt(0)}
                                     </div>
                                 )}
