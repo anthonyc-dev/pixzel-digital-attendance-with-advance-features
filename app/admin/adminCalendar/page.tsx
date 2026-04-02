@@ -276,7 +276,7 @@ const AdminCalendarPage = () => {
                         <div 
                           key={i} 
                           className={cn(
-                            "px-1.5 py-0.5 rounded-[4px] text-[8px] font-black uppercase tracking-tighter truncate border group-hover:translate-x-0.5 transition-all flex items-center gap-1",
+                            "px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase tracking-tighter truncate border group-hover:translate-x-0.5 transition-all flex items-center gap-1",
                             type === 'present' && "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
                             type === 'late' && "bg-amber-500/10 text-amber-600 border-amber-500/20",
                             type === 'absent' && "bg-red-500/10 text-red-600 border-red-500/20",
