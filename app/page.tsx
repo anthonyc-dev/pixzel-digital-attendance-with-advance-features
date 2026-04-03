@@ -517,7 +517,7 @@ const AttendancePage = () => {
                     <>
                       <Button
                         onClick={() => handleAttendance('in')}
-                        className="flex items-center gap-3 bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity h-16 px-10 text-xl font-bold"
+                        className="flex items-center gap-3 bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity h-10 px-5 font-bold"
                       >
                         <AlarmClockCheck className="w-6 h-6" />
                         Time In
@@ -525,7 +525,7 @@ const AttendancePage = () => {
 
                       <Button
                         onClick={() => handleAttendance('out')}
-                        className="flex items-center gap-3 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity h-16 px-10 text-xl font-bold"
+                        className="flex items-center gap-3 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity h-10 px-5  font-bold"
                       >
                         <AlarmClockOff className="w-6 h-6" />
                         Time Out
@@ -536,7 +536,7 @@ const AttendancePage = () => {
                   {isScanning && !isCaptured && (
                     <Button
                       onClick={cancelAttendance}
-                      className="flex items-center gap-3 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity h-16 px-12 text-xl font-bold"
+                      className="flex items-center gap-3 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity h-10 px-5 font-bold"
                     >
                       <Undo2 className="w-6 h-6" />
                       Cancel
