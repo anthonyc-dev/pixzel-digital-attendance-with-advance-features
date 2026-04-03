@@ -42,7 +42,7 @@ export async function GET() {
   }
 
   const mappedData =
-    data?.map((log: any) => ({
+    data?.map((log: AttendanceLog) => ({
       ...log,
       created_at: log.timestamp,
     })) || [];
@@ -85,7 +85,12 @@ export async function POST(req: Request) {
     // 3. Face matching
     console.log(`Starting match for ${employees?.length || 0} employees...`);
     const match = findBestMatch(descriptor, employees);
-    console.log('Match result:', match ? `Match found: ${match.employer_registration.employer_name}` : 'No match found');
+    console.log(
+      "Match result:",
+      match
+        ? `Match found: ${match.employer_registration.employer_name}`
+        : "No match found",
+    );
 
     if (!match) {
       return NextResponse.json({
@@ -113,21 +118,24 @@ export async function POST(req: Request) {
     // 5. Decide type and Validate
     let type: "time_in" | "time_out";
 
-    if (requestedType && (requestedType === "time_in" || requestedType === "time_out")) {
+    if (
+      requestedType &&
+      (requestedType === "time_in" || requestedType === "time_out")
+    ) {
       type = requestedType;
 
       // Check for existing same-type entry today
-      const alreadyHasType = todayLogs?.some(log => log.type === type);
+      const alreadyHasType = todayLogs?.some((log) => log.type === type);
       if (alreadyHasType) {
         return NextResponse.json({
           success: false,
-          message: `Already recorded ${type.replace('_', ' ')} for ${employer_registration.employer_name} today.`,
+          message: `Already recorded ${type.replace("_", " ")} for ${employer_registration.employer_name} today.`,
         });
       }
 
       // Special case: Can't time out if haven't timed in
       if (type === "time_out") {
-        const hasTimeIn = todayLogs?.some(log => log.type === "time_in");
+        const hasTimeIn = todayLogs?.some((log) => log.type === "time_in");
         if (!hasTimeIn) {
           return NextResponse.json({
             success: false,
