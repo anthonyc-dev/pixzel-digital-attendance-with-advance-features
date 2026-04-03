@@ -256,7 +256,7 @@ const AttendancePage = () => {
         const data = result.data;
         const currentPhoto = captureCurrentFrame();
 
-        // Use fresh time for the record
+        // Use fresh time for the records
         const now = new Date();
         const timeStr = now.toLocaleTimeString('en-US', {
           hour: '2-digit',
@@ -537,10 +537,10 @@ const AttendancePage = () => {
                   {isCaptured && !showSuccess && !isProcessing && currentMatchPercentage !== null && (
                     <div className="absolute inset-x-0 bottom-10 flex justify-center z-20">
                       <div className="bg-background/80 backdrop-blur-md border border-border px-4 py-2 rounded-full shadow-lg flex items-center gap-3">
-                         <div className="flex flex-col">
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Identity Verified</span>
-                            <span className="text-sm font-semibold text-foreground">{currentMatchPercentage}% Recognition Match</span>
-                         </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Identity Verified</span>
+                          <span className="text-sm font-semibold text-foreground">{currentMatchPercentage}% Recognition Match</span>
+                        </div>
                       </div>
                     </div>
                   )}
