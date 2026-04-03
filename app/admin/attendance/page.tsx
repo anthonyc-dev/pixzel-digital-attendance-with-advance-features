@@ -1,9 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
-  Camera,
-  CameraOff,
   User,
   CheckCircle2,
   XCircle,
@@ -11,7 +9,6 @@ import {
   RefreshCw,
   Shield,
   AlertCircle,
-  Play,
   Square,
   Loader2,
   ScanFace,
@@ -20,8 +17,10 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import * as faceapi from '@vladmandic/face-api';
+import Image from 'next/image';
 import { toast } from 'sonner';
+
+let faceapi: typeof import('@vladmandic/face-api') | null = null;
 
 type AttendanceLog = {
   id: string;
@@ -30,6 +29,14 @@ type AttendanceLog = {
   status: 'present' | 'late' | 'absent' | 'on_time';
   type: 'time_in' | 'time_out';
   image?: string;
+  created_at?: string;
+  employer_registration_id?: string;
+  employer_position?: string;
+  employer_registration?: {
+    employer_name?: string;
+    employer_position?: string;
+    image?: string;
+  };
 };
 
 const AttendancePage = () => {
@@ -37,7 +44,7 @@ const AttendancePage = () => {
   const [isModelLoading, setIsModelLoading] = useState(true);
   const [scanResult, setScanResult] = useState<'success' | 'error' | 'scanning' | null>(null);
   const [lastAttendance, setLastAttendance] = useState<{ name: string, time: string, type: string } | null>(null);
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<AttendanceLog[]>([]);
   const [detectedFaces, setDetectedFaces] = useState(0);
   const [attendanceType, setAttendanceType] = useState<'time_in' | 'time_out' | null>(null);
   const [stats, setStats] = useState({ present: 0, late: 0, absent: 0 });
@@ -52,6 +59,7 @@ const AttendancePage = () => {
     const loadModels = async () => {
       try {
         setIsModelLoading(true);
+        faceapi = await import('@vladmandic/face-api');
         const MODEL_URL = '/models';
         await Promise.all([
           faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
@@ -89,13 +97,12 @@ const AttendancePage = () => {
 
         // Basic stats calculation for today
         const today = new Date().toISOString().split('T')[0];
-        const todayLogs = data.filter((l: any) => (l.created_at || l.timestamp)?.startsWith(today));
+        const todayLogs = data.filter((l: AttendanceLog) => (l.created_at || l.timestamp)?.startsWith(today));
 
-        // Count unique present employees today
-        const presentIds = new Set(todayLogs.map((l: any) => l.employer_registration_id));
+        const presentIds = new Set(todayLogs.map((l: AttendanceLog) => l.employer_registration_id));
         const present = presentIds.size;
 
-        const late = todayLogs.filter((l: any) => l.status === 'late').length;
+        const late = todayLogs.filter((l: AttendanceLog) => l.status === 'late').length;
 
         setStats({
           present,
@@ -154,6 +161,7 @@ const AttendancePage = () => {
       if (video.readyState < 2) return;
 
       try {
+        if (!faceapi) return;
         const detections = await faceapi.detectAllFaces(
           video,
           new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.4 })
@@ -198,6 +206,7 @@ const AttendancePage = () => {
     setScanResult('scanning');
 
     try {
+      if (!faceapi) return;
       const detection = await faceapi
         .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
         .withFaceLandmarks()
@@ -516,9 +525,9 @@ const AttendancePage = () => {
                   <tr key={log.id} className="hover:bg-muted/30 transition-colors group">
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center font-black text-secondary text-xs border border-secondary/5">
+                        <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center font-black text-secondary text-xs border border-secondary/5 overflow-hidden">
                           {log.employer_registration?.image ? (
-                            <img src={log.employer_registration.image} alt="" className="w-full h-full rounded-full object-cover" />
+                            <Image src={log.employer_registration.image} alt="" className="w-full h-full object-cover" width={40} height={40} />
                           ) : (
                             log.employer_name?.substring(0, 2).toUpperCase()
                           )}

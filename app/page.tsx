@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   LogIn,
   LogOut,
-  RotateCcw,
   CameraIcon,
   AlarmClockCheck,
   AlarmClockOff,
@@ -35,6 +34,21 @@ interface AttendanceRecord {
 // Type for faceapi module
 type FaceAPI = typeof import('@vladmandic/face-api');
 
+interface ApiLogEntry {
+  id: string;
+  employer_registration?: {
+    employer_name: string;
+    employer_id: string;
+    image: string;
+  };
+  employer_name?: string;
+  employer_id?: string;
+  timestamp: string;
+  type: string;
+}
+
+// ...
+
 const AttendancePage = () => {
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [isScanning, setIsScanning] = useState(false);
@@ -48,9 +62,7 @@ const AttendancePage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(true);
   const [modelError, setModelError] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [scanStatus, setScanStatus] = useState<string>('Scanning...');
-  const [lastScanTime, setLastScanTime] = useState<number>(0);
   const [attendanceLog, setAttendanceLog] = useState<AttendanceRecord[]>([]);
   const [faceapi, setFaceapi] = useState<FaceAPI | null>(null);
   const [currentMatchPercentage, setCurrentMatchPercentage] = useState<number | null>(null);
@@ -61,7 +73,7 @@ const AttendancePage = () => {
         const response = await fetch('/api/attendance');
         if (response.ok) {
           const data = await response.json();
-          const mappedLogs: AttendanceRecord[] = data.map((log: any) => ({
+          const mappedLogs: AttendanceRecord[] = data.map((log: ApiLogEntry) => ({
             id: log.id,
             name: log.employer_registration?.employer_name || log.employer_name || 'Unknown',
             time: new Date(log.timestamp).toLocaleTimeString('en-US', {
@@ -330,7 +342,7 @@ const AttendancePage = () => {
       isProcessingRef.current = false;
       setIsProcessing(false);
     }
-  }, [attendanceType, showSuccess, stopCamera, captureCurrentFrame]);
+  }, [attendanceType, showSuccess, captureCurrentFrame]);
 
   // Auto-scan logic
   useEffect(() => {
@@ -383,12 +395,6 @@ const AttendancePage = () => {
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
     };
   }, [isScanning, showSuccess, isModelLoading, processAttendanceDescriptor, faceapi]);
-
-  const retakePhoto = useCallback(async () => {
-    setIsCaptured(false);
-    setCapturedPhoto(null);
-    await startCamera();
-  }, [startCamera]);
 
   const cancelAttendance = useCallback(() => {
     setIsScanning(false);

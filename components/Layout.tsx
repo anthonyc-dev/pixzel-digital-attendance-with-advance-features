@@ -2,19 +2,18 @@
 
 import React, { useState, useEffect } from 'react';
 import AppSidebar from './AppSidebar';
-import { Menu, X } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usePathname } from 'next/navigation';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const mainRef = React.useRef<HTMLDivElement>(null);
-  const pathname = usePathname();
 
   useEffect(() => {
     const saved = localStorage.getItem('sidebar-collapsed');
     if (saved !== null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsCollapsed(saved === 'true');
     }
   }, []);

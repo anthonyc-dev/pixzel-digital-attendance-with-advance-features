@@ -1,28 +1,22 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Layout from '@/components/Layout';
 import {
     ClipboardCheck,
     Search,
     Filter,
-    Calendar as CalendarIcon,
     Download,
     ChevronRight,
     Clock,
     ArrowUpRight,
     TrendingUp,
-    AlertTriangle,
     UserCheck,
     UserMinus,
-    MoreVertical,
     FileSpreadsheet,
-    FileText,
     ArrowLeft,
     MoreHorizontal,
     Pencil,
     Trash2,
-    X,
     AlertCircle
 } from 'lucide-react';
 import Image from 'next/image';
@@ -69,7 +63,7 @@ interface GroupedAttendance {
 // Function to convert image to base64 for PDF
 const getBase64Image = (imgUrl: string): Promise<string> => {
     return new Promise((resolve, reject) => {
-        const img = new (window.Image as any)();
+        const img = new window.Image();
         img.src = imgUrl;
         img.crossOrigin = 'Anonymous';
         img.onload = () => {
@@ -195,6 +189,7 @@ const DTRPage = () => {
             const { default: autoTable } = await import('jspdf-autotable');
 
             const doc = new jsPDF();
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const brandColor = [192, 17, 72]; // #C01148
 
             // Try to add Logo
@@ -289,6 +284,7 @@ const DTRPage = () => {
             });
 
             // Footer
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const pageCount = (doc as any).internal.getNumberOfPages();
             for (let i = 1; i <= pageCount; i++) {
                 doc.setPage(i);
