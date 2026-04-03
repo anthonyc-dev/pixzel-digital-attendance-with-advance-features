@@ -14,9 +14,7 @@ import {
   Search,
   X,
   Loader2,
-
 } from 'lucide-react';
-import * as faceapi from '@vladmandic/face-api';
 import { toast } from 'sonner';
 
 import Image from 'next/image';
@@ -32,6 +30,9 @@ interface AttendanceRecord {
   photo?: string;
   employer_id?: string;
 }
+
+// Type for faceapi module
+type FaceAPI = typeof import('@vladmandic/face-api');
 
 const AttendancePage = () => {
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
@@ -50,6 +51,7 @@ const AttendancePage = () => {
   const [scanStatus, setScanStatus] = useState<string>('Scanning...');
   const [lastScanTime, setLastScanTime] = useState<number>(0);
   const [attendanceLog, setAttendanceLog] = useState<AttendanceRecord[]>([]);
+  const [faceapi, setFaceapi] = useState<FaceAPI | null>(null);
 
   useEffect(() => {
     const fetchInitialLogs = async () => {
@@ -83,8 +85,27 @@ const AttendancePage = () => {
   const streamRef = useRef<MediaStream | null>(null);
   const router = useRouter();
 
+  // Load faceapi module dynamically
+  useEffect(() => {
+    const loadFaceAPI = async () => {
+      try {
+        const faceapiModule = await import('@vladmandic/face-api');
+        setFaceapi(faceapiModule);
+      } catch (error) {
+        console.error('Failed to load face-api:', error);
+        setModelError('Face detection unavailable');
+        setIsModelLoading(false);
+      }
+    };
+
+    loadFaceAPI();
+  }, []);
+
+  // Load models once faceapi is available
   useEffect(() => {
     const loadModels = async () => {
+      if (!faceapi) return;
+
       try {
         setIsModelLoading(true);
         setModelError(null);
@@ -105,7 +126,7 @@ const AttendancePage = () => {
     };
 
     loadModels();
-  }, []);
+  }, [faceapi]);
 
   const formattedTime = currentTime?.toLocaleTimeString('en-US', {
     hour: '2-digit',
@@ -157,11 +178,11 @@ const AttendancePage = () => {
 
   useEffect(() => {
     // Start camera on mount if models are ready
-    if (!isModelLoading && !modelError) {
+    if (!isModelLoading && !modelError && faceapi) {
       startCamera();
     }
     return () => stopCamera();
-  }, [isModelLoading, modelError, startCamera, stopCamera]);
+  }, [isModelLoading, modelError, startCamera, stopCamera, faceapi]);
 
   const videoRefCallback = useCallback((node: HTMLVideoElement | null) => {
     (videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = node;
@@ -304,7 +325,7 @@ const AttendancePage = () => {
 
     const scanLoop = async () => {
       // Check if we should stop or skip this frame
-      if (!isScanning || isProcessingRef.current || showSuccess || !videoRef.current || !isMounted || isModelLoading) {
+      if (!faceapi || !isScanning || isProcessingRef.current || showSuccess || !videoRef.current || !isMounted || isModelLoading) {
         if (isScanning && isMounted) {
           animationFrameId = requestAnimationFrame(scanLoop);
         }
@@ -347,7 +368,7 @@ const AttendancePage = () => {
       isMounted = false;
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
     };
-  }, [isScanning, showSuccess, isModelLoading, processAttendanceDescriptor]);
+  }, [isScanning, showSuccess, isModelLoading, processAttendanceDescriptor, faceapi]);
 
   const retakePhoto = useCallback(async () => {
     setIsCaptured(false);
@@ -382,9 +403,6 @@ const AttendancePage = () => {
     setShowAllRecords(!showAllRecords);
   };
 
-
-  // ... existing state variables
-
   const handleRecordClick = (log: AttendanceRecord) => {
     // Store the selected record data in localStorage
     localStorage.setItem('selectedUser', JSON.stringify({
@@ -398,7 +416,6 @@ const AttendancePage = () => {
     router.push('/mainPage/userRecord');
   };
 
-
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
 
@@ -407,7 +424,6 @@ const AttendancePage = () => {
 
       <main className="flex-1 p-6">
         <div className="space-y-6">
-
 
           <div className="w-full flex justify-center px-4">
             <div className="w-full max-w-7xl flex flex-col lg:flex-row items-start gap-10">
@@ -525,7 +541,7 @@ const AttendancePage = () => {
 
                       <Button
                         onClick={() => handleAttendance('out')}
-                        className="flex items-center gap-3 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity h-10 px-5  font-bold"
+                        className="flex items-center gap-3 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity h-10 px-5 font-bold"
                       >
                         <AlarmClockOff className="w-6 h-6" />
                         Time Out
@@ -604,7 +620,7 @@ const AttendancePage = () => {
                           <div
                             key={log.id}
                             onClick={() => handleRecordClick(log)}
-                            className="flex items-center justify-between p-2 rounded-xl bg-card border border-border hover:border-secondary/50 transition-all duration-200"
+                            className="flex items-center justify-between p-2 rounded-xl bg-card border border-border hover:border-secondary/50 transition-all duration-200 cursor-pointer"
                           >
                             <div className="flex items-center gap-4 flex-1 min-w-0">
                               {log.photo ? (
@@ -663,8 +679,7 @@ const AttendancePage = () => {
                             onClick={toggleShowRecords}
                             className="flex items-center gap-2 px-6 py-2 hover:text-secondary/70 transition-all duration-200 text-secondary bg-transparent"
                           >
-                            Show More
-
+                            {showAllRecords ? 'Show Less' : 'Show More'}
                           </Button>
                         </div>
                       )}
