@@ -1,208 +1,316 @@
 'use client';
 
-import React from 'react';
-import Layout from '@/components/Layout';
-import { Download, Search, SlidersHorizontal, CalendarDays, MoreHorizontal, CheckCircle2, Clock3, Umbrella, UserX, ArrowUpRight } from 'lucide-react';
-import Image from 'next/image';
+import React, { useEffect, useState } from 'react';
+import { 
+    Users, 
+    UserCheck, 
+    UserMinus, 
+    Clock, 
+    TrendingUp, 
+    ArrowUpRight, 
+    Calendar,
+    ChevronRight,
+    Activity,
+    Target
+} from 'lucide-react';
+import { 
+    BarChart, 
+    Bar, 
+    XAxis, 
+    YAxis, 
+    CartesianGrid, 
+    Tooltip, 
+    ResponsiveContainer, 
+    AreaChart, 
+    Area,
+    PieChart,
+    Pie,
+    Cell
+} from 'recharts';
 import { cn } from '@/lib/utils';
 
-const stats = [
-    { title: 'Present Today', value: '40', sub: '124 People Remaining', icon: CheckCircle2, iconColor: 'text-green-400', bgColor: 'bg-green-400/5', borderColor: 'border-green-400/10' },
-    { title: 'Late Entry', value: '26', sub: '12 People are on Time', icon: Clock3, iconColor: 'text-orange-400', bgColor: 'bg-orange-400/5', borderColor: 'border-orange-400/10' },
-    { title: 'On Leave', value: '04', sub: 'Approved Leave', icon: Umbrella, iconColor: 'text-blue-400', bgColor: 'bg-blue-400/5', borderColor: 'border-blue-400/10' },
-    { title: 'Absent', value: '01', sub: 'Without Informing', icon: UserX, iconColor: 'text-red-400', bgColor: 'bg-red-400/5', borderColor: 'border-red-400/10' },
+// Mock historical data for the chart
+const weeklyData = [
+    { name: 'Mon', present: 85, late: 5, absent: 2 },
+    { name: 'Tue', present: 88, late: 3, absent: 1 },
+    { name: 'Wed', present: 75, late: 12, absent: 3 },
+    { name: 'Thu', present: 92, late: 2, absent: 0 },
+    { name: 'Fri', present: 80, late: 8, absent: 4 },
+    { name: 'Sat', present: 45, late: 1, absent: 2 },
+    { name: 'Sun', present: 30, late: 0, absent: 1 },
 ];
 
-const employees = [
-    {
-        name: 'Dianne Russell', role: 'UI/UX Designer', avatar: 'https://i.pravatar.cc/150?u=dianne',
-        attendance: [
-            { day: 'Sun', hours: '8 Hours', status: 'active', icon: 'check' },
-            { day: 'Mon', hours: '4h 36m', status: 'late', icon: 'clock' },
-            { day: 'Tue', hours: 'Leave', status: 'leave', icon: 'smile' },
-            { day: 'Wed', hours: '8h 39m', status: 'active', icon: 'check' },
-            { day: 'Thu', hours: 'Active', status: 'active', icon: null },
-            { day: 'Fri', hours: '', status: 'empty' },
-            { day: 'Sat', hours: '', status: 'empty' },
-        ]
-    },
-    {
-        name: 'Bessie Cooper', role: 'Product Designer', avatar: 'https://i.pravatar.cc/150?u=bessie',
-        attendance: [
-            { day: 'Sun', hours: '6h 24m', status: 'late', icon: 'clock' },
-            { day: 'Mon', hours: '8 Hours', status: 'active', icon: 'check' },
-            { day: 'Tue', hours: '8 Hours', status: 'active', icon: 'check' },
-            { day: 'Wed', hours: 'Absent', status: 'absent', icon: 'x' },
-            { day: 'Thu', hours: 'Active', status: 'active', icon: null },
-            { day: 'Fri', hours: '', status: 'empty' },
-            { day: 'Sat', hours: '', status: 'empty' },
-        ]
-    },
-    {
-        name: 'Brooklyn Jones', role: 'Marketing Officer', avatar: 'https://i.pravatar.cc/150?u=brooklyn',
-        attendance: [
-            { day: 'Sun', hours: '8 Hours', status: 'active', icon: 'check' },
-            { day: 'Mon', hours: '8h 12m', status: 'active', icon: 'check' },
-            { day: 'Tue', hours: '3h 45m', status: 'late', icon: 'clock' },
-            { day: 'Wed', hours: '8 Hours', status: 'active', icon: 'check' },
-            { day: 'Thu', hours: 'Leave', status: 'leave', icon: 'smile' },
-            { day: 'Fri', hours: '', status: 'empty' },
-            { day: 'Sat', hours: '', status: 'empty' },
-        ]
-    },
-    {
-        name: 'Eleanor Pena', role: 'Content Writer', avatar: 'https://i.pravatar.cc/150?u=eleanor',
-        attendance: [
-            { day: 'Sun', hours: '8h 15m', status: 'active', icon: 'check' },
-            { day: 'Mon', hours: '8 Hours', status: 'active', icon: 'check' },
-            { day: 'Tue', hours: '8h 23m', status: 'active', icon: 'check' },
-            { day: 'Wed', hours: '7h 24m', status: 'late', icon: 'clock' },
-            { day: 'Thu', hours: 'Active', status: 'active', icon: null },
-            { day: 'Fri', hours: '', status: 'empty' },
-            { day: 'Sat', hours: '', status: 'empty' },
-        ]
-    }
+const attendanceDistribution = [
+    { name: 'On Time', value: 75, color: '#10b981' },
+    { name: 'Late', value: 15, color: '#f59e0b' },
+    { name: 'Absent', value: 10, color: '#ef4444' },
 ];
 
-const AttendancePage = () => {
+interface Employee {
+    id: string;
+    employer_id: string;
+    employer_name: string;
+    employer_position: string;
+    status: string;
+    image: string | null;
+    created_at: string;
+}
+
+const AdminDashboard = () => {
+    const [loading, setLoading] = useState(true);
+    const [employees, setEmployees] = useState<Employee[]>([]);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const response = await fetch('/api/registration');
+                if (response.ok) {
+                    const result = await response.json();
+                    setEmployees(result.data || []);
+                }
+            } catch (e) {
+                console.error('Failed to fetch dashboard stats:', e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchStats();
+    }, []);
+
+    const totalEmployees = employees.length;
+    const activeToday = employees.filter(e => e.status === 'active').length;
+    const lateToday = employees.filter(e => e.status === 'late').length;
+    const absentToday = employees.filter(e => e.status === 'absent').length;
+
+    const stats = [
+        { title: 'Total Personnel', value: totalEmployees.toString().padStart(2, '0'), growth: '+12%', icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+        { title: 'Present Today', value: activeToday.toString().padStart(2, '0'), growth: '+5%', icon: UserCheck, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+        { title: 'Late Entries', value: lateToday.toString().padStart(2, '0'), growth: '-2%', icon: Clock, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+        { title: 'Unaccounted', value: absentToday.toString().padStart(2, '0'), growth: '+1%', icon: UserMinus, color: 'text-rose-500', bg: 'bg-rose-500/10' },
+    ];
+
     return (
-        <Layout>
-            <div className="flex flex-col gap-4 sm:gap-6 lg:gap-8 w-full max-w-7xl animate-in fade-in duration-500 ease-out pb-4 sm:pb-6 lg:pb-10">
-
-                {/* Page Title */}
-                <header className="flex flex-wrap items-start sm:items-end justify-between gap-4">
-                    <div className="space-y-1 sm:space-y-2">
-                        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter text-foreground">Employee Attendance</h1>
-                        <p className="text-muted-foreground text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] leading-none opacity-80">Analyse attendance records of employee</p>
+        <div className="flex flex-col gap-6 w-full max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
+            {/* Header Section */}
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 dark:border-white/5 pb-6">
+                <div className="space-y-1">
+                    <h1 className="text-3xl font-black tracking-tighter text-foreground">Analytics Overview</h1>
+                    <p className="text-muted-foreground text-xs font-bold uppercase tracking-[0.2em] opacity-80 flex items-center gap-2">
+                        <Activity className="w-3 h-3 text-secondary" />
+                        Real-time Performance Metrics
+                    </p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-[10px] font-black uppercase tracking-widest text-foreground">
+                        <Calendar className="w-3.5 h-3.5 text-secondary" />
+                        <span>Aug 01 - Aug 07, 2025</span>
                     </div>
-                    <button className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2.5 sm:py-3 bg-secondary text-white rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-[9px] sm:text-[10px] shadow-xl shadow-secondary/20 hover:scale-[1.03] active:scale-[0.97] transition-all w-fit">
-                        <Download className="w-3 sm:w-4 h-3 sm:h-4" />
-                        <span>Download</span>
+                    <button className="flex items-center gap-2 px-5 py-2.5 bg-secondary text-white rounded-lg font-black uppercase tracking-widest text-[10px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all active:scale-95">
+                        <Target className="w-3.5 h-3.5" />
+                        <span>Report Details</span>
                     </button>
-                </header>
+                </div>
+            </header>
 
-                {/* Stats Grid */}
-                <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-                    {stats.map((stat) => (
-                        <div key={stat.title} className={cn(
-                            "p-4 sm:p-5 md:p-6 lg:p-8 rounded-2xl sm:rounded-[2rem] lg:rounded-[2.5rem] transition-all group flex flex-col gap-3 sm:gap-4 lg:gap-6 relative overflow-hidden",
-                            "bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-xl dark:shadow-none dark:hover:bg-white/[0.08]"
-                        )}>
-                            <div className="absolute top-0 right-0 p-3 sm:p-4 opacity-[0.03] group-hover:opacity-[0.08] dark:opacity-5 dark:group-hover:opacity-10 transition-opacity">
-                                <stat.icon className="w-12 sm:w-14 md:w-16 h-12 sm:h-14 md:h-16" />
+            {/* Quick Stats Grid */}
+            <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {stats.map((stat, idx) => (
+                    <div key={idx} className="p-6 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
+                            <stat.icon className="w-16 h-16 text-foreground" />
+                        </div>
+                        <div className="flex items-center justify-between mb-4">
+                            <div className={cn("p-2.5 rounded-lg", stat.bg)}>
+                                <stat.icon className={cn("w-5 h-5", stat.color)} />
                             </div>
+                            <span className={cn("text-[10px] font-black px-2 py-0.5 rounded-full",
+                                stat.growth.startsWith('+') ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
+                            )}>
+                                {stat.growth}
+                            </span>
+                        </div>
+                        <div className="text-3xl font-black text-foreground tracking-tighter tabular-nums mb-1">{stat.value}</div>
+                        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{stat.title}</div>
+                    </div>
+                ))}
+            </section>
 
-                            <div className="flex items-center justify-between">
-                                <div className={cn("p-2 sm:p-3 rounded-xl sm:rounded-2xl", stat.bgColor, stat.borderColor, "border")}>
-                                    <stat.icon className={cn("w-4 sm:w-5 md:w-6 h-4 sm:h-5 md:h-6", stat.iconColor)} />
-                                </div>
-                                <div className="w-6 sm:w-7 md:w-8 h-6 sm:h-7 md:h-8 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white transition-colors cursor-pointer border border-gray-100 dark:border-white/5">
-                                    <ArrowUpRight className="w-3 sm:w-4 h-3 sm:h-4" />
-                                </div>
+            {/* Main Graph Area */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Primary Bar Chart */}
+                <div className="lg:col-span-2 p-6 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm">
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Attendance Trends</h3>
+                            <p className="text-[10px] font-bold text-muted-foreground">Daily activity breakdown for the current week</p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full bg-secondary" />
+                                <span className="text-[9px] font-black uppercase text-muted-foreground">Present</span>
                             </div>
-                            <div className="z-10 relative">
-                                <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-foreground mb-1 sm:mb-2 tracking-tighter tabular-nums drop-shadow-sm">{stat.value}</div>
-                                <div className="text-xs sm:text-sm font-black text-foreground/80 group-hover:text-secondary transition-colors tracking-tight uppercase">{stat.title}</div>
-                                <div className="text-[9px] sm:text-[10px] text-muted-foreground/60 font-extrabold uppercase tracking-widest mt-0.5">{stat.sub}</div>
+                            <div className="flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full bg-amber-500" />
+                                <span className="text-[9px] font-black uppercase text-muted-foreground">Late</span>
                             </div>
                         </div>
-                    ))}
-                </section>
-
-                {/* Table Area */}
-                <section className="flex flex-col gap-4 sm:gap-6">
-                    {/* Filters Bar */}
-                    <div className="flex flex-wrap items-start md:items-center justify-between gap-3 sm:gap-4">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full md:w-auto">
-                            <div className="relative group w-full sm:w-auto">
-                                <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400 dark:text-gray-600" />
-                                <input
-                                    type="text"
-                                    placeholder="Search..."
-                                    className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 pl-9 sm:pl-11 pr-4 text-[10px] sm:text-[11px] uppercase tracking-widest font-black text-foreground placeholder:text-gray-400 dark:placeholder:text-gray-600 focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all w-full sm:w-64 md:w-80 shadow-sm"
+                    </div>
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={weeklyData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                                <XAxis
+                                    dataKey="name"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 10, fontWeight: 900, fill: 'currentColor' }}
+                                    dy={10}
+                                    className="text-muted-foreground"
                                 />
-                            </div>
-                            <div className="flex items-center gap-1.5 sm:gap-2 p-1 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl sm:rounded-[1.5rem]">
-                                {['Leave', 'Absent', 'Active'].map(f => (
-                                    <span key={f} className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-white dark:bg-white/5 text-[9px] sm:text-[10px] font-black text-foreground/50 uppercase tracking-widest rounded-lg sm:rounded-xl shadow-sm border border-gray-100 dark:border-white/5 flex items-center gap-1 sm:gap-2 hover:bg-gray-100 dark:hover:bg-white/[0.08] hover:text-foreground cursor-pointer transition-all">
-                                        {f} <span className="opacity-30">×</span>
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
-                            <button className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-foreground/70 hover:bg-gray-50 dark:hover:bg-white/10 hover:text-foreground transition-all shadow-sm group">
-                                <SlidersHorizontal className="w-3 sm:w-3.5 h-3 sm:h-3.5 group-hover:rotate-180 transition-transform duration-500" />
-                                <span className="hidden sm:inline">Filter</span> <span className="text-secondary ml-1 bg-secondary/10 px-1.5 py-0.5 rounded text-[8px]">03</span>
-                            </button>
-                            <button className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-foreground/70 hover:bg-gray-50 dark:hover:bg-white/10 hover:text-foreground transition-all shadow-sm">
-                                <CalendarDays className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-secondary" />
-                                <span className="hidden sm:inline">08. August 2025</span>
-                                <span className="sm:hidden">Aug 08</span>
-                            </button>
-                        </div>
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 10, fontWeight: 900, fill: 'currentColor' }}
+                                    className="text-muted-foreground"
+                                />
+                                <Tooltip
+                                    cursor={{ fill: 'rgba(0,0,0,0.05)' }}
+                                    contentStyle={{
+                                        background: '#1a1a1a',
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '8px',
+                                        fontSize: '10px',
+                                        fontWeight: 900,
+                                        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)'
+                                    }}
+                                />
+                                <Bar dataKey="present" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={30} />
+                                <Bar dataKey="late" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={30} />
+                            </BarChart>
+                        </ResponsiveContainer>
                     </div>
+                </div>
 
-                    {/* Attendance Table Panel */}
-                    <div className="w-full bg-white dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-2xl sm:rounded-[2rem] lg:rounded-[3rem] overflow-hidden shadow-xl dark:shadow-2xl overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[800px]">
-                            <thead>
-                                <tr className="bg-gray-50 dark:bg-white/[0.03] border-b border-gray-100 dark:border-white/5">
-                                    <th className="p-4 sm:p-5 md:p-7 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-600">Employee Info</th>
-                                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                                        <th key={day} className="p-4 sm:p-5 md:p-7 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-600 border-l border-gray-100 dark:border-white/5 text-center">{day}</th>
+                {/* Secondary Metrics / Pie Chart */}
+                <div className="p-6 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm flex flex-col">
+                    <div className="mb-6">
+                        <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Status Distribution</h3>
+                        <p className="text-[10px] font-bold text-muted-foreground">Overall ratio of attendance categories</p>
+                    </div>
+                    <div className="h-[200px] w-full relative">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={attendanceDistribution}
+                                    innerRadius={60}
+                                    outerRadius={80}
+                                    paddingAngle={5}
+                                    dataKey="value"
+                                >
+                                    {attendanceDistribution.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
                                     ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                                {employees.map((emp, i) => (
-                                    <tr key={emp.name} className="group hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-all">
-                                        <td className="p-4 sm:p-5 md:p-7">
-                                            <div className="flex items-center gap-3 sm:gap-5">
-                                                <div className="relative">
-                                                    <Image src={emp.avatar} alt={emp.name} width={40} height={40} className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl grayscale group-hover:grayscale-0 transition-all duration-500 border border-gray-100 dark:border-white/10 shadow-lg group-hover:shadow-secondary/20" />
-                                                    <div className="absolute -bottom-0.5 -right-0.5 w-3 sm:w-4 h-3 sm:h-4 bg-green-500 border-2 border-white dark:border-black rounded-full shadow-sm" />
-                                                </div>
-                                                <div className="flex flex-col gap-0.5">
-                                                    <span className="text-xs sm:text-base font-black text-foreground leading-none tracking-tight group-hover:text-secondary transition-colors">{emp.name}</span>
-                                                    <span className="text-[9px] sm:text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest hidden sm:block">{emp.role}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        {emp.attendance.map((att, j) => (
-                                            <td key={j} className="p-4 sm:p-5 md:p-7 border-l border-gray-100 dark:border-white/5 relative group/cell">
-                                                <span className="absolute top-2 sm:top-3 md:top-4 right-3 sm:right-4 md:right-5 text-[9px] sm:text-[10px] font-black text-gray-200 dark:text-gray-800 group-hover/cell:text-gray-400 dark:group-hover/cell:text-gray-600 transition-colors">{1 + j + (i * 2) % 31}</span>
-                                                {att.status !== 'empty' ? (
-                                                    <div className={cn(
-                                                        "mt-4 sm:mt-5 mx-auto flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-2xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all shadow-sm ring-1 ring-inset",
-                                                        att.status === 'active' && "bg-green-500/10 text-green-600 dark:text-green-400 ring-green-600/20 dark:ring-green-400/20",
-                                                        att.status === 'late' && "bg-orange-500/10 text-orange-600 dark:text-orange-400 ring-orange-600/20 dark:ring-orange-400/20",
-                                                        att.status === 'leave' && "bg-purple-500/10 text-purple-600 dark:text-purple-400 ring-purple-600/20 dark:ring-purple-400/20",
-                                                        att.status === 'absent' && "bg-red-500/10 text-red-600 dark:text-red-400 ring-red-600/20 dark:ring-red-400/20"
-                                                    )}>
-                                                        {att.icon === 'check' && <CheckCircle2 className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
-                                                        {att.icon === 'clock' && <Clock3 className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
-                                                        {att.icon === 'smile' && <Umbrella className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
-                                                        {att.icon === 'x' && <UserX className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5" />}
-                                                        <span className="hidden sm:inline">{att.hours}</span>
-                                                        <span className="sm:hidden">{att.hours.split(' ')[0]}</span>
-                                                    </div>
-                                                ) : (
-                                                    <div className="mt-4 sm:mt-5 h-[24px] sm:h-[28px] w-full bg-[radial-gradient(circle_at_1px_1px,_rgba(0,0,0,0.05)_1px,_transparent_0)] dark:bg-[radial-gradient(circle_at_1px_1px,_rgba(255,255,255,0.02)_1px,_transparent_0)] bg-[size:8px_8px] sm:bg-[size:10px_10px]" />
-                                                )}
-                                            </td>
-                                        ))}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </Pie>
+                                <Tooltip
+                                    contentStyle={{
+                                        background: '#1a1a1a',
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '8px',
+                                        fontSize: '10px',
+                                        fontWeight: 900
+                                    }}
+                                />
+                            </PieChart>
+                        </ResponsiveContainer>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            <span className="text-xl font-black text-foreground">88%</span>
+                            <span className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Score</span>
+                        </div>
                     </div>
-                </section>
-
+                    <div className="mt-auto space-y-3">
+                        {attendanceDistribution.map((item, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-all transition-colors cursor-default">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                                    <span className="text-[10px] font-black text-foreground uppercase tracking-widest">{item.name}</span>
+                                </div>
+                                <span className="text-[10px] font-black text-muted-foreground transition-colors group-hover:text-foreground">{item.value}%</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
-        </Layout>
+
+            {/* Bottom Row: Recent Activity & Top Performers */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="p-6 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Latest Departures</h3>
+                        <button className="text-[10px] font-black text-secondary flex items-center gap-1 hover:underline">
+                            View Logs <ChevronRight className="w-3 h-3" />
+                        </button>
+                    </div>
+                    <div className="space-y-4">
+                        {employees.slice(0, 4).map((emp, idx) => (
+                            <div key={idx} className="flex items-center justify-between group">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center font-black text-secondary border border-secondary/20">
+                                        {emp.employer_name.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <div className="text-[11px] font-black text-foreground group-hover:text-secondary transition-colors tabular-nums tracking-tight">{emp.employer_name}</div>
+                                        <div className="text-[9px] font-bold text-muted-foreground uppercase opacity-60 tracking-wider transition-opacity">{emp.employer_position || 'Staff'}</div>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-[10px] font-black text-foreground tabular-nums tracking-tighter">05:12 PM</div>
+                                    <div className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Normal Exit</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="p-6 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm relative overflow-hidden">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Efficiency Index</h3>
+                        <button className="px-3 py-1 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full text-[9px] font-black uppercase tracking-widest text-foreground transition-all">Monthly</button>
+                    </div>
+                    <div className="h-[180px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={weeklyData}>
+                                <defs>
+                                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <Tooltip
+                                    contentStyle={{
+                                        background: '#1a1a1a',
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '8px',
+                                        fontSize: '10px',
+                                        fontWeight: 900
+                                    }}
+                                />
+                                <Area type="monotone" dataKey="present" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/10">
+                         <div className="space-y-1">
+                            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest block">Average Score</span>
+                            <span className="text-xl font-black text-foreground tracking-tighter">94.2%</span>
+                         </div>
+                         <div className="p-2.5 rounded-full bg-emerald-500/20 text-emerald-500 border border-emerald-500/20">
+                            <TrendingUp className="w-5 h-5" />
+                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 };
 
-export default AttendancePage;
+export default AdminDashboard;
