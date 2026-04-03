@@ -78,7 +78,7 @@ const AttendancePage = () => {
       // 1. Fetch Logs
       const logResponse = await fetch('/api/attendance');
       const data = await logResponse.json();
-      
+
       // 2. Fetch Total Employees for accurate stats
       const empResponse = await fetch('/api/registration');
       const empData = await empResponse.json();
@@ -90,17 +90,17 @@ const AttendancePage = () => {
         // Basic stats calculation for today
         const today = new Date().toISOString().split('T')[0];
         const todayLogs = data.filter((l: any) => (l.created_at || l.timestamp)?.startsWith(today));
-        
+
         // Count unique present employees today
         const presentIds = new Set(todayLogs.map((l: any) => l.employer_registration_id));
         const present = presentIds.size;
-        
+
         const late = todayLogs.filter((l: any) => l.status === 'late').length;
-        
-        setStats({ 
-          present, 
-          late, 
-          absent: Math.max(0, totalEmployees - present) 
+
+        setStats({
+          present,
+          late,
+          absent: Math.max(0, totalEmployees - present)
         });
       }
     } catch (e) {
