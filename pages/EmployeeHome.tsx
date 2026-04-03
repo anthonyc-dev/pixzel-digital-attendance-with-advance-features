@@ -1,3 +1,5 @@
+"use client"
+
 import React from 'react';
 import Layout from '@/components/Layout';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, UserPlus } from 'lucide-react';
