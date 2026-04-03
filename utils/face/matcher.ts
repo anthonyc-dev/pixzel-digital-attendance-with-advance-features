@@ -29,7 +29,7 @@ export function findBestMatch(
     employer_name: string;
     employer_position: string;
     image: string;
-    face_descriptor: number[];
+    descriptor: number[];
   }[],
   threshold = 0.6,
 ) {
@@ -37,7 +37,7 @@ export function findBestMatch(
   let minDistance = 1;
 
   for (const emp of employees) {
-    const descriptor = parseDescriptor(emp.face_descriptor);
+    const descriptor = parseDescriptor(emp.descriptor);
     if (!descriptor) continue;
 
     const distance = euclideanDistance(inputDescriptor, descriptor);

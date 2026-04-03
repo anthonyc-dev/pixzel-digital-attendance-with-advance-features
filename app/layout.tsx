@@ -4,6 +4,7 @@ import Script from "next/script";
 import { Plus_Jakarta_Sans, DM_Serif_Display, Fira_Code, Outfit } from "next/font/google";
 
 import "./globals.css";
+import { Toaster } from "@/components/ui/sonner";
 
 const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-sans",
@@ -51,6 +52,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <TooltipProvider>{children}</TooltipProvider>
+        <Toaster />
         <Script id="theme-script" strategy="afterInteractive">{`
           (function() {
             const theme = localStorage.getItem('theme');
