@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
@@ -16,6 +16,31 @@ const Login = () => {
   const [isWarping, setIsWarping] = useState(false)
   const [isNavigating, setIsNavigating] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [employers, setEmployers] = useState<any[]>([])
+
+  useEffect(() => {
+    const fetchEmployers = async () => {
+      try {
+        console.log('Fetching personnel for login bubbles...')
+        const res = await fetch('/api/registration', { cache: 'no-store' })
+        const contentType = res.headers.get('content-type')
+        if (contentType && contentType.indexOf('application/json') !== -1) {
+          const data = await res.json()
+          console.log('Personnel Data:', data)
+          if (data && data.data && data.data.length > 0) {
+            // Take top 6 registered personnel
+            const filtered = data.data.slice(0, 6)
+            setEmployers(filtered)
+          }
+        } else {
+          console.error('API response is not JSON', await res.text())
+        }
+      } catch (err) {
+        console.error('Failed to fetch personnel', err)
+      }
+    }
+    fetchEmployers()
+  }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -143,6 +168,38 @@ const Login = () => {
             </p>
           </div>
         </div>
+
+        {/* Registered Employers Avatar Bubble Stack (Bottom Left) */}
+        {employers.length > 0 && (
+          <div className="absolute bottom-2 left-2 z-20 flex items-end gap-3 animate-in fade-in slide-in-from-left-10 duration-1000 delay-700">
+            <div className="flex -space-x-3 overflow-hidden">
+              {employers.map((emp, i) => (
+                <div
+                  key={emp.id || i}
+                  className="relative group transition-all duration-300 hover:scale-110 hover:-translate-y-2 cursor-pointer"
+                  style={{ zIndex: i + 1 }}
+                >
+                  <div className="absolute -inset-1 bg-white/30 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative w-10 h-10 lg:w-12 lg:h-12 rounded-full border-2 border-[#800B30] overflow-hidden bg-neutral-900 shadow-2xl flex items-center justify-center">
+                    {/* Using <img> tag instead of next/image to ensure local/base64 uploads display regardless of next.config domains */}
+                    {emp.image ? (
+                      <img
+                        src={emp.image}
+                        alt={emp.employer_name}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-[#800B30]/30 text-white font-black text-sm uppercase">
+                        {emp.employer_name.charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Right Side: Black Login Section */}
