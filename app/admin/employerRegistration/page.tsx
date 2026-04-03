@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Layout from '@/components/Layout';
 import { cn } from '@/lib/utils';
 import { History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, Hash, ScanLine, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
-import * as faceapi from '@vladmandic/face-api';
+import Image from 'next/image';
+
+let faceapi: typeof import('@vladmandic/face-api') | null = null;
 
 const playSuccessSound = () => {
   try {
@@ -49,6 +50,15 @@ type RegistrationHistory = {
   imageSrc?: string;
 };
 
+interface EmployerData {
+  id: string;
+  employer_id: string;
+  employer_name: string;
+  employer_position: string;
+  image?: string;
+  created_at?: string;
+}
+
 type EmployerForm = {
   employerId: string;
   employerName: string;
@@ -56,7 +66,6 @@ type EmployerForm = {
 };
 
 const RegistrationContent = () => {
-  const [now, setNow] = useState<Date | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<'success' | 'error' | null>(null);
@@ -75,27 +84,27 @@ const RegistrationContent = () => {
   const editId = searchParams?.get('edit');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
-  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
-  };
+  }, []);
 
   // Registration history
   const [history, setHistory] = useState<RegistrationHistory[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
   // Fetch history from API
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     try {
       setIsLoadingHistory(true);
       const response = await fetch('/api/registration');
       if (response.ok) {
         const result = await response.json();
-        const historyWithDates = result.data.map((item: any) => ({
+        const historyWithDates = result.data.map((item: EmployerData) => ({
           id: item.id,
           employerId: item.employer_id,
           employerName: item.employer_name,
-          timestamp: new Date(item.created_at),
+          timestamp: new Date(item.created_at || new Date().toISOString()),
           status: 'success',
           imageSrc: item.image,
         }));
@@ -106,7 +115,7 @@ const RegistrationContent = () => {
     } finally {
       setIsLoadingHistory(false);
     }
-  };
+  }, []);
 
   // Load history and check for edit mode
   useEffect(() => {
@@ -127,7 +136,8 @@ const RegistrationContent = () => {
       setIsModalOpen(true);
       setIsCameraOpen(false);
     }
-  }, [searchParams, editId]);
+
+  }, [searchParams, editId, fetchHistory]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -141,6 +151,7 @@ const RegistrationContent = () => {
         setIsModelLoading(true);
         setModelError(null);
 
+        faceapi = await import('@vladmandic/face-api');
         const MODEL_URL = '/models';
 
         await Promise.all([
@@ -184,7 +195,6 @@ const RegistrationContent = () => {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
 
-        // Wait for video to be ready
         videoRef.current.onloadedmetadata = () => {
           if (videoRef.current) {
             videoRef.current.play().then(() => {
@@ -197,6 +207,7 @@ const RegistrationContent = () => {
       console.error('Error accessing camera:', error);
       setModelError('Camera access denied or unavailable');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isModelLoading]);
 
   // Stop camera
@@ -246,6 +257,7 @@ const RegistrationContent = () => {
       canvas.height = videoHeight;
 
       try {
+        if (!faceapi) return;
         const detections = await faceapi.detectAllFaces(
           video,
           new faceapi.TinyFaceDetectorOptions({
@@ -325,32 +337,6 @@ const RegistrationContent = () => {
     };
   }, [isCameraOpen, startCamera, stopCamera]);
 
-  useEffect(() => {
-    setNow(new Date());
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const formatted = useMemo(() => {
-    if (!now) return { time: '--:--:--', date: 'Loading...' };
-
-    const time = now.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true,
-    });
-
-    const date = now.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-
-    return { time, date };
-  }, [now]);
-
   const captureAndRegister = useCallback(async () => {
     if (isScanning || !videoRef.current || detectedFaces === 0) return;
 
@@ -364,11 +350,11 @@ const RegistrationContent = () => {
         if (checkResponse.ok) {
           const { data: allEmployers } = await checkResponse.json();
 
-          const isDuplicateId = allEmployers.some((emp: any) =>
+          const isDuplicateId = allEmployers.some((emp: EmployerData) =>
             emp.employer_id.toLowerCase() === formData.employerId.toLowerCase()
           );
 
-          const isDuplicateName = allEmployers.some((emp: any) =>
+          const isDuplicateName = allEmployers.some((emp: EmployerData) =>
             emp.employer_name.toLowerCase() === formData.employerName.toLowerCase()
           );
 
@@ -406,6 +392,7 @@ const RegistrationContent = () => {
 
       let faceDescriptor = null;
       try {
+        if (!faceapi) return;
         const detection = await faceapi
           .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
           .withFaceLandmarks()
@@ -478,11 +465,12 @@ const RegistrationContent = () => {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.error || `Registration failed (Status: ${response.status})`);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('API Error Details:', error);
         setIsScanning(false);
         setScanResult('error');
-        showToast(error.message || 'Operation failed', 'error');
+        const errorMessage = error instanceof Error ? error.message : 'Operation failed';
+        showToast(errorMessage, 'error');
       } finally {
         setTimeout(() => setScanResult(null), 3000);
       }
@@ -894,7 +882,7 @@ const RegistrationContent = () => {
                         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl border bg-[#0089C0]/10 border-[#0089C0]/20 overflow-hidden flex items-center justify-center text-[#0089C0]">
                             {record.imageSrc ? (
-                              <img src={record.imageSrc} alt="Captured" className="w-full h-full object-cover" />
+                              <Image src={record.imageSrc} alt="Captured" className="w-full h-full object-cover" width={48} height={48} />
                             ) : (
                               <ScanFace className="w-5 h-5 sm:w-6 sm:h-6" />
                             )}
@@ -990,9 +978,9 @@ import { Suspense } from 'react';
 const EmployerRegistrationPage = () => {
   return (
     <Suspense fallback={
-        <div className="flex items-center justify-center min-h-[600px]">
-          <Loader2 className="w-8 h-8 animate-spin text-[#0089C0]" />
-        </div>
+      <div className="flex items-center justify-center min-h-[600px]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#0089C0]" />
+      </div>
     }>
       <RegistrationContent />
     </Suspense>

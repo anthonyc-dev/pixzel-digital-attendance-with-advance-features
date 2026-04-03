@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import {
     Calendar,
     LogIn,
@@ -24,7 +25,20 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/mainPage/Header';
-import Image from 'next/image';
+
+type LeaveType = 'emergency' | 'sick' | 'vacation' | 'personal' | 'family' | 'medical' | 'other';
+
+interface ApiLogEntry {
+    id: string;
+    employer_registration?: {
+        employer_id: string;
+    };
+    employer_id?: string;
+    timestamp: string;
+    type: string;
+    status?: string;
+    remarks?: string;
+}
 
 interface AttendanceRecord {
     id: string;
@@ -92,12 +106,12 @@ const UserRecord = () => {
                         const response = await fetch('/api/attendance'); // We'll filter client-side for now or fix [id] route
                         if (response.ok) {
                             const allLogs = await response.json();
-                            const userLogs = allLogs.filter((log: any) => 
+                            const userLogs = allLogs.filter((log: ApiLogEntry) => 
                                 log.employer_registration?.employer_id === userData.employer_id ||
                                 log.employer_id === userData.employer_id
                             );
                             
-                            setAttendanceRecords(userLogs.map((log: any) => ({
+                            setAttendanceRecords(userLogs.map((log: ApiLogEntry) => ({
                                 id: log.id,
                                 date: log.timestamp.split('T')[0],
                                 timeIn: log.type === 'time_in' ? new Date(log.timestamp).toLocaleTimeString() : null,
@@ -158,22 +172,8 @@ const UserRecord = () => {
             setCurrentTime(new Date());
         }, 1000);
 
-        // Check current status for today
-        const today = new Date().toISOString().split('T')[0];
-        const todayRecord = attendanceRecords.find(record => record.date === today);
-
-        if (todayRecord) {
-            if (todayRecord.status === 'leave') setCurrentStatus('on-leave');
-            else if (todayRecord.status === 'emergency') setCurrentStatus('emergency');
-            else if (todayRecord.timeIn && !todayRecord.timeOut) setCurrentStatus('clocked-in');
-            else if (todayRecord.timeIn && todayRecord.timeOut) setCurrentStatus('clocked-out');
-            else setCurrentStatus(null);
-        } else {
-            setCurrentStatus(null);
-        }
-
         return () => clearInterval(timer);
-    }, [attendanceRecords]);
+    }, []);
 
     const getStatusColor = (status: AttendanceRecord['status']) => {
         switch (status) {
@@ -272,7 +272,7 @@ const UserRecord = () => {
             timeIn: null,
             timeOut: null,
             status: 'leave',
-            leaveType: leaveDetails.type as any,
+            leaveType: leaveDetails.type as LeaveType,
             leaveReason: leaveDetails.reason,
             leaveDuration: leaveDetails.duration,
             remarks: leaveDetails.remarks,
@@ -347,12 +347,6 @@ const UserRecord = () => {
         );
     };
 
-    const getLeaveBalanceColor = (balance: number) => {
-        if (balance <= 0) return 'text-red-600 dark:text-red-400';
-        if (balance <= 3) return 'text-yellow-600 dark:text-yellow-400';
-        return 'text-green-600 dark:text-green-400';
-    };
-
     return (
         <div className="min-h-screen bg-background text-foreground">
             {/* Header */}
@@ -365,10 +359,12 @@ const UserRecord = () => {
                         <div className="flex items-center gap-4">
                             <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center overflow-hidden border border-border">
                                 {userProfile.avatar ? (
-                                    <img
+                                    <Image
                                         src={userProfile.avatar}
                                         alt="User avatar"
                                         className="w-full h-full object-cover"
+                                        width={80}
+                                        height={80}
                                     />
                                 ) : (
                                     <User className="w-10 h-10 text-muted-foreground" />

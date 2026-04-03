@@ -197,7 +197,7 @@ const ActivitiesPage = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                                {employees.map((emp, i) => (
+                                {employees.map((emp) => (
                                     <tr key={emp.id} className="group hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-all">
                                         <td className="p-4 sm:p-5 md:p-7">
                                             <div className="flex items-center gap-3 sm:gap-5">
