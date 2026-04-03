@@ -41,15 +41,48 @@ interface Employee {
 
 interface AttendanceRecord {
     id: string;
-    employer_id: string;
-    employer_name: string;
-    employer_position: string;
+    employer_registration_id: string;
+    type: 'time_in' | 'time_out';
     status: string;
+    timestamp: string;
+    employer_registration?: {
+        employer_id: string;
+        employer_name: string;
+        employer_position: string;
+        image: string;
+    };
+}
+
+interface GroupedAttendance {
+    id: string;
+    rawDate: string;
+    date: string;
+    day: string;
     time_in?: string;
     time_out?: string;
-    excuse?: string;
-    created_at: string;
+    total_hours?: string;
+    status: string;
+    remarks?: string;
+    logIds?: string[];
 }
+
+// Function to convert image to base64 for PDF
+const getBase64Image = (imgUrl: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const img = new (window.Image as any)();
+        img.src = imgUrl;
+        img.crossOrigin = 'Anonymous';
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+    });
+};
 
 // Static JSON for API Development Reference - Highly Detailed Mock
 const MOCK_DTR_DATA = {
@@ -104,6 +137,180 @@ const DTRPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    const [exporting, setExporting] = useState(false);
+
+    const exportToCSV = () => {
+        const isIndividual = !!selectedEmployee;
+        const filename = `${isIndividual ? selectedEmployee.employer_name.replace(/\s+/g, '_') + '_' : ''}DTR_Report_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+
+        const headers = isIndividual
+            ? ["Date", "Day", "Time In", "Time Out", "Total Hours", "Status", "Remarks"]
+            : ["Employer ID", "Name", "Position", "Department", "Status", "Total Logs"];
+
+        let data = [];
+        if (isIndividual) {
+            data = getGroupedAttendance(selectedEmployee.id).map(log => [
+                log.date,
+                log.day,
+                log.time_in || '--:-- --',
+                log.time_out || '--:-- --',
+                log.total_hours || '0.00',
+                log.status.toUpperCase(),
+                log.remarks || 'None'
+            ]);
+        } else {
+            data = (searchTerm ? filteredEmployees : employees).map(emp => {
+                const logs = attendance.filter(a => a.employer_registration_id === emp.id);
+                return [
+                    emp.employer_id,
+                    emp.employer_name,
+                    emp.employer_position,
+                    "General", // Could be dynamic if added to schema
+                    emp.status.toUpperCase(),
+                    logs.length.toString()
+                ];
+            });
+        }
+
+        const csvContent = [
+            headers.join(','),
+            ...data.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const exportToPDF = async () => {
+        try {
+            setExporting(true);
+            const { jsPDF } = await import('jspdf');
+            const { default: autoTable } = await import('jspdf-autotable');
+
+            const doc = new jsPDF();
+            const brandColor = [192, 17, 72]; // #C01148
+
+            // Try to add Logo
+            try {
+                const logoBase64 = await getBase64Image('/pixzel-logo.png');
+                doc.addImage(logoBase64, 'PNG', 15, 10, 25, 25);
+            } catch (err) {
+                console.warn('Could not load logo for PDF', err);
+                // Fallback: draw a colored circle or square
+                doc.setFillColor(192, 17, 72);
+                doc.roundedRect(15, 10, 25, 25, 3, 3, 'F');
+            }
+
+            // Company Info Header
+            doc.setTextColor(192, 17, 72);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(22);
+            doc.text('PIXZEL DIGITAL SERVICE', 45, 22);
+
+            doc.setTextColor(100, 100, 100);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.text('Advanced Digital Attendance Tracking System', 45, 28);
+            doc.text(`Generated: ${format(new Date(), 'MMMM dd, yyyy HH:mm')}`, 45, 33);
+
+            // Line Separator
+            doc.setDrawColor(230, 230, 230);
+            doc.line(15, 40, 195, 40);
+
+            // Report Title
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(16);
+            doc.setFont('helvetica', 'bold');
+            const reportTitle = selectedEmployee
+                ? `DAILY TIME RECORD: ${selectedEmployee.employer_name.toUpperCase()}`
+                : 'DAILY TIME RECORD: OVERALL SUMMARY';
+            doc.text(reportTitle, 15, 52);
+
+            if (selectedEmployee) {
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`Employee ID: ${selectedEmployee.employer_id}`, 15, 58);
+                doc.text(`Position: ${selectedEmployee.employer_position}`, 15, 63);
+                doc.text(`Month of ${format(new Date(), 'MMMM yyyy')}`, 150, 58, { align: 'right' });
+            }
+
+            // Table
+            const headers = selectedEmployee
+                ? [["DATE", "DAY", "TIME IN", "TIME OUT", "HOURS", "STATUS", "REMARKS"]]
+                : [["ID", "EMPLOYEE", "POSITION", "STATUS", "LOGS"]];
+
+            const tableData = selectedEmployee
+                ? getGroupedAttendance(selectedEmployee.id).map(log => [
+                    log.date,
+                    log.day,
+                    log.time_in || '--:-- --',
+                    log.time_out || '--:-- --',
+                    log.total_hours || '0.00',
+                    log.status.toUpperCase().replace('_', ' '),
+                    log.remarks || '---'
+                ])
+                : (searchTerm ? filteredEmployees : employees).map(emp => [
+                    emp.employer_id,
+                    emp.employer_name,
+                    emp.employer_position,
+                    emp.status.toUpperCase(),
+                    attendance.filter(a => a.employer_registration_id === emp.id).length
+                ]);
+
+            autoTable(doc, {
+                startY: selectedEmployee ? 70 : 60,
+                head: headers,
+                body: tableData,
+                theme: 'striped',
+                headStyles: {
+                    fillColor: [192, 17, 72],
+                    textColor: [255, 255, 255],
+                    fontSize: 10,
+                    fontStyle: 'bold',
+                    halign: 'center'
+                },
+                styles: {
+                    fontSize: 9,
+                    cellPadding: 5,
+                    valign: 'middle',
+                    halign: 'center'
+                },
+                alternateRowStyles: {
+                    fillColor: [250, 250, 250]
+                },
+                margin: { left: 15, right: 15 }
+            });
+
+            // Footer
+            const pageCount = (doc as any).internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(150, 150, 150);
+                doc.text(
+                    `Page ${i} of ${pageCount} - Pixzel Digital Daily Time Record System`,
+                    105,
+                    doc.internal.pageSize.height - 10,
+                    { align: 'center' }
+                );
+            }
+
+            const filename = `${selectedEmployee ? selectedEmployee.employer_name.replace(/\s+/g, '_') + '_' : ''}DTR_Report_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+            doc.save(filename);
+
+        } catch (error) {
+            console.error('PDF generation error:', error);
+        } finally {
+            setExporting(false);
+        }
+    };
 
     useEffect(() => {
         // Log the static JSON for API structure reference
@@ -158,15 +365,63 @@ const DTRPage = () => {
     );
 
     const onTimeRate = attendance.length > 0
-        ? Math.round((attendance.filter(a => a.status === 'active').length / attendance.length) * 100)
+        ? Math.round((attendance.filter(a => a.status === 'on_time').length / attendance.length) * 100)
         : 100;
 
     const stats = [
         { title: 'Total Handled', value: employees.length.toString().padStart(2, '0'), icon: UserCheck, color: 'text-blue-500', bg: 'bg-blue-500/10' },
         { title: 'On Time Rate', value: `${onTimeRate}%`, icon: TrendingUp, color: 'text-green-500', bg: 'bg-green-500/10' },
         { title: 'Late Entries', value: attendance.filter(a => a.status === 'late').length.toString().padStart(2, '0'), icon: Clock, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-        { title: 'Absences', value: '00', icon: UserMinus, color: 'text-red-500', bg: 'bg-red-500/10' },
+        { title: 'Activity Logs', value: attendance.length.toString().padStart(2, '0'), icon: ClipboardCheck, color: 'text-secondary', bg: 'bg-secondary/10' },
     ];
+
+    // Helper to group logs by day for a specific employee
+    const getGroupedAttendance = (empId: string): GroupedAttendance[] => {
+        const empLogs = attendance.filter(a => a.employer_registration_id === empId);
+        const groups: Record<string, GroupedAttendance & { raw_in?: Date, raw_out?: Date }> = {};
+
+        empLogs.forEach(log => {
+            const dateObj = new Date(log.timestamp);
+            const dateKey = format(dateObj, 'yyyy-MM-dd');
+
+            if (!groups[dateKey]) {
+                groups[dateKey] = {
+                    id: dateKey,
+                    rawDate: dateKey,
+                    date: format(dateObj, 'MMM dd, yyyy'),
+                    day: format(dateObj, 'EEEE'),
+                    status: '---',
+                    remarks: '',
+                    logIds: []
+                };
+            }
+
+            if (!groups[dateKey].logIds) groups[dateKey].logIds = [];
+            groups[dateKey].logIds!.push(log.id);
+
+            if (log.type === 'time_in') {
+                groups[dateKey].time_in = format(dateObj, 'hh:mm aa');
+                groups[dateKey].status = log.status; // 'on_time' or 'late'
+                groups[dateKey].raw_in = dateObj;
+            } else if (log.type === 'time_out') {
+                groups[dateKey].time_out = format(dateObj, 'hh:mm aa');
+                groups[dateKey].raw_out = dateObj;
+            }
+        });
+
+        // Calculate hours
+        Object.values(groups).forEach(group => {
+            if (group.raw_in && group.raw_out) {
+                const diff = group.raw_out.getTime() - group.raw_in.getTime();
+                const hours = diff / (1000 * 60 * 60);
+                group.total_hours = hours > 0 ? hours.toFixed(2) : '0.00';
+            }
+        });
+
+        return Object.values(groups).sort((a, b) => {
+            return new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime();
+        });
+    };
 
     return (
         <div className="flex flex-col gap-8 w-full max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out pb-10">
@@ -176,9 +431,6 @@ const DTRPage = () => {
                 <div className="space-y-2">
                     <div className="flex items-center gap-3">
                         <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-foreground">Daily Time Record</h1>
-                        <div className="px-2 py-0.5 rounded-full bg-secondary/10 border border-secondary/20 text-secondary text-[8px] font-black uppercase tracking-widest animate-pulse">
-                            API Ready
-                        </div>
                     </div>
                     <p className="text-muted-foreground text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] leading-none opacity-80 flex items-center gap-2">
                         Comprehensive attendance activity logs
@@ -187,13 +439,21 @@ const DTRPage = () => {
 
                 {!selectedEmployee && (
                     <div className="flex items-center gap-3">
-                        <button className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl font-black uppercase tracking-widest text-[9px] shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-all group">
+                        <button
+                            onClick={exportToCSV}
+                            disabled={exporting}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl font-black uppercase tracking-widest text-[9px] shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-all group disabled:opacity-50"
+                        >
                             <FileSpreadsheet className="w-3.5 h-3.5 text-green-500 transition-transform group-hover:scale-110" />
                             <span>CSV</span>
                         </button>
-                        <button className="flex items-center gap-2 px-4 py-2.5 bg-secondary text-white rounded-xl font-black uppercase tracking-widest text-[9px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all">
-                            <Download className="w-3.5 h-3.5" />
-                            <span>PDF</span>
+                        <button
+                            onClick={exportToPDF}
+                            disabled={exporting}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-secondary text-white rounded-xl font-black uppercase tracking-widest text-[9px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all disabled:opacity-50"
+                        >
+                            <Download className={cn("w-3.5 h-3.5", exporting && "animate-bounce")} />
+                            <span>{exporting ? 'Generating...' : 'PDF'}</span>
                         </button>
                     </div>
                 )}
@@ -321,7 +581,7 @@ const DTRPage = () => {
 
                                     <div className="mt-auto pt-4 border-t border-gray-100 dark:border-white/5 w-full flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 z-10">
                                         <span>Activity Log</span>
-                                        <span className="text-foreground">{attendance.filter(a => a.employer_id === emp.employer_id).length} Logs</span>
+                                        <span className="text-foreground">{attendance.filter(a => a.employer_registration_id === emp.id).length} Logs</span>
                                     </div>
                                 </button>
                             ))
@@ -350,11 +610,25 @@ const DTRPage = () => {
                                 <h2 className="text-xl font-black text-foreground tracking-tight">{selectedEmployee.employer_name}</h2>
                                 <p className="text-xs font-black text-gray-400 uppercase tracking-widest">{selectedEmployee.employer_position}</p>
                             </div>
-                            <div className="hidden md:flex flex-col items-end gap-2">
-                                <div className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">Viewing Record</div>
-                                <div className="flex items-center gap-2 px-4 py-2 bg-secondary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-secondary/20">
-                                    <CalendarIcon className="w-3.5 h-3.5" />
-                                    <span>{format(new Date(), 'MMM yyyy')}</span>
+                            <div className="hidden md:flex flex-col items-end gap-3">
+                                <div className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1">Export Activity</div>
+                                <div className="flex items-center gap-2 text-white">
+                                    <button
+                                        onClick={exportToCSV}
+                                        disabled={exporting}
+                                        className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg font-black uppercase tracking-widest text-[8px] text-foreground hover:bg-gray-50 dark:hover:bg-white/10 transition-all disabled:opacity-50"
+                                    >
+                                        <FileSpreadsheet className="w-3 h-3 text-green-500" />
+                                        <span>CSV</span>
+                                    </button>
+                                    <button
+                                        onClick={exportToPDF}
+                                        disabled={exporting}
+                                        className="flex items-center gap-2 px-3 py-1.5 bg-secondary text-white rounded-lg font-black uppercase tracking-widest text-[8px] shadow-lg shadow-secondary/10 hover:opacity-90 transition-all disabled:opacity-50"
+                                    >
+                                        <Download className={cn("w-3 h-3", exporting && "animate-bounce")} />
+                                        <span>{exporting ? '...' : 'PDF'}</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -367,15 +641,16 @@ const DTRPage = () => {
                                             <th className="p-3 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Date Log</th>
                                             <th className="p-3 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Time In</th>
                                             <th className="p-3 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Time Out</th>
+                                            <th className="p-3 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Total Hours</th>
                                             <th className="p-3 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Status Type</th>
                                             <th className="p-3 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Remarks</th>
                                             <th className="p-3 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 text-center">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100 dark:divide-white/5 text-center">
-                                        {attendance.filter(a => a.employer_id === selectedEmployee.employer_id).length === 0 ? (
+                                        {getGroupedAttendance(selectedEmployee.id).length === 0 ? (
                                             <tr>
-                                                <td colSpan={6} className="p-10 text-center">
+                                                <td colSpan={7} className="p-10 text-center">
                                                     <div className="flex flex-col items-center gap-4 opacity-40">
                                                         <UserMinus className="w-12 h-12" />
                                                         <p className="font-black uppercase tracking-widest text-[10px]">No Records Found</p>
@@ -383,84 +658,96 @@ const DTRPage = () => {
                                                 </td>
                                             </tr>
                                         ) : (
-                                            attendance
-                                                .filter(a => a.employer_id === selectedEmployee.employer_id)
-                                                .map((log) => (
-                                                    <tr key={log.id} className="group hover:bg-gray-50 dark:hover:bg-white/10 transition-all duration-300">
-                                                        <td className="p-3">
-                                                            <div className="flex flex-col items-center">
-                                                                <span className="font-black text-[11px] tracking-tight text-foreground/80">{format(new Date(log.created_at), 'MMM dd, yyyy')}</span>
-                                                                <span className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">{format(new Date(log.created_at), 'EEEE')}</span>
-                                                            </div>
-                                                        </td>
-                                                        <td className="p-3">
-                                                            <span className="text-[10px] font-black text-green-500 tabular-nums bg-green-500/10 px-2 py-0.5 rounded-lg border border-green-500/10">
-                                                                {log.time_in || format(new Date(log.created_at), 'hh:mm aa')}
-                                                            </span>
-                                                        </td>
-                                                        <td className="p-3">
-                                                            <span className="text-[10px] font-black text-red-500 tabular-nums bg-red-500/10 px-2 py-0.5 rounded-lg border border-red-500/10 opacity-80">
-                                                                {log.time_out || '--:-- --'}
-                                                            </span>
-                                                        </td>
-                                                        <td className="p-3">
-                                                            <div className={cn(
-                                                                "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border ring-1 ring-inset",
-                                                                (log.status === 'present' || log.status === 'active') ? "bg-green-500/10 text-green-600 ring-green-600/20 border-green-600/30" :
-                                                                    log.status === 'late' ? "bg-yellow-500/10 text-yellow-600 ring-yellow-600/20 border-yellow-600/30" :
-                                                                        log.status === 'excuse' ? "bg-blue-500/10 text-blue-600 ring-blue-600/20 border-blue-600/30" :
-                                                                            "bg-red-500/10 text-red-600 ring-red-600/20 border-red-600/30"
+                                            getGroupedAttendance(selectedEmployee.id).map((log, idx) => (
+                                                <tr key={idx} className="group hover:bg-gray-50 dark:hover:bg-white/10 transition-all duration-300">
+                                                    <td className="p-3">
+                                                        <div className="flex flex-col items-center">
+                                                            <span className="font-black text-[11px] tracking-tight text-foreground/80">{log.date}</span>
+                                                            <span className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">{log.day}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-3">
+                                                        <span className={cn(
+                                                            "text-[10px] font-black tabular-nums px-2 py-0.5 rounded-lg border",
+                                                            log.time_in ? "text-green-500 bg-green-500/10 border-green-500/10" : "text-gray-400 bg-gray-400/10 border-gray-400/10 opacity-40"
+                                                        )}>
+                                                            {log.time_in || '--:-- --'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-3">
+                                                        <span className={cn(
+                                                            "text-[10px] font-black tabular-nums px-2 py-0.5 rounded-lg border",
+                                                            log.time_out ? "text-red-500 bg-red-500/10 border-red-500/10" : "text-gray-400 bg-gray-400/10 border-gray-400/10 opacity-40"
+                                                        )}>
+                                                            {log.time_out || '--:-- --'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-3">
+                                                        <div className="flex flex-col items-center">
+                                                            <span className={cn(
+                                                                "text-[10px] font-black tabular-nums px-2 py-0.5 rounded-lg bg-blue-500/5 border border-blue-500/10 text-blue-500/80",
+                                                                !log.total_hours && "opacity-20"
                                                             )}>
-                                                                <div className={cn("w-1 h-1 rounded-full",
-                                                                    (log.status === 'present' || log.status === 'active') ? "bg-green-600" :
-                                                                        log.status === 'late' ? "bg-yellow-600" :
-                                                                            log.status === 'excuse' ? "bg-blue-600" : "bg-red-600"
-                                                                )} />
-                                                                <span>{log.status}</span>
-                                                            </div>
-                                                        </td>
-                                                        <td className="p-3">
-                                                            <div className="flex flex-col items-center gap-1">
-                                                                {log.excuse ? (
-                                                                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-lg text-[8px] font-black uppercase tracking-widest w-fit">
-                                                                        <AlertCircle className="w-2.5 h-2.5" />
-                                                                        <span>{log.excuse}</span>
-                                                                    </div>
-                                                                ) : (
-                                                                    <span className="text-[8px] font-bold text-gray-400 uppercase opacity-40 italic">No Remarks</span>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                        <td className="p-3 text-center relative">
-                                                            <div className="relative inline-block">
-                                                                <button
-                                                                    onClick={() => setOpenMenuId(openMenuId === log.id ? null : log.id)}
-                                                                    className="action-menu-button p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-all text-gray-400 cursor-pointer"
-                                                                >
-                                                                    <MoreHorizontal className="w-4 h-4 pointer-events-none" />
-                                                                </button>
+                                                                {log.total_hours ? `${log.total_hours} hrs` : '0.00 hrs'}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-3">
+                                                        <div className={cn(
+                                                            "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border ring-1 ring-inset",
+                                                            log.status === 'on_time' ? "bg-green-500/10 text-green-600 ring-green-600/20 border-green-600/30" :
+                                                                log.status === 'late' ? "bg-yellow-500/10 text-yellow-600 ring-yellow-600/20 border-yellow-600/30" :
+                                                                    "bg-red-500/10 text-red-600 ring-red-600/20 border-red-600/30"
+                                                        )}>
+                                                            <div className={cn("w-1 h-1 rounded-full",
+                                                                log.status === 'on_time' ? "bg-green-600" :
+                                                                    log.status === 'late' ? "bg-yellow-600" : "bg-red-600"
+                                                            )} />
+                                                            <span>{log.status.replace('_', ' ')}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-3">
+                                                        <div className="flex flex-col items-center gap-1">
+                                                            {log.remarks ? (
+                                                                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-lg text-[8px] font-black uppercase tracking-widest w-fit">
+                                                                    <AlertCircle className="w-2.5 h-2.5" />
+                                                                    <span>{log.remarks}</span>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-[8px] font-bold text-gray-400 uppercase opacity-40 italic">No Remarks</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-3 text-center relative">
+                                                        <div className="relative inline-block">
+                                                            <button
+                                                                onClick={() => setOpenMenuId(openMenuId === log.id ? null : log.id)}
+                                                                className="action-menu-button p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-all text-gray-400 cursor-pointer"
+                                                            >
+                                                                <MoreHorizontal className="w-4 h-4 pointer-events-none" />
+                                                            </button>
 
-                                                                {openMenuId === log.id && (
-                                                                    <div className="action-menu-dropdown absolute right-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 min-w-[120px] animate-in fade-in slide-in-from-right-2 duration-200">
-                                                                        <button
-                                                                            className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
-                                                                        >
-                                                                            <Pencil className="w-3 h-3 text-secondary" />
-                                                                            Edit
-                                                                        </button>
-                                                                        <button
-                                                                            className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-                                                                        >
-                                                                            <Trash2 className="w-3 h-3" />
-                                                                            Delete
-                                                                        </button>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                )
-                                                )
+                                                            {openMenuId === log.id && (
+                                                                <div className="action-menu-dropdown absolute right-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 min-w-[120px] animate-in fade-in slide-in-from-right-2 duration-200">
+                                                                    <button
+                                                                        className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                                                                    >
+                                                                        <Pencil className="w-3 h-3 text-secondary" />
+                                                                        Edit
+                                                                    </button>
+                                                                    <button
+                                                                        className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                                                                    >
+                                                                        <Trash2 className="w-3 h-3" />
+                                                                        Delete
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )
+                                            )
                                         )}
                                     </tbody>
                                 </table>

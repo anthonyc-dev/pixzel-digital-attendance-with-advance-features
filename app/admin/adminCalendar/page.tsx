@@ -36,14 +36,17 @@ import {
 
 interface AttendanceRecord {
   id: string;
-  employer_id: string;
-  employer_name: string;
-  employer_position: string;
+  employer_registration_id: string;
+  type: 'time_in' | 'time_out';
   status: 'present' | 'late' | 'absent' | 'leave' | 'active' | string;
-  image: string;
+  timestamp: string;
   created_at: string;
-  time_in?: string;
-  time_out?: string;
+  employer_registration?: {
+    employer_id: string;
+    employer_name: string;
+    employer_position: string;
+    image: string;
+  };
 }
 
 type ViewType = 'month' | 'week' | 'day';
@@ -246,56 +249,40 @@ const AdminCalendarPage = () => {
                     )}>
                       {format(day, 'd')}
                     </span>
-                    {dayActivities.length > 0 && (
-                      <div className="flex -space-x-1.5 translate-y-0.5">
-                        {dayActivities.slice(0, 3).map((a, i) => (
-                          <div key={i} className="w-5 h-5 rounded-full border border-white dark:border-black overflow-hidden ring-1 ring-border shadow-sm transform group-hover:-translate-y-1 transition-all">
-                            {a.image ? (
-                              <Image src={a.image} alt={a.employer_name} width={20} height={20} className="object-cover" unoptimized />
-                            ) : (
-                              <div className="w-full h-full bg-secondary text-[8px] flex items-center justify-center text-white">
-                                {a.employer_name.charAt(0)}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                        {dayActivities.length > 3 && (
-                          <div className="w-5 h-5 rounded-full bg-muted border border-white dark:border-black flex items-center justify-center text-[7px] font-black text-muted-foreground ring-1 ring-border">
-                            +{dayActivities.length - 3}
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
 
-                  {/* Activity Indicators */}
-                  <div className="space-y-1 mt-1 overflow-hidden">
-                    {dayActivities.slice(0, 2).map((activity, i) => {
+                  {/* Mini Activity Stack */}
+                  <div className="mt-auto pt-2 flex flex-wrap -space-x-1.5 overflow-hidden">
+                    {dayActivities.slice(0, 5).map((activity, i) => {
+                      const name = activity.employer_registration?.employer_name || 'User';
+                      const image = activity.employer_registration?.image;
                       const type = getStatusType(activity.status);
+                      
                       return (
                         <div 
                           key={i} 
+                          title={name}
                           className={cn(
-                            "px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase tracking-tighter truncate border group-hover:translate-x-0.5 transition-all flex items-center gap-1",
-                            type === 'present' && "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-                            type === 'late' && "bg-amber-500/10 text-amber-600 border-amber-500/20",
-                            type === 'absent' && "bg-red-500/10 text-red-600 border-red-500/20",
-                            type === 'leave' && "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                            "w-6 h-6 rounded-full border-2 overflow-hidden ring-1 ring-border shadow-sm transform hover:-translate-y-1 hover:scale-110 transition-all z-10",
+                            type === 'present' && "border-emerald-500",
+                            type === 'late' && "border-amber-500",
+                            type === 'absent' && "border-red-500",
+                            type === 'leave' && "border-blue-500"
                           )}
                         >
-                          <div className={cn("w-1 h-1 rounded-full", 
-                            type === 'present' && "bg-emerald-500",
-                            type === 'late' && "bg-amber-500",
-                            type === 'absent' && "bg-red-500",
-                            type === 'leave' && "bg-blue-500"
-                          )} />
-                          {activity.employer_name}
+                          {image ? (
+                            <Image src={image} alt={name} width={24} height={24} className="object-cover" unoptimized />
+                          ) : (
+                            <div className="w-full h-full bg-secondary text-[8px] flex items-center justify-center text-white">
+                              {name.charAt(0)}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
-                    {dayActivities.length > 2 && (
-                      <div className="text-[7px] font-black text-muted-foreground/50 pl-1 uppercase tracking-widest mt-1">
-                        + {dayActivities.length - 2} Logged
+                    {dayActivities.length > 5 && (
+                      <div className="w-6 h-6 rounded-full bg-muted border-2 border-white dark:border-[#0c0c0c] flex items-center justify-center text-[7px] font-black text-muted-foreground ring-1 ring-border z-0">
+                        +{dayActivities.length - 5}
                       </div>
                     )}
                   </div>
@@ -335,37 +322,41 @@ const AdminCalendarPage = () => {
                      const type = getStatusType(record.status);
                      return (
                        <div 
-                        key={record.id} 
-                        className="group/item flex items-center gap-3 p-3 rounded-xl bg-muted/20 hover:bg-muted transition-all cursor-pointer border border-transparent hover:border-border overflow-hidden"
-                       >
-                          <div className="relative">
-                            {record.image ? (
-                              <Image src={record.image} alt={record.employer_name} width={40} height={40} className="rounded-lg object-cover grayscale group-hover/item:grayscale-0 transition-all border border-border" unoptimized />
-                            ) : (
-                              <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center border border-border">
-                                <Users className="w-5 h-5 text-secondary" />
-                              </div>
-                            )}
-                            <div className={cn(
-                              "absolute -bottom-1.5 -right-1.5 w-4 h-4 rounded-full border-2 border-white dark:border-[#1a1a1a] shadow-md",
-                              type === 'present' && "bg-emerald-500",
-                              type === 'late' && "bg-amber-500",
-                              type === 'absent' && "bg-red-500",
-                              type === 'leave' && "bg-blue-500"
-                            )} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-black text-foreground truncate group-hover/item:text-secondary transition-colors">{record.employer_name}</div>
-                            <div className="flex flex-col gap-0.5 mt-0.5">
-                              <span className="text-[8px] font-black text-muted-foreground/60 uppercase tracking-widest truncate">{record.employer_position}</span>
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="w-2.5 h-2.5 text-muted-foreground/40" />
-                                <span className="text-[9px] font-bold text-muted-foreground uppercase">{format(parseISO(record.created_at), 'hh:mm aa')}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <ArrowUpRight className="w-3 h-3 text-muted-foreground group-hover/item:text-secondary group-hover/item:translate-x-0.5 group-hover/item:-translate-y-0.5 transition-all" />
-                       </div>
+                         key={record.id} 
+                         className="group/item flex items-center gap-3 p-3 rounded-xl bg-muted/20 hover:bg-muted transition-all cursor-pointer border border-transparent hover:border-border overflow-hidden"
+                        >
+                           <div className="relative">
+                             {record.employer_registration?.image ? (
+                               <Image src={record.employer_registration.image} alt={record.employer_registration.employer_name || 'User'} width={40} height={40} className="rounded-lg object-cover grayscale group-hover/item:grayscale-0 transition-all border border-border" unoptimized />
+                             ) : (
+                               <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center border border-border">
+                                 <Users className="w-5 h-5 text-secondary" />
+                               </div>
+                             )}
+                             <div className={cn(
+                               "absolute -bottom-1.5 -right-1.5 w-4 h-4 rounded-full border-2 border-white dark:border-[#1a1a1a] shadow-md",
+                               type === 'present' && "bg-emerald-500",
+                               type === 'late' && "bg-amber-500",
+                               type === 'absent' && "bg-red-500",
+                               type === 'leave' && "bg-blue-500"
+                             )} />
+                           </div>
+                           <div className="flex-1 min-w-0">
+                             <div className="text-xs font-black text-foreground truncate group-hover/item:text-secondary transition-colors">
+                               {record.employer_registration?.employer_name || 'Unknown Guest'}
+                             </div>
+                             <div className="flex flex-col gap-0.5 mt-0.5">
+                               <span className="text-[8px] font-black text-muted-foreground/60 uppercase tracking-widest truncate">
+                                 {record.employer_registration?.employer_position || 'Staff'}
+                               </span>
+                               <div className="flex items-center gap-1.5">
+                                 <Clock className="w-2.5 h-2.5 text-muted-foreground/40" />
+                                 <span className="text-[9px] font-bold text-muted-foreground uppercase">{format(parseISO(record.created_at), 'hh:mm aa')}</span>
+                               </div>
+                             </div>
+                           </div>
+                           <ArrowUpRight className="w-3 h-3 text-muted-foreground group-hover/item:text-secondary group-hover/item:translate-x-0.5 group-hover/item:-translate-y-0.5 transition-all" />
+                        </div>
                      );
                    })
                  ) : (
