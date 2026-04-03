@@ -7,7 +7,7 @@ function euclideanDistance(a: number[], b: number[]): number {
   return Math.sqrt(sum);
 }
 
-function parseDescriptor(descriptor: any): number[] | null {
+function parseDescriptor(descriptor: unknown): number[] | null {
   if (!descriptor) return null;
   if (Array.isArray(descriptor)) return descriptor;
   if (typeof descriptor === "string") {
