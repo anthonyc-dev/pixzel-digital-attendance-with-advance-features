@@ -1,6 +1,6 @@
 import React from 'react';
 import Layout from '@/components/Layout';
-import { Download, Search, SlidersHorizontal, CalendarDays, MoreHorizontal, CheckCircle2, Clock3, Umbrella, UserX, ArrowUpRight } from 'lucide-react';
+import { Download, Search, SlidersHorizontal, CalendarDays, CheckCircle2, Clock3, Umbrella, UserX, ArrowUpRight } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
@@ -139,7 +139,7 @@ const EmployeeDashboard = () => {
                     </div>
 
                     {/* Attendance Table Panel */}
-                    <div className="w-full bg-white/[0.02] border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl backdrop-blur-3xl">
+                    <div className="w-full bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden shadow-2xl backdrop-blur-3xl">
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-white/[0.03] border-b border-white/5">
@@ -155,7 +155,7 @@ const EmployeeDashboard = () => {
                                         <td className="p-7">
                                             <div className="flex items-center gap-5">
                                                 <div className="relative">
-                                                    <Image src={emp.avatar} alt={emp.name} width={50} height={50} className="rounded-2xl grayscale group-hover:grayscale-0 transition-all duration-500 border border-white/10 shadow-lg group-hover:shadow-secondary/20" />
+                                                    <Image src={emp.avatar} alt={emp.name} width={50} height={50} className="rounded-lg grayscale group-hover:grayscale-0 transition-all duration-500 border border-white/10 shadow-lg group-hover:shadow-secondary/20" />
                                                     <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-black rounded-full shadow-sm" />
                                                 </div>
                                                 <div className="flex flex-col gap-0.5">
@@ -169,7 +169,7 @@ const EmployeeDashboard = () => {
                                                 <span className="absolute top-4 right-5 text-[10px] font-black text-gray-800 group-hover/cell:text-gray-600 transition-colors">{1 + j + (i * 2) % 31}</span>
                                                 {att.status !== 'empty' ? (
                                                     <div className={cn(
-                                                        "mt-5 mx-auto flex items-center justify-center gap-2 px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all shadow-sm ring-1 ring-inset",
+                                                        "mt-5 mx-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all shadow-sm ring-1 ring-inset",
                                                         att.status === 'active' && "bg-green-500/10 text-green-400 ring-green-400/20",
                                                         att.status === 'late' && "bg-orange-500/10 text-orange-400 ring-orange-400/20",
                                                         att.status === 'leave' && "bg-purple-500/10 text-purple-400 ring-purple-400/20",

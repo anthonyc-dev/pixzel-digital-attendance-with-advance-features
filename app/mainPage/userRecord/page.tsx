@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import {
     Calendar,
     LogIn,
@@ -24,7 +25,20 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/mainPage/Header';
-import Image from 'next/image';
+
+type LeaveType = 'emergency' | 'sick' | 'vacation' | 'personal' | 'family' | 'medical' | 'other';
+
+interface ApiLogEntry {
+    id: string;
+    employer_registration?: {
+        employer_id: string;
+    };
+    employer_id?: string;
+    timestamp: string;
+    type: string;
+    status?: string;
+    remarks?: string;
+}
 
 interface AttendanceRecord {
     id: string;
@@ -58,71 +72,63 @@ interface UserProfile {
 const UserRecord = () => {
     const [currentTime, setCurrentTime] = useState<Date | null>(null);
     const [userProfile, setUserProfile] = useState<UserProfile>({
-        name: 'John Doe',
-        position: 'Senior Developer',
-        department: 'Engineering',
-        employeeId: 'EMP001',
-        email: 'john.doe@company.com',
+        name: 'Loading...',
+        position: 'Updating...',
+        department: '---',
+        employeeId: '---',
+        email: '---',
         leaveBalance: {
-            sick: 12,
-            vacation: 15,
-            personal: 5,
-            emergency: 3,
+            sick: 0,
+            vacation: 0,
+            personal: 0,
+            emergency: 0,
         },
     });
 
-    const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([
-        {
-            id: '1',
-            date: '2024-03-31',
-            timeIn: '09:00 AM',
-            timeOut: '06:00 PM',
-            status: 'present',
-            overtime: 0,
-        },
-        {
-            id: '2',
-            date: '2024-03-30',
-            timeIn: '09:15 AM',
-            timeOut: '06:00 PM',
-            status: 'late',
-            remarks: 'Traffic delay',
-            overtime: 0,
-        },
-        {
-            id: '3',
-            date: '2024-03-29',
-            timeIn: '09:00 AM',
-            timeOut: '05:30 PM',
-            status: 'early-out',
-            remarks: 'Medical appointment',
-            overtime: 0,
-        },
-        {
-            id: '4',
-            date: '2024-03-28',
-            timeIn: null,
-            timeOut: null,
-            status: 'leave',
-            remarks: 'Family vacation',
-            leaveType: 'vacation',
-            leaveReason: 'Annual family vacation',
-            leaveDuration: '5 days',
-            leaveApproved: true,
-        },
-        {
-            id: '5',
-            date: '2024-03-25',
-            timeIn: null,
-            timeOut: null,
-            status: 'emergency',
-            remarks: 'Family emergency',
-            leaveType: 'emergency',
-            leaveReason: 'Urgent family matter',
-            leaveDuration: '2 days',
-            leaveApproved: true,
-        },
-    ]);
+    const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            const savedUser = localStorage.getItem('selectedUser');
+            if (savedUser) {
+                const userData = JSON.parse(savedUser);
+                setUserProfile(prev => ({
+                    ...prev,
+                    name: userData.name || 'Unknown',
+                    position: userData.position || 'Employee',
+                    employeeId: userData.employer_id || 'N/A',
+                    avatar: userData.photo,
+                }));
+
+                // Fetch history if we have an id
+                if (userData.employer_id) {
+                    try {
+                        const response = await fetch('/api/attendance'); // We'll filter client-side for now or fix [id] route
+                        if (response.ok) {
+                            const allLogs = await response.json();
+                            const userLogs = allLogs.filter((log: ApiLogEntry) => 
+                                log.employer_registration?.employer_id === userData.employer_id ||
+                                log.employer_id === userData.employer_id
+                            );
+                            
+                            setAttendanceRecords(userLogs.map((log: ApiLogEntry) => ({
+                                id: log.id,
+                                date: log.timestamp.split('T')[0],
+                                timeIn: log.type === 'time_in' ? new Date(log.timestamp).toLocaleTimeString() : null,
+                                timeOut: log.type === 'time_out' ? new Date(log.timestamp).toLocaleTimeString() : null,
+                                status: log.status || 'present',
+                                remarks: log.remarks,
+                            })));
+                        }
+                    } catch (error) {
+                        console.error('Failed to fetch user history:', error);
+                    }
+                }
+            }
+        };
+
+        fetchUserData();
+    }, []);
 
     const [showLeaveModal, setShowLeaveModal] = useState(false);
     const [leaveDetails, setLeaveDetails] = useState({
@@ -166,22 +172,8 @@ const UserRecord = () => {
             setCurrentTime(new Date());
         }, 1000);
 
-        // Check current status for today
-        const today = new Date().toISOString().split('T')[0];
-        const todayRecord = attendanceRecords.find(record => record.date === today);
-
-        if (todayRecord) {
-            if (todayRecord.status === 'leave') setCurrentStatus('on-leave');
-            else if (todayRecord.status === 'emergency') setCurrentStatus('emergency');
-            else if (todayRecord.timeIn && !todayRecord.timeOut) setCurrentStatus('clocked-in');
-            else if (todayRecord.timeIn && todayRecord.timeOut) setCurrentStatus('clocked-out');
-            else setCurrentStatus(null);
-        } else {
-            setCurrentStatus(null);
-        }
-
         return () => clearInterval(timer);
-    }, [attendanceRecords]);
+    }, []);
 
     const getStatusColor = (status: AttendanceRecord['status']) => {
         switch (status) {
@@ -280,7 +272,7 @@ const UserRecord = () => {
             timeIn: null,
             timeOut: null,
             status: 'leave',
-            leaveType: leaveDetails.type as any,
+            leaveType: leaveDetails.type as LeaveType,
             leaveReason: leaveDetails.reason,
             leaveDuration: leaveDetails.duration,
             remarks: leaveDetails.remarks,
@@ -355,12 +347,6 @@ const UserRecord = () => {
         );
     };
 
-    const getLeaveBalanceColor = (balance: number) => {
-        if (balance <= 0) return 'text-red-600 dark:text-red-400';
-        if (balance <= 3) return 'text-yellow-600 dark:text-yellow-400';
-        return 'text-green-600 dark:text-green-400';
-    };
-
     return (
         <div className="min-h-screen bg-background text-foreground">
             {/* Header */}
@@ -371,14 +357,18 @@ const UserRecord = () => {
                 <div className="bg-card border border-border rounded-2xl p-6 mb-8">
                     <div className="flex items-start justify-between">
                         <div className="flex items-center gap-4">
-                            <div className="w-20 h-20 rounded-full bg-linear-to-br from-secondary to-primary flex items-center justify-center overflow-hidden">
-                                <Image
-                                    src="https://images.unsplash.com/photo-1654110455429-cf322b40a906?fm=jpg&q=60&w=3000&auto=format&fit=crop"
-                                    alt="User avatar"
-                                    width={80}
-                                    height={80}
-                                    className="rounded-full object-cover"
-                                />
+                            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center overflow-hidden border border-border">
+                                {userProfile.avatar ? (
+                                    <Image
+                                        src={userProfile.avatar}
+                                        alt="User avatar"
+                                        className="w-full h-full object-cover"
+                                        width={80}
+                                        height={80}
+                                    />
+                                ) : (
+                                    <User className="w-10 h-10 text-muted-foreground" />
+                                )}
                             </div>
                             <div>
                                 <h1 className="text-2xl font-bold text-foreground">{userProfile.name}</h1>

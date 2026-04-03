@@ -6,15 +6,15 @@ import {
   CheckCircle2,
   LogIn,
   LogOut,
-  RotateCcw,
   CameraIcon,
   AlarmClockCheck,
   AlarmClockOff,
   Undo2,
   Search,
   X,
-
+  Loader2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,27 @@ interface AttendanceRecord {
   time: string;
   type: 'in' | 'out';
   photo?: string;
+  employer_id?: string;
+  match_percentage?: number;
 }
+
+// Type for faceapi module
+type FaceAPI = typeof import('@vladmandic/face-api');
+
+interface ApiLogEntry {
+  id: string;
+  employer_registration?: {
+    employer_name: string;
+    employer_id: string;
+    image: string;
+  };
+  employer_name?: string;
+  employer_id?: string;
+  timestamp: string;
+  type: string;
+}
+
+// ...
 
 const AttendancePage = () => {
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
@@ -39,23 +59,88 @@ const AttendancePage = () => {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [recordSearch, setRecordSearch] = useState('');
   const [showAllRecords, setShowAllRecords] = useState(false);
-  const [attendanceLog, setAttendanceLog] = useState<AttendanceRecord[]>([
-    { id: 1, name: 'John Doe', time: '09:00 AM', type: 'in' },
-    { id: 2, name: 'Jane Smith', time: '09:05 AM', type: 'in' },
-    { id: 3, name: 'Mike Johnson', time: '06:00 PM', type: 'out' },
-    { id: 4, name: 'Sarah Williams', time: '06:00 PM', type: 'out' },
-    { id: 5, name: 'Robert Brown', time: '06:00 PM', type: 'out' },
-    { id: 6, name: 'Emily Davis', time: '06:00 PM', type: 'out' },
-    { id: 7, name: 'David Miller', time: '06:00 PM', type: 'out' },
-    { id: 8, name: 'Lisa Anderson', time: '09:15 AM', type: 'in' },
-    { id: 9, name: 'James Wilson', time: '09:20 AM', type: 'in' },
-    { id: 10, name: 'Maria Garcia', time: '06:15 PM', type: 'out' },
-  ]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isModelLoading, setIsModelLoading] = useState(true);
+  const [modelError, setModelError] = useState<string | null>(null);
+  const [scanStatus, setScanStatus] = useState<string>('Scanning...');
+  const [attendanceLog, setAttendanceLog] = useState<AttendanceRecord[]>([]);
+  const [faceapi, setFaceapi] = useState<FaceAPI | null>(null);
+  const [currentMatchPercentage, setCurrentMatchPercentage] = useState<number | null>(null);
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const fetchInitialLogs = async () => {
+      try {
+        const response = await fetch('/api/attendance');
+        if (response.ok) {
+          const data = await response.json();
+          const mappedLogs: AttendanceRecord[] = data.map((log: ApiLogEntry) => ({
+            id: log.id,
+            name: log.employer_registration?.employer_name || log.employer_name || 'Unknown',
+            time: new Date(log.timestamp).toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            }),
+            type: log.type === 'time_in' ? 'in' : 'out',
+            photo: log.employer_registration?.image || undefined,
+            employer_id: log.employer_registration?.employer_id || log.employer_id,
+          }));
+          setAttendanceLog(mappedLogs);
+        }
+      } catch (error) {
+        console.error('Failed to fetch initial logs:', error);
+      }
+    };
+    fetchInitialLogs();
+  }, []);
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const router = useRouter();
+
+  // Load faceapi module dynamically
+  useEffect(() => {
+    const loadFaceAPI = async () => {
+      try {
+        const faceapiModule = await import('@vladmandic/face-api');
+        setFaceapi(faceapiModule);
+      } catch (error) {
+        console.error('Failed to load face-api:', error);
+        setModelError('Face detection unavailable');
+        setIsModelLoading(false);
+      }
+    };
+
+    loadFaceAPI();
+  }, []);
+
+  // Load models once faceapi is available
+  useEffect(() => {
+    const loadModels = async () => {
+      if (!faceapi) return;
+
+      try {
+        setIsModelLoading(true);
+        setModelError(null);
+
+        const MODEL_URL = '/models';
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+          faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+        ]);
+
+        setIsModelLoading(false);
+      } catch (error) {
+        console.error('Failed to load face-api models:', error);
+        setModelError('Face detection unavailable');
+        setIsModelLoading(false);
+      }
+    };
+
+    loadModels();
+  }, [faceapi]);
 
   const formattedTime = currentTime?.toLocaleTimeString('en-US', {
     hour: '2-digit',
@@ -88,10 +173,6 @@ const AttendancePage = () => {
     }
   }, []);
 
-  useEffect(() => {
-    return () => stopCamera();
-  }, [stopCamera]);
-
   const startCamera = useCallback(async () => {
     setCameraError(null);
     try {
@@ -109,6 +190,14 @@ const AttendancePage = () => {
     }
   }, []);
 
+  useEffect(() => {
+    // Start camera on mount if models are ready
+    if (!isModelLoading && !modelError && faceapi) {
+      startCamera();
+    }
+    return () => stopCamera();
+  }, [isModelLoading, modelError, startCamera, stopCamera, faceapi]);
+
   const videoRefCallback = useCallback((node: HTMLVideoElement | null) => {
     (videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = node;
     if (node && streamRef.current) {
@@ -116,22 +205,19 @@ const AttendancePage = () => {
     }
   }, []);
 
-  const capturePhoto = useCallback(() => {
+  const captureCurrentFrame = useCallback(() => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas) return;
+    if (!video || !canvas) return null;
 
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) return null;
 
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const photo = canvas.toDataURL('image/jpeg', 0.85);
-    setCapturedPhoto(photo);
-    setIsCaptured(true);
-    stopCamera();
-  }, [stopCamera]);
+    return canvas.toDataURL('image/jpeg', 0.85);
+  }, []);
 
   const handleAttendance = useCallback(
     async (type: 'in' | 'out') => {
@@ -141,43 +227,182 @@ const AttendancePage = () => {
       setIsCaptured(false);
       setCameraError(null);
       setIsScanning(true);
-      await startCamera();
+      setScanStatus('Scanning...');
+      // Camera is initiated on mount, but we ensure it's running
+      if (!streamRef.current) {
+        await startCamera();
+      }
     },
     [startCamera],
   );
 
-  const confirmAttendance = useCallback(() => {
-    const newRecord: AttendanceRecord = {
-      id: Date.now(),
-      name: 'Employee',
-      time: formattedTime,
-      type: attendanceType,
-      photo: capturedPhoto ?? undefined,
-    };
-    setAttendanceLog((prev) => [newRecord, ...prev]);
-    setShowSuccess(true);
+  const isProcessingRef = useRef(false);
+  const lastScanTimeRef = useRef(0);
 
-    setTimeout(() => {
-      setShowSuccess(false);
+  const processAttendanceDescriptor = useCallback(async (descriptor: number[]) => {
+    if (isProcessingRef.current || showSuccess) return;
+
+    isProcessingRef.current = true;
+    setIsProcessing(true);
+    setScanStatus('Verifying face...');
+
+    try {
+      console.log('Sending descriptor to API...', { type: attendanceType });
+      const response = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          descriptor,
+          type: attendanceType === 'in' ? 'time_in' : 'time_out'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('API Response:', result);
+
+      if (result.success) {
+        const data = result.data;
+        const currentPhoto = captureCurrentFrame();
+
+        // Use fresh time for the record
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        });
+
+        const newRecord: AttendanceRecord = {
+          id: Date.now(),
+          name: data.employer_name,
+          time: timeStr,
+          type: data.type === 'time_in' ? 'in' : 'out',
+          photo: data.image || undefined,
+          employer_id: data.employer_id,
+          match_percentage: data.match_percentage,
+        };
+
+        setAttendanceLog((prev) => [newRecord, ...prev]);
+        setCapturedPhoto(data.image || currentPhoto);
+        setCurrentMatchPercentage(data.match_percentage);
+        setIsCaptured(true);
+        setShowSuccess(true);
+        setIsProcessing(false);
+        setIsScanning(false); // Stop scanning after success
+
+        // Keep camera running and resume readiness after success
+        setTimeout(() => {
+          setShowSuccess(false);
+          setIsCaptured(false);
+          setCapturedPhoto(null);
+          setCurrentMatchPercentage(null);
+          isProcessingRef.current = false;
+          setIsProcessing(false);
+        }, 3000);
+      } else {
+        if (result.message === "Face not match") {
+          setScanStatus('Face not recognized. Keep looking at the camera.');
+          toast.error("Face not recognized. Please try again.");
+          isProcessingRef.current = false;
+          setIsProcessing(false);
+        } else if (result.message && (result.message.includes("Already recorded") || result.message.includes("already complete"))) {
+          const data = result.data;
+          if (data && data.image) {
+            setCapturedPhoto(data.image);
+            setIsCaptured(true);
+            setCurrentMatchPercentage(data.match_percentage);
+          }
+          toast.info(result.message);
+          setIsProcessing(false);
+          setIsScanning(false);
+
+          setTimeout(() => {
+            setIsCaptured(false);
+            setCapturedPhoto(null);
+            setCurrentMatchPercentage(null);
+            isProcessingRef.current = false;
+          }, 3000);
+        } else {
+          setCameraError(result.message || 'Attendance failed.');
+          toast.error(result.message || 'Attendance failed.');
+          setIsScanning(false);
+          isProcessingRef.current = false;
+          setIsProcessing(false);
+        }
+      }
+    } catch (error) {
+      console.error('Attendance error:', error);
+      setCameraError('An error occurred during verification.');
+      toast.error('An error occurred during verification.');
       setIsScanning(false);
-      setIsCaptured(false);
-      setCapturedPhoto(null);
-    }, 1500);
-  }, [attendanceType, capturedPhoto, formattedTime]);
+      isProcessingRef.current = false;
+      setIsProcessing(false);
+    }
+  }, [attendanceType, showSuccess, captureCurrentFrame]);
 
-  const retakePhoto = useCallback(async () => {
-    setIsCaptured(false);
-    setCapturedPhoto(null);
-    await startCamera();
-  }, [startCamera]);
+  // Auto-scan logic
+  useEffect(() => {
+    let animationFrameId: number;
+    let isMounted = true;
+
+    const scanLoop = async () => {
+      // Check if we should stop or skip this frame
+      if (!faceapi || !isScanning || isProcessingRef.current || showSuccess || !videoRef.current || !isMounted || isModelLoading) {
+        if (isScanning && isMounted) {
+          animationFrameId = requestAnimationFrame(scanLoop);
+        }
+        return;
+      }
+
+      const video = videoRef.current;
+      if (video.readyState === 4) {
+        const now = Date.now();
+        if (now - lastScanTimeRef.current > 600) {
+          lastScanTimeRef.current = now;
+          try {
+            const detection = await faceapi
+              .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }))
+              .withFaceLandmarks()
+              .withFaceDescriptor();
+
+            if (detection && isMounted && !isProcessingRef.current) {
+              setScanStatus('Face detected! Verifying...');
+              await processAttendanceDescriptor(Array.from(detection.descriptor));
+            } else if (!isProcessingRef.current) {
+              setScanStatus('Scanning... Please align your face.');
+            }
+          } catch (err) {
+            console.error("Face detection error:", err);
+          }
+        }
+      }
+
+      if (isScanning && isMounted) {
+        animationFrameId = requestAnimationFrame(scanLoop);
+      }
+    };
+
+    if (isScanning && !showSuccess) {
+      scanLoop();
+    }
+
+    return () => {
+      isMounted = false;
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    };
+  }, [isScanning, showSuccess, isModelLoading, processAttendanceDescriptor, faceapi]);
 
   const cancelAttendance = useCallback(() => {
-    stopCamera();
     setIsScanning(false);
     setIsCaptured(false);
     setCapturedPhoto(null);
+    setCurrentMatchPercentage(null);
     setCameraError(null);
-  }, [stopCamera]);
+  }, []);
 
   // Filter attendance records based on search
   const filteredAttendanceLog = attendanceLog.filter(log =>
@@ -199,50 +424,44 @@ const AttendancePage = () => {
     setShowAllRecords(!showAllRecords);
   };
 
-
-  // ... existing state variables
-
   const handleRecordClick = (log: AttendanceRecord) => {
-    // Store the selected record data in localStorage or state management
-    console.log("User info", log)
+    // Store the selected record data in localStorage
+    localStorage.setItem('selectedUser', JSON.stringify({
+      name: log.name,
+      employer_id: log.employer_id,
+      photo: log.photo,
+      // You can add more fields if available in the log object
+    }));
+
     // Navigate to user record page
     router.push('/mainPage/userRecord');
   };
-
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
 
       {/* ── Header ── */}
-      <Header realTimeClock={formattedTime} />
+      <Header realTimeClock={formattedTime} currentDate={currentDate} />
 
       <main className="flex-1 p-6">
         <div className="space-y-6">
 
-          {/* ── Title ── */}
-          <div className="text-center mb-10">
-            <p className="text-sm font-medium text-muted-foreground">{currentDate}</p>
-            <h1 className="text-2xl font-bold text-foreground mt-1">
-              Take Photo for Attendance
-            </h1>
-          </div>
-
           <div className="w-full flex justify-center px-4">
-            <div className="w-full max-w-5xl flex flex-col justify-center lg:flex-row gap-7 space-x-10">
+            <div className="w-full max-w-7xl flex flex-col lg:flex-row items-start gap-10">
 
               {/* LEFT SECTION (Camera + Actions) */}
-              <div className="flex flex-col gap-5 w-full lg:w-150 lg:shrink-0">
+              <div className="flex flex-col gap-6 w-full lg:flex-1">
 
                 {/* Camera / Preview Area */}
-                <div className="relative w-full rounded-2xl overflow-hidden bg-muted border-2 border-dashed border-border min-h-105">
+                <div className="relative w-full rounded-2xl overflow-hidden bg-muted border-2 border-dashed border-border min-h-[500px]">
 
                   <canvas ref={canvasRef} className="hidden" />
 
                   {/* Video / Photo Frame */}
-                  <div className="relative w-full h-105 overflow-hidden rounded-xl">
+                  <div className="relative w-full h-[500px] overflow-hidden rounded-xl">
 
-                    {/* Live Camera */}
-                    {isScanning && !isCaptured && !cameraError && (
+                    {/* Live Camera Preview */}
+                    {!isCaptured && !cameraError && (
                       <video
                         ref={videoRefCallback}
                         autoPlay
@@ -264,18 +483,22 @@ const AttendancePage = () => {
                     )}
                   </div>
 
-                  {/* Idle Placeholder */}
-                  {!isScanning && !showSuccess && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/50 backdrop-blur-sm">
-                      <div className="p-8 rounded-full bg-muted/60 border border-border">
-                        <CameraIcon className="w-20 h-20 text-muted-foreground" />
+                  {/* Scanning Indicator Overlay */}
+                  {isScanning && !isCaptured && !isProcessing && !showSuccess && (
+                    <div className="absolute inset-x-0 top-0 p-4 z-10">
+                      <div className="bg-background/60 backdrop-blur-md border border-border/50 rounded-lg px-4 py-2 flex items-center gap-3 animate-pulse">
+                        <div className="w-2 h-2 rounded-full bg-secondary animate-ping" />
+                        <span className="text-sm font-medium text-foreground">{scanStatus}</span>
                       </div>
-                      <p className="text-lg font-semibold text-foreground">
-                        Ready to Take Photo
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Tap Time In or Time Out to start
-                      </p>
+                    </div>
+                  )}
+
+                  {/* Visual Guide Overlay */}
+                  {isScanning && !isCaptured && !showSuccess && (
+                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                      <div className="w-80 h-80 border-2 border-secondary/30 rounded-full flex items-center justify-center">
+                        <div className="w-72 h-72 border border-secondary/20 rounded-full border-dashed animate-spin-slow" />
+                      </div>
                     </div>
                   )}
 
@@ -304,6 +527,41 @@ const AttendancePage = () => {
                         <p className="text-muted-foreground mt-1 tabular-nums">
                           {formattedTime}
                         </p>
+                        {currentMatchPercentage !== null && (
+                          <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-secondary/20 rounded-full border border-secondary/30">
+                            <div className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+                            <span className="text-sm font-semibold text-secondary">
+                              {currentMatchPercentage}% Recognition Match
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Already Recorded Feedback Overlay */}
+                  {isCaptured && !showSuccess && !isProcessing && currentMatchPercentage !== null && (
+                    <div className="absolute inset-x-0 bottom-10 flex justify-center z-20">
+                      <div className="bg-background/80 backdrop-blur-md border border-border px-4 py-2 rounded-full shadow-lg flex items-center gap-3">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Identity Verified</span>
+                          <span className="text-sm font-semibold text-foreground">{currentMatchPercentage}% Recognition Match</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Processing Overlay */}
+                  {isProcessing && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                      <div className="text-center">
+                        <Loader2 className="w-12 h-12 animate-spin text-secondary mx-auto" />
+                        <p className="mt-4 text-lg font-semibold text-foreground">
+                          Processing...
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Verifying face and recording attendance
+                        </p>
                       </div>
                     </div>
                   )}
@@ -316,75 +574,36 @@ const AttendancePage = () => {
                     <>
                       <Button
                         onClick={() => handleAttendance('in')}
-                        className="flex items-center gap-2 bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity"
+                        className="flex items-center gap-3 bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity h-10 px-5 font-bold"
                       >
-                        <AlarmClockCheck className="w-5 h-5" />
+                        <AlarmClockCheck className="w-6 h-6" />
                         Time In
                       </Button>
 
                       <Button
                         onClick={() => handleAttendance('out')}
-                        className="flex items-center gap-2 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity"
+                        className="flex items-center gap-3 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity h-10 px-5 font-bold"
                       >
-                        <AlarmClockOff className="w-5 h-5" />
+                        <AlarmClockOff className="w-6 h-6" />
                         Time Out
                       </Button>
                     </>
                   )}
 
                   {isScanning && !isCaptured && (
-                    <>
-                      <Button
-                        onClick={capturePhoto}
-                        className="flex items-center gap-2 bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity"
-                      >
-                        <Camera className="w-5 h-5" />
-                        Take Photo
-                      </Button>
-
-                      <Button
-                        onClick={cancelAttendance}
-                        className="flex items-center gap-2 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity"
-                      >
-                        <Undo2 className="w-5 h-5" />
-                        Cancel
-                      </Button>
-                    </>
-                  )}
-
-                  {isCaptured && !showSuccess && (
-                    <>
-                      <Button
-                        onClick={confirmAttendance}
-                        className="flex items-center gap-2 bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity"
-                      >
-                        <CheckCircle2 className="w-5 h-5" />
-                        Confirm
-                      </Button>
-
-                      <Button
-                        onClick={retakePhoto}
-                        variant={'outline'}
-                        className="flex items-center gap-2 px-8 py-4 rounded-xl font-semibold text-sm bg-muted text-foreground border border-border hover:bg-card transition-colors"
-                      >
-                        <RotateCcw className="w-5 h-5" />
-                        Retake
-                      </Button>
-
-                      <Button
-                        onClick={cancelAttendance}
-                        className="flex items-center gap-2 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity"
-                      >
-                        <Undo2 className="w-5 h-5" />
-                        Cancel
-                      </Button>
-                    </>
+                    <Button
+                      onClick={cancelAttendance}
+                      className="flex items-center gap-3 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity h-10 px-5 font-bold"
+                    >
+                      <Undo2 className="w-6 h-6" />
+                      Cancel
+                    </Button>
                   )}
                 </div>
               </div>
 
               {/* RIGHT SECTION (Activity Log) */}
-              <div className="w-full lg:w-150 lg:shrink-0 mt-8 lg:mt-0">
+              <div className="w-full lg:flex-1 mt-8 lg:mt-0">
 
                 <div className='flex justify-between items-center mb-4 gap-3'>
                   <h2 className="text-md font-semibold text-foreground">
@@ -442,7 +661,7 @@ const AttendancePage = () => {
                           <div
                             key={log.id}
                             onClick={() => handleRecordClick(log)}
-                            className="flex items-center justify-between p-2 rounded-xl bg-card border border-border hover:border-secondary/50 transition-all duration-200"
+                            className="flex items-center justify-between p-2 rounded-xl bg-card border border-border hover:border-secondary/50 transition-all duration-200 cursor-pointer"
                           >
                             <div className="flex items-center gap-4 flex-1 min-w-0">
                               {log.photo ? (
@@ -487,7 +706,7 @@ const AttendancePage = () => {
                                   : 'text-destructive'
                                   }`}
                               >
-                                Recorded
+                                Recorded {log.match_percentage ? `(${log.match_percentage}% match)` : ''}
                               </p>
                             </div>
                           </div>
@@ -501,8 +720,7 @@ const AttendancePage = () => {
                             onClick={toggleShowRecords}
                             className="flex items-center gap-2 px-6 py-2 hover:text-secondary/70 transition-all duration-200 text-secondary bg-transparent"
                           >
-                            Show More
-
+                            {showAllRecords ? 'Show Less' : 'Show More'}
                           </Button>
                         </div>
                       )}
