@@ -40,6 +40,38 @@ const playSuccessSound = () => {
   }
 };
 
+const playSuccessSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    
+    const createTone = (frequency: number, startTime: number, duration: number, type: OscillatorType = 'sine', volume: number = 0.3) => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, startTime);
+      
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    };
+    
+    const now = audioContext.currentTime;
+    createTone(523.25, now, 0.15, 'sine', 0.25);
+    createTone(659.25, now + 0.08, 0.15, 'sine', 0.25);
+    createTone(783.99, now + 0.16, 0.2, 'sine', 0.25);
+    createTone(1046.50, now + 0.28, 0.35, 'sine', 0.2);
+  } catch (error) {
+    console.warn('Audio playback failed:', error);
+  }
+};
+
 // Registration history type
 type RegistrationHistory = {
   id: string;
@@ -583,12 +615,7 @@ const RegistrationContent = () => {
               </div>
 
               <div className="flex items-center gap-2 sm:gap-3 mt-5 sm:mt-6">
-                <button
-                  onClick={handleCancel}
-                  className="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-foreground text-[10px] sm:text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-all cursor-pointer"
-                >
-                  Cancel
-                </button>
+
                 <button
                   onClick={handleStartRegistration}
                   disabled={!formData.employerId || !formData.employerName || !formData.employerPosition}
@@ -596,6 +623,12 @@ const RegistrationContent = () => {
                 >
                   <ScanFace className="w-3 sm:w-4 h-3 sm:h-4" />
                   Start Scanner
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-foreground text-[10px] sm:text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-all cursor-pointer"
+                >
+                  Cancel
                 </button>
               </div>
             </div>
@@ -619,7 +652,7 @@ const RegistrationContent = () => {
           )}
         </header>
 
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
           {/* LEFT COLUMN: FACIAL RECOGNITION CAPTURE */}
           <div className="lg:col-span-7 xl:col-span-8 flex flex-col min-h-[500px] sm:min-h-[600px] lg:min-h-[700px]">
             <div className="relative w-full rounded-2xl overflow-hidden bg-white dark:bg-[#0A0A0A] border border-gray-100 dark:border-white/10 shadow-xl flex-1 flex flex-col">
@@ -732,7 +765,7 @@ const RegistrationContent = () => {
                       </div>
 
                       {/* Scanning Overlay Viewfinder */}
-                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-20">
                         <div className={cn(
                           "relative w-48 sm:w-64 md:w-80 h-48 sm:h-64 md:h-80 border-y-2 border-[#800B30]/50 bg-[#800B30]/10",
                           detectedFaces === 0 && isCameraOpen && "animate-pulse-subtle"
@@ -846,9 +879,6 @@ const RegistrationContent = () => {
                 </div>
                 <div>
                   <h3 className="text-sm sm:text-lg font-black tracking-tight text-foreground">Registration History</h3>
-                  <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mt-0.5 sm:mt-1">
-                    Facial recognition logs
-                  </div>
                 </div>
               </div>
 
@@ -945,8 +975,11 @@ const RegistrationContent = () => {
           50% { top: 100%; transform: translateY(-100%); }
           100% { top: 0%; transform: translateY(0); }
         }
-        .animate-scan {
-          animation: scan 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        .animate-scan-fast {
+          animation: scan 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+        .animate-scan-slow {
+          animation: scan 4s ease-in-out infinite;
         }
         @keyframes pulse-subtle {
           0%, 100% { opacity: 1; transform: scale(1); }
