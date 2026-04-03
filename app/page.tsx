@@ -268,7 +268,7 @@ const AttendancePage = () => {
         const data = result.data;
         const currentPhoto = captureCurrentFrame();
 
-        // Use fresh time for the record
+        // Use fresh time for the records
         const now = new Date();
         const timeStr = now.toLocaleTimeString('en-US', {
           hour: '2-digit',

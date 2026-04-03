@@ -62,65 +62,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # DEBUG: Verify secrets exist (REMOVE THIS AFTER FIXING)
-      - name: Debug secrets check
-        run: |
-          echo "🔍 Checking if GitHub secrets are accessible..."
-
-          if [ -n "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" ]; then
-            URL_LENGTH="${#NEXT_PUBLIC_SUPABASE_URL}"
-            echo "✅ NEXT_PUBLIC_SUPABASE_URL is set (length: $URL_LENGTH characters)"
-          else
-            echo "❌ NEXT_PUBLIC_SUPABASE_URL is MISSING or EMPTY"
-            echo "Please add it at: https://github.com/${{ github.repository }}/settings/secrets/actions"
-            exit 1
-          fi
-
-          if [ -n "${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" ]; then
-            KEY_LENGTH="${#NEXT_PUBLIC_SUPABASE_ANON_KEY}"
-            echo "✅ NEXT_PUBLIC_SUPABASE_ANON_KEY is set (length: $KEY_LENGTH characters)"
-          else
-            echo "❌ NEXT_PUBLIC_SUPABASE_ANON_KEY is MISSING or EMPTY"
-            echo "Please add it at: https://github.com/${{ github.repository }}/settings/secrets/actions"
-            exit 1
-          fi
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-
-      # CRITICAL FIX: Create .env file from secrets
       - name: Create .env file
         run: |
-          echo "📝 Creating .env file from GitHub Secrets..."
-          echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" > .env
+          echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" >> .env
           echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
-          echo "✅ .env file created successfully"
-          echo "📄 File contents (lines): $(wc -l < .env)"
-
-          # Verify file was created
-          if [ ! -f .env ]; then
-            echo "❌ .env file was not created!"
-            exit 1
-          fi
-
-      # Optional: Clear cache for clean build
-      - name: Clean Next.js cache (optional)
-        run: rm -rf .next
 
       - name: Build application
         run: npm run build
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          NODE_ENV: production
-
-      # Optional: Upload build artifacts
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: next-build
-          path: .next
-          retention-days: 7
 
   # deploy:
   #   name: Deploy to Vercel
