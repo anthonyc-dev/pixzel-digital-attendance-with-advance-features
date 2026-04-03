@@ -115,6 +115,24 @@ export async function POST(req: Request) {
       .gte("timestamp", startOfToday.toISOString())
       .lte("timestamp", endOfToday.toISOString());
 
+    const hasTimeIn = todayLogs?.some((log) => log.type === "time_in");
+    const hasTimeOut = todayLogs?.some((log) => log.type === "time_out");
+
+    const match_percentage = Math.round((1 - match.distance) * 100);
+
+    if (hasTimeIn && hasTimeOut) {
+      return NextResponse.json({
+        success: false,
+        message: `Attendance already complete for ${employer_registration.employer_name} today.`,
+        data: {
+          employer_id: employer_registration.employer_id,
+          employer_name: employer_registration.employer_name,
+          image: employer_registration.image,
+          match_percentage,
+        },
+      });
+    }
+
     // 5. Decide type and Validate
     let type: "time_in" | "time_out";
 
@@ -130,6 +148,12 @@ export async function POST(req: Request) {
         return NextResponse.json({
           success: false,
           message: `Already recorded ${type.replace("_", " ")} for ${employer_registration.employer_name} today.`,
+          data: {
+            employer_id: employer_registration.employer_id,
+            employer_name: employer_registration.employer_name,
+            image: employer_registration.image,
+            match_percentage,
+          },
         });
       }
 
@@ -140,6 +164,12 @@ export async function POST(req: Request) {
           return NextResponse.json({
             success: false,
             message: `Cannot Time Out without a Time In for today.`,
+            data: {
+              employer_id: employer_registration.employer_id,
+              employer_name: employer_registration.employer_name,
+              image: employer_registration.image,
+              match_percentage,
+            },
           });
         }
       }
@@ -190,6 +220,7 @@ export async function POST(req: Request) {
         face_detected: true,
         status,
         image: employer_registration.image,
+        match_percentage,
         type,
       },
     });

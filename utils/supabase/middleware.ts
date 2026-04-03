@@ -44,7 +44,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/admin') || 
     pathname.startsWith('/employee') ||
     pathname.startsWith('/api/employers') ||
-    pathname.startsWith('/api/registration');
+    (pathname.startsWith('/api/registration') && request.method !== 'GET');
 
   const isAuthPath = pathname.startsWith('/auth/login');
 

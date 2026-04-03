@@ -29,6 +29,7 @@ interface AttendanceRecord {
   type: 'in' | 'out';
   photo?: string;
   employer_id?: string;
+  match_percentage?: number;
 }
 
 // Type for faceapi module
@@ -52,6 +53,7 @@ const AttendancePage = () => {
   const [lastScanTime, setLastScanTime] = useState<number>(0);
   const [attendanceLog, setAttendanceLog] = useState<AttendanceRecord[]>([]);
   const [faceapi, setFaceapi] = useState<FaceAPI | null>(null);
+  const [currentMatchPercentage, setCurrentMatchPercentage] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchInitialLogs = async () => {
@@ -267,12 +269,14 @@ const AttendancePage = () => {
           name: data.employer_name,
           time: timeStr,
           type: data.type === 'time_in' ? 'in' : 'out',
-          photo: currentPhoto || undefined,
+          photo: data.image || undefined,
           employer_id: data.employer_id,
+          match_percentage: data.match_percentage,
         };
 
         setAttendanceLog((prev) => [newRecord, ...prev]);
-        setCapturedPhoto(currentPhoto);
+        setCapturedPhoto(data.image || currentPhoto);
+        setCurrentMatchPercentage(data.match_percentage);
         setIsCaptured(true);
         setShowSuccess(true);
         setIsProcessing(false);
@@ -283,6 +287,7 @@ const AttendancePage = () => {
           setShowSuccess(false);
           setIsCaptured(false);
           setCapturedPhoto(null);
+          setCurrentMatchPercentage(null);
           isProcessingRef.current = false;
           setIsProcessing(false);
         }, 3000);
@@ -292,12 +297,21 @@ const AttendancePage = () => {
           toast.error("Face not recognized. Please try again.");
           isProcessingRef.current = false;
           setIsProcessing(false);
-        } else if (result.message && result.message.includes("Already recorded")) {
+        } else if (result.message && (result.message.includes("Already recorded") || result.message.includes("already complete"))) {
+          const data = result.data;
+          if (data && data.image) {
+            setCapturedPhoto(data.image);
+            setIsCaptured(true);
+            setCurrentMatchPercentage(data.match_percentage);
+          }
           toast.info(result.message);
           setIsProcessing(false);
-          setIsScanning(false); // Stop scanning if already recorded
+          setIsScanning(false);
 
           setTimeout(() => {
+            setIsCaptured(false);
+            setCapturedPhoto(null);
+            setCurrentMatchPercentage(null);
             isProcessingRef.current = false;
           }, 3000);
         } else {
@@ -380,6 +394,7 @@ const AttendancePage = () => {
     setIsScanning(false);
     setIsCaptured(false);
     setCapturedPhoto(null);
+    setCurrentMatchPercentage(null);
     setCameraError(null);
   }, []);
 
@@ -506,6 +521,26 @@ const AttendancePage = () => {
                         <p className="text-muted-foreground mt-1 tabular-nums">
                           {formattedTime}
                         </p>
+                        {currentMatchPercentage !== null && (
+                          <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-secondary/20 rounded-full border border-secondary/30">
+                            <div className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+                            <span className="text-sm font-semibold text-secondary">
+                              {currentMatchPercentage}% Recognition Match
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Already Recorded Feedback Overlay */}
+                  {isCaptured && !showSuccess && !isProcessing && currentMatchPercentage !== null && (
+                    <div className="absolute inset-x-0 bottom-10 flex justify-center z-20">
+                      <div className="bg-background/80 backdrop-blur-md border border-border px-4 py-2 rounded-full shadow-lg flex items-center gap-3">
+                         <div className="flex flex-col">
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Identity Verified</span>
+                            <span className="text-sm font-semibold text-foreground">{currentMatchPercentage}% Recognition Match</span>
+                         </div>
                       </div>
                     </div>
                   )}
@@ -665,7 +700,7 @@ const AttendancePage = () => {
                                   : 'text-destructive'
                                   }`}
                               >
-                                Recorded
+                                Recorded {log.match_percentage ? `(${log.match_percentage}% match)` : ''}
                               </p>
                             </div>
                           </div>
