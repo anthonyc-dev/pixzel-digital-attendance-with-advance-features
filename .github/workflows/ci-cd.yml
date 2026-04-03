@@ -62,6 +62,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # CRITICAL FIX: Create .env file explicitly
+      - name: Create .env file
+        run: |
+          echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" >> .env
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" >> .env
+          echo "✓ .env file created"
+
+      # DEBUG: Verify variables exist (without exposing values)
+      - name: Verify environment variables
+        run: |
+          echo "Checking if secrets are available..."
+          if [ -n "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" ]; then echo "✓ NEXT_PUBLIC_SUPABASE_URL is set"; else echo "✗ NEXT_PUBLIC_SUPABASE_URL is missing"; exit 1; fi
+          if [ -n "${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" ]; then echo "✓ NEXT_PUBLIC_SUPABASE_ANON_KEY is set"; else echo "✗ NEXT_PUBLIC_SUPABASE_ANON_KEY is missing"; exit 1; fi
+
       - name: Build application
         run: npm run build
         env:
