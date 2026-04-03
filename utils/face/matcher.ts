@@ -7,6 +7,20 @@ function euclideanDistance(a: number[], b: number[]): number {
   return Math.sqrt(sum);
 }
 
+function parseDescriptor(descriptor: any): number[] | null {
+  if (!descriptor) return null;
+  if (Array.isArray(descriptor)) return descriptor;
+  if (typeof descriptor === 'string') {
+    try {
+      const parsed = JSON.parse(descriptor);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 export function findBestMatch(
   inputDescriptor: number[],
   employees: {
@@ -15,7 +29,7 @@ export function findBestMatch(
     employer_name: string;
     employer_position: string;
     image: string;
-    face_descriptor: number[];
+    descriptor: number[];
   }[],
   threshold = 0.6,
 ) {
@@ -23,10 +37,10 @@ export function findBestMatch(
   let minDistance = 1;
 
   for (const emp of employees) {
-    const descriptor = parseDescriptor(emp.face_descriptor);
+    const descriptor = parseDescriptor(emp.descriptor);
     if (!descriptor) continue;
 
-    const distance = euclideanDistance(inputDescriptor, emp.face_descriptor);
+    const distance = euclideanDistance(inputDescriptor, descriptor);
 
     if (distance < minDistance) {
       minDistance = distance;

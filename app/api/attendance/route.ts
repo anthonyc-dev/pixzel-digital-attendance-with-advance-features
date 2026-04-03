@@ -11,6 +11,12 @@ interface AttendanceLog {
   status: string;
   timestamp: string;
   created_at: string;
+  employer_registration?: {
+    employer_id: string;
+    employer_name: string;
+    employer_position: string;
+    image: string;
+  };
 }
 
 export async function GET() {
@@ -37,14 +43,7 @@ export async function GET() {
 
   const mappedData =
     data?.map((log: AttendanceLog) => ({
-      id: log.id,
-      employer_id: log.employer_id,
-      employer_name: log.employer_name,
-      employer_position: log.employer_position,
-      status: log.status,
-      type: log.type,
-      time_in: log.type === "time_in" ? log.timestamp : undefined,
-      time_out: log.type === "time_out" ? log.timestamp : undefined,
+      ...log,
       created_at: log.timestamp,
     })) || [];
 
@@ -54,7 +53,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const supabase = await createSupabaseServer();
-    const { descriptor } = await req.json();
+    const { descriptor, type: requestedType } = await req.json();
 
     if (!descriptor) {
       return NextResponse.json(
@@ -75,21 +74,23 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log(
-      "Employees with descriptors:",
-      employees?.map((e) => ({
-        name: e.employer_name,
-        hasDescriptor: !!e.descriptor,
-        descriptorLength: Array.isArray(e.descriptor)
-          ? e.descriptor.length
-          : typeof e.descriptor === "string"
-            ? "string"
-            : "unknown",
-      })),
-    );
+    // 2. Data Validation
+    if (!Array.isArray(descriptor) || descriptor.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "Invalid face descriptor format" },
+        { status: 400 },
+      );
+    }
 
-    // 2. Face matching
+    // 3. Face matching
+    console.log(`Starting match for ${employees?.length || 0} employees...`);
     const match = findBestMatch(descriptor, employees);
+    console.log(
+      "Match result:",
+      match
+        ? `Match found: ${match.employer_registration.employer_name}`
+        : "No match found",
+    );
 
     if (!match) {
       return NextResponse.json({
@@ -99,27 +100,60 @@ export async function POST(req: Request) {
     }
 
     const employer_registration = match.employer_registration;
+    const now = new Date();
 
-    // 3. Get last attendance
-    const { data: lastLog } = await supabase
+    // 4. Daily Entry Validation (Prevent multiple entries on the same day)
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
+    const { data: todayLogs } = await supabase
       .from("attendance_logs")
       .select("*")
       .eq("employer_registration_id", employer_registration.id)
-      .order("timestamp", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .gte("timestamp", startOfToday.toISOString())
+      .lte("timestamp", endOfToday.toISOString());
 
-    // 4. Decide type
+    // 5. Decide type and Validate
     let type: "time_in" | "time_out";
 
-    if (!lastLog || lastLog.type === "time_out") {
-      type = "time_in";
+    if (
+      requestedType &&
+      (requestedType === "time_in" || requestedType === "time_out")
+    ) {
+      type = requestedType;
+
+      // Check for existing same-type entry today
+      const alreadyHasType = todayLogs?.some((log) => log.type === type);
+      if (alreadyHasType) {
+        return NextResponse.json({
+          success: false,
+          message: `Already recorded ${type.replace("_", " ")} for ${employer_registration.employer_name} today.`,
+        });
+      }
+
+      // Special case: Can't time out if haven't timed in
+      if (type === "time_out") {
+        const hasTimeIn = todayLogs?.some((log) => log.type === "time_in");
+        if (!hasTimeIn) {
+          return NextResponse.json({
+            success: false,
+            message: `Cannot Time Out without a Time In for today.`,
+          });
+        }
+      }
     } else {
-      type = "time_out";
+      // Auto-decide if not requested (fallback)
+      const lastLog = todayLogs && todayLogs.length > 0 ? todayLogs[0] : null; // todayLogs is sorted or we handle it
+      if (!lastLog || lastLog.type === "time_out") {
+        type = "time_in";
+      } else {
+        type = "time_out";
+      }
     }
 
-    // 5. Determine status (basic logic)
-    const now = new Date();
+    // 6. Determine status (basic logic)
     const hour = now.getHours();
 
     let status = "on_time";
@@ -128,11 +162,11 @@ export async function POST(req: Request) {
       status = "late";
     }
 
-    // 6. Insert attendance
+    // 7. Insert attendance
     const { error: insertError } = await supabase
       .from("attendance_logs")
       .insert({
-        employer_registration_id: employer_registration.id, // ✅ IMPORTANT
+        employer_registration_id: employer_registration.id,
         type,
         status,
         timestamp: now.toISOString(),
