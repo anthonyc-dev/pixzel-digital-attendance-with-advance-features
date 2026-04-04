@@ -592,7 +592,7 @@ const DTRPage = () => {
                                                 <div className={cn(
                                                     "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest border border-current",
                                                     todayStatus.status === 'present' ? "bg-green-500/10 text-green-600 border-green-500/20" :
-                                                    todayStatus.status === 'late' ? "bg-orange-500/10 text-orange-600 border-orange-500/20" :
+                                                    todayStatus.status === 'late' ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20" :
                                                     todayStatus.status === 'absent' ? "bg-red-500/10 text-red-600 border-red-500/20" :
                                                     "bg-gray-500/10 text-gray-400 border-gray-500/20"
                                                 )}>
@@ -719,12 +719,12 @@ const DTRPage = () => {
                                                     <td className="p-3">
                                                         <div className={cn(
                                                             "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest border ring-1 ring-inset",
-                                                            log.status === 'present' ? "bg-green-500/10 text-green-600 ring-green-600/20 border-green-600/30" :
+                                                            log.status === 'present' || log.status === 'on_time' ? "bg-green-500/10 text-green-600 ring-green-600/20 border-green-600/30" :
                                                                 log.status === 'late' ? "bg-yellow-500/10 text-yellow-600 ring-yellow-600/20 border-yellow-600/30" :
                                                                     "bg-red-500/10 text-red-600 ring-red-600/20 border-red-600/30"
                                                         )}>
                                                             <div className={cn("w-1 h-1 rounded-full",
-                                                                log.status === 'present' ? "bg-green-600" :
+                                                                log.status === 'present' || log.status === 'on_time' ? "bg-green-600" :
                                                                     log.status === 'late' ? "bg-yellow-600" : "bg-red-600"
                                                             )} />
                                                             <span>{log.status === 'on_time' ? 'present' : log.status.replace('_', ' ')}</span>

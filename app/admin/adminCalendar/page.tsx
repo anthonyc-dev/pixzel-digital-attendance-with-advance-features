@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Calendar as CalendarIcon, 
-  Search, 
-  UserPlus, 
+import {
+  ChevronLeft,
+  ChevronRight,
+  Calendar as CalendarIcon,
+  Search,
+  UserPlus,
   Clock,
   CheckCircle2,
   AlertCircle,
@@ -22,17 +22,17 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { 
-  format, 
-  addMonths, 
-  subMonths, 
-  startOfMonth, 
-  endOfMonth, 
-  startOfWeek, 
-  endOfWeek, 
-  eachDayOfInterval, 
-  isSameMonth, 
-  isSameDay, 
+import {
+  format,
+  addMonths,
+  subMonths,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+  isSameMonth,
+  isSameDay,
   isToday,
   parseISO
 } from 'date-fns';
@@ -137,14 +137,14 @@ const AdminCalendarPage = () => {
         if (event.start_date && event.end_date) {
           const start = parseISO(event.start_date);
           const end = parseISO(event.end_date);
-          
+
           // Generate all days within the event range
           const daysInRange = eachDayOfInterval({ start, end });
-          
+
           daysInRange.forEach(day => {
             const dateStr = format(day, 'yyyy-MM-dd');
             if (!groups[dateStr]) groups[dateStr] = [];
-            
+
             // Avoid duplicate events on same day if data is somehow redundant
             if (!groups[dateStr].find(e => e.id === event.id)) {
               groups[dateStr].push(event);
@@ -189,7 +189,7 @@ const AdminCalendarPage = () => {
 
   const handleSaveEvent = async () => {
     if (!newEvent.title || !newEvent.date) return;
-    
+
     try {
       setIsLoading(true);
       const url = editingEventId ? `/api/events/${editingEventId}` : '/api/events';
@@ -256,7 +256,7 @@ const AdminCalendarPage = () => {
 
   const handleDeleteEvent = async (id: string) => {
     if (!confirm('Are you sure you want to delete this event?')) return;
-    
+
     try {
       setIsLoading(true);
       const response = await fetch(`/api/events/${id}`, {
@@ -291,17 +291,14 @@ const AdminCalendarPage = () => {
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-7xl animate-in fade-in duration-700 ease-out pb-10">
-      
+
       {/* Dynamic Header Controls */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-secondary/10 border border-secondary/20 transition-all hover:scale-110">
-              <CalendarIcon className="w-6 h-6 text-secondary" />
-            </div>
             Admin Calendar
           </h1>
-          <p className="text-muted-foreground text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] leading-none opacity-80 pl-14">
+          <p className="text-muted-foreground text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] leading-none opacity-80 flex items-center gap-2">
             Managing employer activities & schedules
           </p>
         </div>
@@ -314,8 +311,8 @@ const AdminCalendarPage = () => {
                 onClick={() => setViewType(type)}
                 className={cn(
                   "px-4 sm:px-6 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all active:scale-95",
-                  viewType === type 
-                    ? "bg-secondary text-white shadow-lg shadow-secondary/20" 
+                  viewType === type
+                    ? "bg-secondary text-white shadow-lg shadow-secondary/20"
                     : "text-muted-foreground hover:bg-muted"
                 )}
               >
@@ -323,12 +320,12 @@ const AdminCalendarPage = () => {
               </button>
             ))}
           </div>
-          
-          <button 
+
+          <button
             onClick={() => {
               const dateStr = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
               setEditingEventId(null);
-              setNewEvent({ 
+              setNewEvent({
                 title: '',
                 date: dateStr,
                 start_date: dateStr,
@@ -347,11 +344,11 @@ const AdminCalendarPage = () => {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
+
         {/* Main Calendar Panel */}
         <div className="lg:col-span-8 xl:col-span-9 bg-white dark:bg-white/[0.03] border border-gray-100 dark:border-white/10 rounded-2xl p-4 sm:p-6 shadow-xl relative overflow-hidden backdrop-blur-3xl min-h-[600px] flex flex-col">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,_rgba(192,17,72,0.02)_0%,_transparent_50%)] pointer-events-none" />
-          
+
           {isLoading && (
             <div className="absolute inset-x-0 top-0 h-1 bg-muted overflow-hidden z-20">
               <div className="h-full bg-secondary animate-progress origin-left" />
@@ -378,9 +375,9 @@ const AdminCalendarPage = () => {
             <div className="flex items-center gap-3">
               <div className="relative hidden md:block">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                <input 
-                  type="text" 
-                  placeholder="Search events..." 
+                <input
+                  type="text"
+                  placeholder="Search events..."
                   className="pl-9 pr-4 py-2 bg-muted/30 border border-border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all w-48 font-medium"
                 />
               </div>
@@ -415,7 +412,7 @@ const AdminCalendarPage = () => {
               const isDayToday = isToday(day);
 
               return (
-                <div 
+                <div
                   key={idx}
                   onClick={() => setSelectedDate(day)}
                   className={cn(
@@ -442,14 +439,14 @@ const AdminCalendarPage = () => {
                   {/* Background Event Watermark */}
                   {hasEvent && (
                     <div className="absolute inset-0 z-0 flex items-center justify-center px-2 pointer-events-none overflow-hidden">
-                       <div className={cn(
-                         "text-[18px] leading-[0.9] font-black uppercase tracking-tighter opacity-[0.08] dark:opacity-[0.05] text-center rotate-[-12deg] transition-all duration-500 group-hover:scale-110 group-hover:opacity-[0.15]",
-                         isSelected && "opacity-[0.25] dark:opacity-[0.2] rotate-0 scale-125 font-black drop-shadow-sm",
-                         hasHoliday ? "text-red-500" : "text-secondary"
-                       )}>
-                         {dayEvents[0].title}
-                         {dayEvents.length > 1 && <div className={cn("text-[10px] mt-1 font-bold", isSelected ? "opacity-100" : "opacity-40")}>+{dayEvents.length - 1} MORE</div>}
-                       </div>
+                      <div className={cn(
+                        "text-[18px] leading-[0.9] font-black uppercase tracking-tighter opacity-[0.08] dark:opacity-[0.05] text-center rotate-[-12deg] transition-all duration-500 group-hover:scale-110 group-hover:opacity-[0.15]",
+                        isSelected && "opacity-[0.25] dark:opacity-[0.2] rotate-0 scale-125 font-black drop-shadow-sm",
+                        hasHoliday ? "text-red-500" : "text-secondary"
+                      )}>
+                        {dayEvents[0].title}
+                        {dayEvents.length > 1 && <div className={cn("text-[10px] mt-1 font-bold", isSelected ? "opacity-100" : "opacity-40")}>+{dayEvents.length - 1} MORE</div>}
+                      </div>
                     </div>
                   )}
 
@@ -459,10 +456,10 @@ const AdminCalendarPage = () => {
                       const name = activity.employer_registration?.employer_name || 'User';
                       const image = activity.employer_registration?.image;
                       const type = getStatusType(activity.status);
-                      
+
                       return (
-                        <div 
-                          key={i} 
+                        <div
+                          key={i}
                           title={name}
                           className={cn(
                             "w-6 h-6 rounded-full border-2 overflow-hidden ring-1 ring-border shadow-sm transform hover:-translate-y-1 hover:scale-110 transition-all z-10",
@@ -492,7 +489,7 @@ const AdminCalendarPage = () => {
                   {/* Date Watermark */}
                   {!isCurrentMonth && (
                     <div className="absolute inset-0 z-0 flex items-center justify-center opacity-[0.02] bg-white dark:bg-[#0c0c0c] h-full w-full pointer-events-none select-none">
-                       <span className="text-4xl font-bold">{format(day, 'MM')}</span>
+                      <span className="text-4xl font-bold">{format(day, 'MM')}</span>
                     </div>
                   )}
                 </div>
@@ -503,190 +500,190 @@ const AdminCalendarPage = () => {
 
         {/* Sidebar Activity Details */}
         <div className="lg:col-span-4 xl:col-span-3 space-y-6">
-          
+
           <div className="bg-white dark:bg-white/[0.03] border border-gray-100 dark:border-white/10 rounded-2xl p-6 shadow-xl backdrop-blur-3xl relative overflow-hidden group">
-             <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none group-hover:scale-125 group-hover:rotate-12 transition-all duration-700">
-               <Clock className="w-24 h-24 text-secondary rotate-12" />
-             </div>
+            <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none group-hover:scale-125 group-hover:rotate-12 transition-all duration-700">
+              <Clock className="w-24 h-24 text-secondary rotate-12" />
+            </div>
 
-             <div className="relative z-10">
-               <div className="text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1 flex items-center gap-2">
-                 <Clock className="w-3 h-3" /> Day Logs
-                 {isLoading && <Loader2 className="w-3 h-3 animate-spin ml-auto" />}
-               </div>
-               <h3 className="text-xl font-bold text-foreground tracking-tight mb-4">
-                 {selectedDate ? format(selectedDate, 'EEEE, MMM do') : 'Select a date'}
-               </h3>
+            <div className="relative z-10">
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1 flex items-center gap-2">
+                <Clock className="w-3 h-3" /> Day Logs
+                {isLoading && <Loader2 className="w-3 h-3 animate-spin ml-auto" />}
+              </div>
+              <h3 className="text-xl font-bold text-foreground tracking-tight mb-4">
+                {selectedDate ? format(selectedDate, 'EEEE, MMM do') : 'Select a date'}
+              </h3>
 
-               <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                 {dayRecords.length > 0 ? (
-                   dayRecords.map((record) => {
-                     const type = getStatusType(record.status);
-                     return (
-                       <div 
-                         key={record.id} 
-                         className="group/item flex items-center gap-3 p-3 rounded-xl bg-muted/20 hover:bg-muted transition-all cursor-pointer border border-transparent hover:border-border overflow-hidden"
-                        >
-                           <div className="relative">
-                             {record.employer_registration?.image ? (
-                               <Image src={record.employer_registration.image} alt={record.employer_registration.employer_name || 'User'} width={40} height={40} className="rounded-lg object-cover grayscale group-hover/item:grayscale-0 transition-all border border-border" unoptimized />
-                             ) : (
-                               <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center border border-border">
-                                 <Users className="w-5 h-5 text-secondary" />
-                               </div>
-                             )}
-                             <div className={cn(
-                               "absolute -bottom-1.5 -right-1.5 w-4 h-4 rounded-full border-2 border-white dark:border-[#1a1a1a] shadow-md",
-                               type === 'present' && "bg-emerald-500",
-                               type === 'late' && "bg-amber-500",
-                               type === 'absent' && "bg-red-500",
-                               type === 'leave' && "bg-blue-500"
-                             )} />
-                           </div>
-                           <div className="flex-1 min-w-0">
-                             <div className="text-xs font-bold text-foreground truncate group-hover/item:text-secondary transition-colors">
-                               {record.employer_registration?.employer_name || 'Unknown Guest'}
-                             </div>
-                             <div className="flex flex-col gap-0.5 mt-0.5">
-                               <span className="text-[8px] font-semibold text-muted-foreground/60 uppercase tracking-widest truncate">
-                                 {record.employer_registration?.employer_position || 'Staff'}
-                               </span>
-                               <div className="flex items-center gap-1.5">
-                                 <Clock className="w-2.5 h-2.5 text-muted-foreground/40" />
-                                 <span className="text-[9px] font-bold text-muted-foreground uppercase">{format(parseISO(record.created_at), 'hh:mm aa')}</span>
-                               </div>
-                             </div>
-                           </div>
-                           <ArrowUpRight className="w-3 h-3 text-muted-foreground group-hover/item:text-secondary group-hover/item:translate-x-0.5 group-hover/item:-translate-y-0.5 transition-all" />
-                        </div>
-                     );
-                   })
-                 ) : (
-                   <div className="flex flex-col items-center justify-center py-12 opacity-40">
-                     <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-3">
-                       <AlertCircle className="w-8 h-8" />
-                     </div>
-                     <p className="text-[9px] font-bold uppercase tracking-widest text-center px-4 leading-relaxed">No dynamic activity<br/>found for this date</p>
-                   </div>
-                 )}
-               </div>
-
-               {dayEvents.length > 0 && (
-                  <div className="mt-8 space-y-4 animate-in slide-in-from-bottom-4 duration-500">
-                    <div className="flex items-center justify-between border-b border-border pb-2">
-                       <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-secondary flex items-center gap-2">
-                         <CalendarIcon className="w-3 h-3" /> Scheduled Events
-                       </div>
-                       <span className="px-2 py-0.5 rounded-full bg-secondary/10 text-secondary text-[8px] font-black">{dayEvents.length}</span>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {dayEvents.map((event) => (
-                        <div 
-                          key={event.id} 
-                          className={cn(
-                            "group/event relative p-4 rounded-2xl border transition-all hover:shadow-lg",
-                            event.type === 'holiday' 
-                              ? "bg-red-500/5 border-red-500/20 hover:border-red-500/40" 
-                              : "bg-secondary/5 border-secondary/20 hover:border-secondary/40"
-                          )}
-                        >
-                          <div className="flex items-start justify-between gap-3 mb-2">
-                            <div className="flex-1 min-w-0">
-                              <h4 className={cn(
-                                "text-sm font-bold tracking-tight truncate group-hover/event:whitespace-normal",
-                                event.type === 'holiday' ? "text-red-600" : "text-secondary"
-                              )}>
-                                {event.title}
-                              </h4>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className={cn(
-                                  "text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
-                                  event.type === 'holiday' ? "bg-red-500 text-white" : "bg-secondary text-white"
-                                )}>
-                                  {event.type}
-                                </span>
-                                 <span className="text-[9px] font-bold text-muted-foreground/60">
-                                   {event.start_date === event.end_date 
-                                     ? format(parseISO(event.start_date + 'T00:00:00'), 'MMM dd')
-                                     : `${format(parseISO(event.start_date + 'T00:00:00'), 'MMM dd')} - ${format(parseISO(event.end_date + 'T00:00:00'), 'MMM dd')}`
-                                   }
-                                 </span>
-                              </div>
+              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                {dayRecords.length > 0 ? (
+                  dayRecords.map((record) => {
+                    const type = getStatusType(record.status);
+                    return (
+                      <div
+                        key={record.id}
+                        className="group/item flex items-center gap-3 p-3 rounded-xl bg-muted/20 hover:bg-muted transition-all cursor-pointer border border-transparent hover:border-border overflow-hidden"
+                      >
+                        <div className="relative">
+                          {record.employer_registration?.image ? (
+                            <Image src={record.employer_registration.image} alt={record.employer_registration.employer_name || 'User'} width={40} height={40} className="rounded-lg object-cover grayscale group-hover/item:grayscale-0 transition-all border border-border" unoptimized />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center border border-border">
+                              <Users className="w-5 h-5 text-secondary" />
                             </div>
-                            <div className="flex flex-col gap-2 shrink-0">
-                              <div className={cn(
-                                "w-8 h-8 rounded-xl flex items-center justify-center",
-                                event.type === 'holiday' ? "bg-red-500/10" : "bg-secondary/10"
-                              )}>
-                                {event.type === 'holiday' ? <Info className="w-4 h-4 text-red-500" /> : <CalendarIcon className="w-4 h-4 text-secondary" />}
-                              </div>
-                              <div className="flex flex-col gap-2 opacity-0 group-hover/event:opacity-100 transition-opacity">
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleOpenEditModal(event);
-                                  }}
-                                  className="w-8 h-8 rounded-xl flex items-center justify-center bg-secondary/10 text-secondary hover:bg-secondary hover:text-white transition-all shadow-md active:scale-95"
-                                >
-                                  <Pencil className="w-3.5 h-3.5" />
-                                </button>
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteEvent(event.id);
-                                  }}
-                                  className="w-8 h-8 rounded-xl flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-md active:scale-95"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
+                          )}
+                          <div className={cn(
+                            "absolute -bottom-1.5 -right-1.5 w-4 h-4 rounded-full border-2 border-white dark:border-[#1a1a1a] shadow-md",
+                            type === 'present' && "bg-emerald-500",
+                            type === 'late' && "bg-amber-500",
+                            type === 'absent' && "bg-red-500",
+                            type === 'leave' && "bg-blue-500"
+                          )} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-bold text-foreground truncate group-hover/item:text-secondary transition-colors">
+                            {record.employer_registration?.employer_name || 'Unknown Guest'}
+                          </div>
+                          <div className="flex flex-col gap-0.5 mt-0.5">
+                            <span className="text-[8px] font-semibold text-muted-foreground/60 uppercase tracking-widest truncate">
+                              {record.employer_registration?.employer_position || 'Staff'}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="w-2.5 h-2.5 text-muted-foreground/40" />
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase">{format(parseISO(record.created_at), 'hh:mm aa')}</span>
                             </div>
                           </div>
-                          
-                          {event.description && (
-                            <p className="text-xs text-muted-foreground leading-relaxed pl-1 border-l-2 border-border/50 italic mb-2">
-                              {event.description}
-                            </p>
-                          )}
-                          
-                          {event.type === 'holiday' && (
-                            <div className="flex items-center gap-2 mt-3 p-2 rounded-lg bg-red-500/10 border border-red-500/10">
-                              <AlertCircle className="w-3.5 h-3.5 text-red-500 animate-pulse" />
-                              <span className="text-[9px] font-black text-red-600 uppercase tracking-widest">Attendance System Blocked</span>
-                            </div>
-                          )}
                         </div>
-                      ))}
+                        <ArrowUpRight className="w-3 h-3 text-muted-foreground group-hover/item:text-secondary group-hover/item:translate-x-0.5 group-hover/item:-translate-y-0.5 transition-all" />
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 opacity-40">
+                    <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+                      <AlertCircle className="w-8 h-8" />
                     </div>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-center px-4 leading-relaxed">No dynamic activity<br />found for this date</p>
                   </div>
                 )}
+              </div>
 
-               {dayRecords.length > 0 && (
-                 <button className="w-full mt-6 py-2.5 rounded-xl bg-secondary text-white text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
-                   Export for {format(selectedDate!, 'MMM dd')}
-                 </button>
-               )}
-             </div>
+              {dayEvents.length > 0 && (
+                <div className="mt-8 space-y-4 animate-in slide-in-from-bottom-4 duration-500">
+                  <div className="flex items-center justify-between border-b border-border pb-2">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-secondary flex items-center gap-2">
+                      <CalendarIcon className="w-3 h-3" /> Scheduled Events
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full bg-secondary/10 text-secondary text-[8px] font-black">{dayEvents.length}</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {dayEvents.map((event) => (
+                      <div
+                        key={event.id}
+                        className={cn(
+                          "group/event relative p-4 rounded-2xl border transition-all hover:shadow-lg",
+                          event.type === 'holiday'
+                            ? "bg-red-500/5 border-red-500/20 hover:border-red-500/40"
+                            : "bg-secondary/5 border-secondary/20 hover:border-secondary/40"
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div className="flex-1 min-w-0">
+                            <h4 className={cn(
+                              "text-sm font-bold tracking-tight truncate group-hover/event:whitespace-normal",
+                              event.type === 'holiday' ? "text-red-600" : "text-secondary"
+                            )}>
+                              {event.title}
+                            </h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className={cn(
+                                "text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
+                                event.type === 'holiday' ? "bg-red-500 text-white" : "bg-secondary text-white"
+                              )}>
+                                {event.type}
+                              </span>
+                              <span className="text-[9px] font-bold text-muted-foreground/60">
+                                {event.start_date === event.end_date
+                                  ? format(parseISO(event.start_date + 'T00:00:00'), 'MMM dd')
+                                  : `${format(parseISO(event.start_date + 'T00:00:00'), 'MMM dd')} - ${format(parseISO(event.end_date + 'T00:00:00'), 'MMM dd')}`
+                                }
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-2 shrink-0">
+                            <div className={cn(
+                              "w-8 h-8 rounded-xl flex items-center justify-center",
+                              event.type === 'holiday' ? "bg-red-500/10" : "bg-secondary/10"
+                            )}>
+                              {event.type === 'holiday' ? <Info className="w-4 h-4 text-red-500" /> : <CalendarIcon className="w-4 h-4 text-secondary" />}
+                            </div>
+                            <div className="flex flex-col gap-2 opacity-0 group-hover/event:opacity-100 transition-opacity">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenEditModal(event);
+                                }}
+                                className="w-8 h-8 rounded-xl flex items-center justify-center bg-secondary/10 text-secondary hover:bg-secondary hover:text-white transition-all shadow-md active:scale-95"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteEvent(event.id);
+                                }}
+                                className="w-8 h-8 rounded-xl flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-md active:scale-95"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {event.description && (
+                          <p className="text-xs text-muted-foreground leading-relaxed pl-1 border-l-2 border-border/50 italic mb-2">
+                            {event.description}
+                          </p>
+                        )}
+
+                        {event.type === 'holiday' && (
+                          <div className="flex items-center gap-2 mt-3 p-2 rounded-lg bg-red-500/10 border border-red-500/10">
+                            <AlertCircle className="w-3.5 h-3.5 text-red-500 animate-pulse" />
+                            <span className="text-[9px] font-black text-red-600 uppercase tracking-widest">Attendance System Blocked</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {dayRecords.length > 0 && (
+                <button className="w-full mt-6 py-2.5 rounded-xl bg-secondary text-white text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                  Export for {format(selectedDate!, 'MMM dd')}
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Dynamic Summary Stats */}
           <div className="bg-secondary p-6 rounded-2xl shadow-xl shadow-secondary/20 relative overflow-hidden group hover:scale-[1.02] transition-all cursor-pointer">
             <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none group-hover:scale-150 transition-all duration-700" />
             <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none group-hover:translate-x-2 group-hover:-translate-y-2 transition-all">
-               <Users className="w-16 h-16" />
+              <Users className="w-16 h-16" />
             </div>
-            
+
             <div className="relative z-10 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <Users className="w-6 h-6 text-white" />
                 <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Global Status</span>
               </div>
               <div>
-                 <div className="text-3xl font-bold text-white tracking-tight tabular-nums drop-shadow-md">
-                   {records.length > 0 ? Math.round((records.filter(r => !getStatusType(r.status).match(/absent|leave/)).length / records.length) * 100) : '--'}%
-                 </div>
-                 <div className="text-[10px] font-bold text-white/80 uppercase tracking-widest mt-1">System Efficiency</div>
+                <div className="text-3xl font-bold text-white tracking-tight tabular-nums drop-shadow-md">
+                  {records.length > 0 ? Math.round((records.filter(r => !getStatusType(r.status).match(/absent|leave/)).length / records.length) * 100) : '--'}%
+                </div>
+                <div className="text-[10px] font-bold text-white/80 uppercase tracking-widest mt-1">System Efficiency</div>
               </div>
               <div className="flex items-center gap-2 text-white/70 text-[9px] font-bold uppercase tracking-widest mt-2 bg-black/10 px-2 py-1 rounded-lg w-fit backdrop-blur-md">
                 <CheckCircle2 className="w-3 h-3 text-emerald-400" />
@@ -711,11 +708,11 @@ const AdminCalendarPage = () => {
 
         </div>
       </div>
-      
+
       {/* Event Modal */}
       {isEventModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div 
+          <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity animate-in fade-in duration-300"
             onClick={() => setIsEventModalOpen(false)}
           />
@@ -729,7 +726,7 @@ const AdminCalendarPage = () => {
                   {editingEventId ? 'Modify currently scheduled activity' : 'Schedule a new holiday or activity'}
                 </p>
               </div>
-              <button 
+              <button
                 onClick={() => {
                   setIsEventModalOpen(false);
                   setEditingEventId(null);
@@ -743,7 +740,7 @@ const AdminCalendarPage = () => {
             <div className="space-y-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Event Title</label>
-                <input 
+                <input
                   type="text"
                   value={newEvent.title}
                   onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
@@ -755,7 +752,7 @@ const AdminCalendarPage = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Main Date</label>
-                  <input 
+                  <input
                     type="date"
                     value={newEvent.date}
                     onChange={(e) => {
@@ -767,7 +764,7 @@ const AdminCalendarPage = () => {
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Event Type</label>
-                  <select 
+                  <select
                     value={newEvent.type}
                     onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as CalendarEvent['type'] })}
                     className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium appearance-none"
@@ -783,7 +780,7 @@ const AdminCalendarPage = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Start Date</label>
-                  <input 
+                  <input
                     type="date"
                     value={newEvent.start_date}
                     onChange={(e) => setNewEvent({ ...newEvent, start_date: e.target.value })}
@@ -792,7 +789,7 @@ const AdminCalendarPage = () => {
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">End Date</label>
-                  <input 
+                  <input
                     type="date"
                     value={newEvent.end_date}
                     onChange={(e) => setNewEvent({ ...newEvent, end_date: e.target.value })}
@@ -803,7 +800,7 @@ const AdminCalendarPage = () => {
 
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Description (Optional)</label>
-                <textarea 
+                <textarea
                   value={newEvent.description}
                   onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
                   placeholder="Details about the event..."
@@ -812,7 +809,7 @@ const AdminCalendarPage = () => {
               </div>
 
               <div className="pt-4 flex gap-3">
-                <button 
+                <button
                   onClick={() => {
                     setIsEventModalOpen(false);
                     setEditingEventId(null);
@@ -821,7 +818,7 @@ const AdminCalendarPage = () => {
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={handleSaveEvent}
                   className="flex-[2] py-3 rounded-xl bg-secondary text-white shadow-lg shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-xs font-bold uppercase tracking-widest"
                 >
@@ -836,7 +833,7 @@ const AdminCalendarPage = () => {
       {/* Background Atmosphere */}
       <div className="fixed -bottom-40 -left-40 w-[600px] h-[600px] bg-secondary/5 rounded-full blur-[120px] pointer-events-none opacity-50" />
       <div className="fixed -top-40 -right-40 w-[600px] h-[600px] bg-secondary/5 rounded-full blur-[120px] pointer-events-none opacity-50" />
-      
+
       <style jsx global>{`
         @keyframes progress {
           0% { transform: scaleX(0); }
