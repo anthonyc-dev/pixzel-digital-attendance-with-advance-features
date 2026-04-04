@@ -13,7 +13,10 @@ import {
   Users,
   ArrowUpRight,
   Filter,
-  Loader2
+  Loader2,
+  Plus,
+  X,
+  Info
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -47,6 +50,14 @@ interface AttendanceRecord {
   };
 }
 
+interface CalendarEvent {
+  id: string;
+  title: string;
+  date: string;
+  type: 'holiday' | 'event' | 'meeting' | 'other';
+  description?: string;
+}
+
 type ViewType = 'month' | 'week' | 'day';
 
 const AdminCalendarPage = () => {
@@ -56,6 +67,16 @@ const AdminCalendarPage = () => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [events, setEvents] = useState<CalendarEvent[]>([
+    { id: '1', title: 'Company Holiday', date: format(new Date(), 'yyyy-MM-dd'), type: 'holiday', description: 'Office is closed.' }
+  ]);
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    title: '',
+    date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+    type: 'event' as CalendarEvent['type'],
+    description: ''
+  });
 
   // Fetch Attendance Records
   useEffect(() => {
@@ -87,6 +108,16 @@ const AdminCalendarPage = () => {
     return groups;
   }, [records]);
 
+  // Organize Events by Date
+  const groupedEvents = useMemo(() => {
+    const groups: Record<string, CalendarEvent[]> = {};
+    events.forEach(event => {
+      if (!groups[event.date]) groups[event.date] = [];
+      groups[event.date].push(event);
+    });
+    return groups;
+  }, [events]);
+
   // Calendar Logic
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(currentDate));
@@ -112,7 +143,29 @@ const AdminCalendarPage = () => {
     }, 200);
   };
 
+  const handleAddEvent = () => {
+    if (!newEvent.title || !newEvent.date) return;
+    
+    const event: CalendarEvent = {
+      id: Math.random().toString(36).substr(2, 9),
+      ...newEvent
+    };
+
+    console.log("BACKEND DATA: Payload for adding event:", event);
+    console.log("BACKEND LOGIC: If type is 'holiday', attendance checking should be disabled for this date.");
+    
+    setEvents(prev => [...prev, event]);
+    setIsEventModalOpen(false);
+    setNewEvent({
+      title: '',
+      date: format(new Date(), 'yyyy-MM-dd'),
+      type: 'event',
+      description: ''
+    });
+  };
+
   const dayRecords = selectedDate ? (groupedRecords[format(selectedDate, 'yyyy-MM-dd')] || []) : [];
+  const dayEvents = selectedDate ? (groupedEvents[format(selectedDate, 'yyyy-MM-dd')] || []) : [];
 
   const getStatusType = (status: string): 'present' | 'late' | 'absent' | 'leave' => {
     const s = status.toLowerCase();
@@ -157,7 +210,18 @@ const AdminCalendarPage = () => {
             ))}
           </div>
           
-          <button className="p-3 bg-secondary text-white rounded-xl shadow-lg shadow-secondary/20 hover:scale-105 active:scale-95 transition-all group">
+          <button 
+            onClick={() => {
+              setNewEvent(prev => ({ ...prev, date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd') }));
+              setIsEventModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-5 py-2.5 bg-secondary text-white rounded-xl shadow-lg shadow-secondary/20 hover:scale-105 active:scale-95 transition-all group font-bold text-xs uppercase tracking-widest"
+          >
+            <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
+            Add Event
+          </button>
+          
+          <button className="p-3 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 text-muted-foreground rounded-xl shadow-sm hover:scale-105 active:scale-95 transition-all group">
             <UserPlus className="w-5 h-5 group-hover:rotate-[360deg] transition-transform duration-700" />
           </button>
         </div>
@@ -224,6 +288,9 @@ const AdminCalendarPage = () => {
             {days.map((day, idx) => {
               const dateStr = format(day, 'yyyy-MM-dd');
               const dayActivities = groupedRecords[dateStr] || [];
+              const dayEvents = groupedEvents[dateStr] || [];
+              const hasHoliday = dayEvents.some(e => e.type === 'holiday');
+              const hasEvent = dayEvents.length > 0;
               const isCurrentMonth = isSameMonth(day, currentDate);
               const isSelected = selectedDate && isSameDay(day, selectedDate);
               const isDayToday = isToday(day);
@@ -233,21 +300,39 @@ const AdminCalendarPage = () => {
                   key={idx}
                   onClick={() => setSelectedDate(day)}
                   className={cn(
-                    "min-h-[100px] sm:min-h-[120px] p-2 bg-white dark:bg-[#0c0c0c] transition-all cursor-pointer group relative",
-                    !isCurrentMonth && "bg-gray-50/10 dark:bg-white/[0.01]",
-                    isSelected && "ring-2 ring-inset ring-secondary z-20 shadow-xl",
-                    isCurrentMonth && "hover:bg-gray-50/80 dark:hover:bg-white/[0.04]"
+                    "min-h-[100px] sm:min-h-[120px] p-2 transition-all cursor-pointer group relative overflow-hidden",
+                    isCurrentMonth ? "bg-white dark:bg-[#0c0c0c]" : "bg-gray-50/10 dark:bg-white/[0.01]",
+                    isSelected && "ring-2 ring-inset ring-secondary z-30 shadow-xl shadow-secondary/10",
+                    isCurrentMonth && "hover:bg-gray-50/80 dark:hover:bg-white/[0.04]",
+                    // Holiday styling
+                    hasHoliday && "border-[1.5px] border-red-500/40 bg-red-500/[0.03] dark:bg-red-500/[0.02]",
+                    // Non-holiday event styling
+                    hasEvent && !hasHoliday && "border-[1.5px] border-secondary/30 bg-secondary/[0.03] dark:bg-secondary/[0.02]"
                   )}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className={cn(
-                      "text-xs font-bold w-6 h-6 flex items-center justify-center rounded-md transition-all",
+                      "text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-md transition-all",
                       isDayToday ? "bg-secondary text-white shadow-lg shadow-secondary/30" : isCurrentMonth ? "text-foreground" : "text-muted-foreground/20",
                       isSelected && !isDayToday && "bg-muted text-secondary"
                     )}>
                       {format(day, 'd')}
                     </span>
                   </div>
+
+                  {/* Background Event Watermark */}
+                  {hasEvent && (
+                    <div className="absolute inset-0 z-0 flex items-center justify-center px-2 pointer-events-none overflow-hidden">
+                       <div className={cn(
+                         "text-[18px] leading-[0.9] font-black uppercase tracking-tighter opacity-[0.08] dark:opacity-[0.05] text-center rotate-[-12deg] transition-all duration-500 group-hover:scale-110 group-hover:opacity-[0.15]",
+                         isSelected && "opacity-[0.25] dark:opacity-[0.2] rotate-0 scale-125 font-black drop-shadow-sm",
+                         hasHoliday ? "text-red-500" : "text-secondary"
+                       )}>
+                         {dayEvents[0].title}
+                         {dayEvents.length > 1 && <div className={cn("text-[10px] mt-1 font-bold", isSelected ? "opacity-100" : "opacity-40")}>+{dayEvents.length - 1} MORE</div>}
+                       </div>
+                    </div>
+                  )}
 
                   {/* Mini Activity Stack */}
                   <div className="mt-auto pt-2 flex flex-wrap -space-x-1.5 overflow-hidden">
@@ -367,6 +452,70 @@ const AdminCalendarPage = () => {
                  )}
                </div>
 
+               {dayEvents.length > 0 && (
+                  <div className="mt-8 space-y-4 animate-in slide-in-from-bottom-4 duration-500">
+                    <div className="flex items-center justify-between border-b border-border pb-2">
+                       <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-secondary flex items-center gap-2">
+                         <CalendarIcon className="w-3 h-3" /> Scheduled Events
+                       </div>
+                       <span className="px-2 py-0.5 rounded-full bg-secondary/10 text-secondary text-[8px] font-black">{dayEvents.length}</span>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {dayEvents.map((event) => (
+                        <div 
+                          key={event.id} 
+                          className={cn(
+                            "group/event relative p-4 rounded-2xl border transition-all hover:shadow-lg",
+                            event.type === 'holiday' 
+                              ? "bg-red-500/5 border-red-500/20 hover:border-red-500/40" 
+                              : "bg-secondary/5 border-secondary/20 hover:border-secondary/40"
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className={cn(
+                                "text-sm font-bold tracking-tight truncate group-hover/event:whitespace-normal",
+                                event.type === 'holiday' ? "text-red-600" : "text-secondary"
+                              )}>
+                                {event.title}
+                              </h4>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className={cn(
+                                  "text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
+                                  event.type === 'holiday' ? "bg-red-500 text-white" : "bg-secondary text-white"
+                                )}>
+                                  {event.type}
+                                </span>
+                                <span className="text-[9px] font-bold text-muted-foreground/60">{format(parseISO(event.date + 'T00:00:00'), 'MMM dd')}</span>
+                              </div>
+                            </div>
+                            <div className={cn(
+                              "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
+                              event.type === 'holiday' ? "bg-red-500/10" : "bg-secondary/10"
+                            )}>
+                              {event.type === 'holiday' ? <Info className="w-4 h-4 text-red-500" /> : <CalendarIcon className="w-4 h-4 text-secondary" />}
+                            </div>
+                          </div>
+                          
+                          {event.description && (
+                            <p className="text-xs text-muted-foreground leading-relaxed pl-1 border-l-2 border-border/50 italic mb-2">
+                              {event.description}
+                            </p>
+                          )}
+                          
+                          {event.type === 'holiday' && (
+                            <div className="flex items-center gap-2 mt-3 p-2 rounded-lg bg-red-500/10 border border-red-500/10">
+                              <AlertCircle className="w-3.5 h-3.5 text-red-500 animate-pulse" />
+                              <span className="text-[9px] font-black text-red-600 uppercase tracking-widest">Attendance System Blocked</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                {dayRecords.length > 0 && (
                  <button className="w-full mt-6 py-2.5 rounded-xl bg-secondary text-white text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
                    Export for {format(selectedDate!, 'MMM dd')}
@@ -417,6 +566,93 @@ const AdminCalendarPage = () => {
         </div>
       </div>
       
+      {/* Event Modal */}
+      {isEventModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity animate-in fade-in duration-300"
+            onClick={() => setIsEventModalOpen(false)}
+          />
+          <div className="relative w-full max-w-md bg-white dark:bg-[#121212] border border-white/20 rounded-3xl shadow-2xl p-8 animate-in zoom-in-95 duration-300">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-2xl font-bold tracking-tight text-foreground">Create Event</h3>
+                <p className="text-xs text-muted-foreground mt-1">Schedule a new holiday or activity</p>
+              </div>
+              <button 
+                onClick={() => setIsEventModalOpen(false)}
+                className="p-2 hover:bg-muted rounded-xl transition-all"
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Event Title</label>
+                <input 
+                  type="text"
+                  value={newEvent.title}
+                  onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                  placeholder="e.g., Independence Day"
+                  className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Date</label>
+                  <input 
+                    type="date"
+                    value={newEvent.date}
+                    onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Type</label>
+                  <select 
+                    value={newEvent.type}
+                    onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as any })}
+                    className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium appearance-none"
+                  >
+                    <option value="event">General Event</option>
+                    <option value="holiday">Holiday (No Attendance)</option>
+                    <option value="meeting">Meeting</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Description (Optional)</label>
+                <textarea 
+                  value={newEvent.description}
+                  onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                  placeholder="Details about the event..."
+                  className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium min-h-[100px] resize-none"
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button 
+                  onClick={() => setIsEventModalOpen(false)}
+                  className="flex-1 py-3 rounded-xl border border-border hover:bg-muted transition-all text-xs font-bold uppercase tracking-widest"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleAddEvent}
+                  className="flex-[2] py-3 rounded-xl bg-secondary text-white shadow-lg shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-xs font-bold uppercase tracking-widest"
+                >
+                  Create Event
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Background Atmosphere */}
       <div className="fixed -bottom-40 -left-40 w-[600px] h-[600px] bg-secondary/5 rounded-full blur-[120px] pointer-events-none opacity-50" />
       <div className="fixed -top-40 -right-40 w-[600px] h-[600px] bg-secondary/5 rounded-full blur-[120px] pointer-events-none opacity-50" />
