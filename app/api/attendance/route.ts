@@ -19,10 +19,13 @@ interface AttendanceLog {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const employer_id = searchParams.get('employer_id');
+
   const supabase = await createSupabaseServer();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("attendance_logs")
     .select(
       `
@@ -33,9 +36,23 @@ export async function GET() {
         employer_position,
         image
       )
-    `,
+    `
     )
     .order("timestamp", { ascending: false });
+
+  if (employer_id) {
+    const { data: employer } = await supabase
+      .from("employer_registration")
+      .select("id")
+      .eq("employer_id", employer_id)
+      .single();
+
+    if (employer) {
+      query = query.eq("employer_registration_id", employer.id);
+    }
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

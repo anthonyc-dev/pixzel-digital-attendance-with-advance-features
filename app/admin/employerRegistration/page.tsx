@@ -8,38 +8,6 @@ import Image from 'next/image';
 
 let faceapi: typeof import('@vladmandic/face-api') | null = null;
 
-const playSuccessSound = () => {
-  try {
-    const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-
-    const createTone = (frequency: number, startTime: number, duration: number, type: OscillatorType = 'sine', volume: number = 0.25) => {
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.type = type;
-      oscillator.frequency.setValueAtTime(frequency, startTime);
-
-      gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      oscillator.start(startTime);
-      oscillator.stop(startTime + duration);
-    };
-
-    const now = audioContext.currentTime;
-    createTone(523.25, now, 0.15, 'sine', 0.25);
-    createTone(659.25, now + 0.08, 0.15, 'sine', 0.25);
-    createTone(783.99, now + 0.16, 0.2, 'sine', 0.25);
-    createTone(1046.50, now + 0.28, 0.35, 'sine', 0.2);
-  } catch (error) {
-    console.warn('Audio playback failed:', error);
-  }
-};
-
 // Registration history type
 type RegistrationHistory = {
   id: string;
@@ -83,6 +51,38 @@ const RegistrationContent = () => {
   const router = useRouter();
   const editId = searchParams?.get('edit');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  const playSuccessSound = useCallback(() => {
+    try {
+      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+
+      const createTone = (frequency: number, startTime: number, duration: number, type: OscillatorType = 'sine', volume: number = 0.25) => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(frequency, startTime);
+
+        gainNode.gain.setValueAtTime(0, startTime);
+        gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.start(startTime);
+        oscillator.stop(startTime + duration);
+      };
+
+      const now = audioContext.currentTime;
+      createTone(523.25, now, 0.15, 'sine', 0.25);
+      createTone(659.25, now + 0.08, 0.15, 'sine', 0.25);
+      createTone(783.99, now + 0.16, 0.2, 'sine', 0.25);
+      createTone(1046.50, now + 0.28, 0.35, 'sine', 0.2);
+    } catch (error) {
+      console.warn('Audio playback failed:', error);
+    }
+  }, []);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info') => {
     setToast({ message, type });
@@ -278,9 +278,9 @@ const RegistrationContent = () => {
             const box = detection.box;
 
             // Draw face box with glow
-            ctx.shadowColor = '#800B30';
+            ctx.shadowColor = '#0089C0';
             ctx.shadowBlur = 20;
-            ctx.strokeStyle = '#800B30';
+            ctx.strokeStyle = '#0089C0';
             ctx.lineWidth = 3;
             ctx.strokeRect(box.x, box.y, box.width, box.height);
 
@@ -518,8 +518,8 @@ const RegistrationContent = () => {
 
             <div className="relative p-5 sm:p-6 md:p-8">
               <div className="flex items-center gap-3 mb-5 sm:mb-6">
-                <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-[#800B30]/10 border border-[#800B30]/20">
-                  <ScanLine className="w-4 h-4 sm:w-5 sm:h-5 text-[#800B30]" />
+                <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-[#0089C0]/10 border border-[#0089C0]/20">
+                  <ScanLine className="w-4 h-4 sm:w-5 sm:h-5 text-[#0089C0]" />
                 </div>
                 <div>
                   <h2 className="text-base sm:text-lg md:text-xl font-black tracking-tight text-foreground">New Registration</h2>
@@ -541,7 +541,7 @@ const RegistrationContent = () => {
                       value={formData.employerId}
                       onChange={(e) => handleFormChange('employerId', e.target.value)}
                       placeholder="Enter employer ID"
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#800B30]/20 focus:border-[#800B30]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
                     />
                     <Hash className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
                   </div>
@@ -558,7 +558,7 @@ const RegistrationContent = () => {
                       value={formData.employerName}
                       onChange={(e) => handleFormChange('employerName', e.target.value)}
                       placeholder="Enter full name"
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#800B30]/20 focus:border-[#800B30]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
                     />
                     <User className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
                   </div>
@@ -575,7 +575,7 @@ const RegistrationContent = () => {
                       value={formData.employerPosition}
                       onChange={(e) => handleFormChange('employerPosition', e.target.value)}
                       placeholder="Enter position"
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#800B30]/20 focus:border-[#800B30]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-[#0089C0]/20 focus:border-[#0089C0]/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
                     />
                     <Briefcase className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
                   </div>
@@ -592,7 +592,7 @@ const RegistrationContent = () => {
                 <button
                   onClick={handleStartRegistration}
                   disabled={!formData.employerId || !formData.employerName || !formData.employerPosition}
-                  className="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-[#800B30] hover:bg-[#a01040] text-white text-[10px] sm:text-[11px] font-black uppercase tracking-widest shadow-lg shadow-[#800B30]/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer"
+                  className="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[10px] sm:text-[11px] font-black uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer"
                 >
                   <ScanFace className="w-3 sm:w-4 h-3 sm:h-4" />
                   Start Scanner
@@ -611,7 +611,7 @@ const RegistrationContent = () => {
           {!isModalOpen && !isCameraOpen && (
             <button
               onClick={() => setIsModalOpen(true)}
-              className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-[#800B30] hover:bg-[#a01040] text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#800B30]/30 active:scale-[0.98] transition-all flex items-center gap-1.5 sm:gap-2 w-fit cursor-pointer"
+              className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all flex items-center gap-1.5 sm:gap-2 w-fit cursor-pointer"
             >
               <UserCheck className="w-3 sm:w-4 h-3 sm:h-4" />
               New Registration
@@ -654,7 +654,7 @@ const RegistrationContent = () => {
                       {isCameraOpen ? (
                         <VideoOff className="w-2.5 sm:w-3 h-2.5 sm:h-3 text-red-500" />
                       ) : (
-                        <Camera className="w-2.5 sm:w-3 h-2.5 sm:h-3 text-[#800B30]" />
+                        <Camera className="w-2.5 sm:w-3 h-2.5 sm:h-3 text-[#0089C0]" />
                       )}
                     </span>
                   </button>
@@ -677,8 +677,8 @@ const RegistrationContent = () => {
 
                       {/* Employer Info Overlay (Top Left) */}
                       <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-30 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-black/40 dark:bg-white/10 backdrop-blur-md border border-white/20 shadow-xl animate-in slide-in-from-left-4 fade-in duration-700">
-                        <div className="p-1.5 rounded-lg bg-[#800B30]/20 border border-[#800B30]/30">
-                          <User className="w-3 sm:w-4 h-3 sm:h-4 text-[#800B30]" />
+                        <div className="p-1.5 rounded-lg bg-[#0089C0]/20 border border-[#0089C0]/30">
+                          <User className="w-3 sm:w-4 h-3 sm:h-4 text-[#0089C0]" />
                         </div>
                         <div className="flex flex-col">
                           <span className="text-[10px] sm:text-xs font-black text-white leading-none tracking-tight">{formData.employerName}</span>
@@ -701,7 +701,7 @@ const RegistrationContent = () => {
                               ? "bg-green-500/80 text-white"
                               : isModelLoading
                                 ? "bg-yellow-500/80 text-white"
-                                : "bg-[#800B30]/60 text-white"
+                                : "bg-[#0089C0]/60 text-white"
                           )}>
                             {isModelLoading ? (
                               <>
@@ -734,16 +734,16 @@ const RegistrationContent = () => {
                       {/* Scanning Overlay Viewfinder */}
                       <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                         <div className={cn(
-                          "relative w-48 sm:w-64 md:w-80 h-48 sm:h-64 md:h-80 border-y-2 border-[#800B30]/50 bg-[#800B30]/10",
+                          "relative w-48 sm:w-64 md:w-80 h-48 sm:h-64 md:h-80 border-y-2 border-[#0089C0]/50 bg-[#0089C0]/10",
                           detectedFaces === 0 && isCameraOpen && "animate-pulse-subtle"
                         )}>
-                          <div className="absolute top-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-l-4 border-[#800B30] rounded-tl-lg sm:rounded-tl-xl -mt-0.5 -ml-0.5" />
-                          <div className="absolute top-0 right-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-r-4 border-[#800B30] rounded-tr-lg sm:rounded-tr-xl -mt-0.5 -mr-0.5" />
-                          <div className="absolute bottom-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-b-4 border-l-4 border-[#800B30] rounded-bl-lg sm:rounded-bl-xl -mb-0.5 -ml-0.5" />
-                          <div className="absolute bottom-0 right-0 w-10 sm:w-12 h-10 sm:h-12 border-b-4 border-r-4 border-[#800B30] rounded-br-lg sm:rounded-br-xl -mb-0.5 -mr-0.5" />
+                          <div className="absolute top-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-l-4 border-[#0089C0] rounded-tl-lg sm:rounded-tl-xl -mt-0.5 -ml-0.5" />
+                          <div className="absolute top-0 right-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-r-4 border-[#0089C0] rounded-tr-lg sm:rounded-tr-xl -mt-0.5 -mr-0.5" />
+                          <div className="absolute bottom-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-b-4 border-l-4 border-[#0089C0] rounded-bl-lg sm:rounded-bl-xl -mb-0.5 -ml-0.5" />
+                          <div className="absolute bottom-0 right-0 w-10 sm:w-12 h-10 sm:h-12 border-b-4 border-r-4 border-[#0089C0] rounded-br-lg sm:rounded-br-xl -mb-0.5 -mr-0.5" />
                         </div>
                         {isScanning && (
-                          <div className="absolute left-0 right-0 h-0.5 sm:h-1 bg-[#800B30] shadow-[0_0_20px_4px_rgba(0,137,192,0.6)] animate-scan top-1/2" />
+                          <div className="absolute left-0 right-0 h-0.5 sm:h-1 bg-[#0089C0] shadow-[0_0_20px_4px_rgba(0,137,192,0.6)] animate-scan top-1/2" />
                         )}
                       </div>
 
@@ -767,7 +767,7 @@ const RegistrationContent = () => {
                           <button
                             disabled={isScanning || detectedFaces === 0}
                             onClick={captureAndRegister}
-                            className="px-6 sm:px-10 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl bg-[#800B30] hover:bg-[#a01040] text-white text-[10px] sm:text-[11px] font-black uppercase tracking-widest shadow-lg shadow-[#800B30]/30 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-1.5 sm:gap-2 cursor-pointer"
+                            className="px-6 sm:px-10 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[10px] sm:text-[11px] font-black uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-1.5 sm:gap-2 cursor-pointer"
                           >
                             <ScanFace className="w-3 sm:w-4 h-3 sm:h-4" />
                             {isScanning ? 'Generating Descriptor...' : detectedFaces === 0 ? 'Position Face in Frame' : 'Register Face'}
@@ -782,29 +782,29 @@ const RegistrationContent = () => {
                       className={cn(
                         "group relative w-full h-full max-w-xl sm:max-w-2xl",
                         "rounded-2xl p-6 sm:p-10 md:p-14",
-                        "bg-[#800B30]/5 border-2 border-[#800B30]/20 border-dashed",
-                        "hover:bg-[#800B30]/10 hover:border-[#800B30]/40 hover:border-solid",
+                        "bg-[#0089C0]/5 border-2 border-[#0089C0]/20 border-dashed",
+                        "hover:bg-[#0089C0]/10 hover:border-[#0089C0]/40 hover:border-solid",
                         "active:scale-[0.99]",
                         "transition-all duration-300 overflow-hidden flex flex-col items-center justify-center cursor-pointer",
                         isModelLoading && "opacity-50 cursor-not-allowed"
                       )}
                     >
-                      <div className="absolute -top-16 sm:-top-24 -right-16 sm:-right-24 w-48 sm:w-72 h-48 sm:h-72 bg-[#800B30]/10 rounded-full blur-[30px] sm:blur-[40px]" />
-                      <div className="absolute -bottom-16 sm:-bottom-24 -left-16 sm:-left-24 w-48 sm:w-72 h-48 sm:h-72 bg-[#800B30]/5 rounded-full blur-[30px] sm:blur-[40px]" />
+                      <div className="absolute -top-16 sm:-top-24 -right-16 sm:-right-24 w-48 sm:w-72 h-48 sm:h-72 bg-[#0089C0]/10 rounded-full blur-[30px] sm:blur-[40px]" />
+                      <div className="absolute -bottom-16 sm:-bottom-24 -left-16 sm:-left-24 w-48 sm:w-72 h-48 sm:h-72 bg-[#0089C0]/5 rounded-full blur-[30px] sm:blur-[40px]" />
 
-                      <div className="w-16 sm:w-20 md:w-24 h-16 sm:h-20 md:h-24 rounded-2xl bg-white dark:bg-[#800B30]/10 shadow-xl border border-white/20 dark:border-[#800B30]/20 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform duration-300 mb-4 sm:mb-6 relative z-10">
+                      <div className="w-16 sm:w-20 md:w-24 h-16 sm:h-20 md:h-24 rounded-2xl bg-white dark:bg-[#0089C0]/10 shadow-xl border border-white/20 dark:border-[#0089C0]/20 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform duration-300 mb-4 sm:mb-6 relative z-10">
                         {isModelLoading ? (
-                          <Loader2 className="w-8 sm:w-10 md:w-12 h-8 sm:w-10 md:h-12 text-[#800B30]/60 dark:text-[#800B30] animate-spin" />
+                          <Loader2 className="w-8 sm:w-10 md:w-12 h-8 sm:w-10 md:h-12 text-[#0089C0]/60 dark:text-[#0089C0] animate-spin" />
                         ) : (
-                          <VideoOff className="w-8 sm:w-10 md:w-12 h-8 sm:w-10 md:h-12 text-[#800B30]/60 dark:text-[#800B30]" />
+                          <VideoOff className="w-8 sm:w-10 md:w-12 h-8 sm:w-10 md:h-12 text-[#0089C0]/60 dark:text-[#0089C0]" />
                         )}
                       </div>
 
                       <div className="relative z-10 text-center">
-                        <div className="text-lg sm:text-xl md:text-2xl font-black tracking-tighter text-[#800B30]">
+                        <div className="text-lg sm:text-xl md:text-2xl font-black tracking-tighter text-[#0089C0]">
                           {isModelLoading ? "Loading AI Model..." : "Enable Scanner"}
                         </div>
-                        <div className="mt-1 sm:mt-2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] text-[#800B30]/70">
+                        <div className="mt-1 sm:mt-2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] text-[#0089C0]/70">
                           {isModelLoading ? "Please wait..." : "Click to start scanning"}
                         </div>
                       </div>
@@ -841,8 +841,8 @@ const RegistrationContent = () => {
           <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-4 sm:gap-6">
             <div className="p-4 sm:p-5 md:p-7 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 shadow-sm flex-1 flex flex-col min-h-[300px] sm:min-h-[400px] lg:min-h-[700px]">
               <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 flex-shrink-0">
-                <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-[#800B30]/10 border border-[#800B30]/20">
-                  <History className="w-4 sm:w-5 h-4 sm:h-5 text-[#800B30]" />
+                <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-[#0089C0]/10 border border-[#0089C0]/20">
+                  <History className="w-4 sm:w-5 h-4 sm:h-5 text-[#0089C0]" />
                 </div>
                 <div>
                   <h3 className="text-sm sm:text-lg font-black tracking-tight text-foreground">Registration History</h3>
@@ -880,7 +880,7 @@ const RegistrationContent = () => {
                         className="p-3 sm:p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 flex items-center justify-between gap-2"
                       >
                         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl border bg-[#800B30]/10 border-[#800B30]/20 overflow-hidden flex items-center justify-center text-[#800B30]">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl border bg-[#0089C0]/10 border-[#0089C0]/20 overflow-hidden flex items-center justify-center text-[#0089C0]">
                             {record.imageSrc ? (
                               <Image src={record.imageSrc} alt="Captured" className="w-full h-full object-cover" width={48} height={48} />
                             ) : (
@@ -906,7 +906,7 @@ const RegistrationContent = () => {
                     {history.length > 5 && (
                       <button
                         onClick={() => setShowAllHistory(!showAllHistory)}
-                        className="w-full py-2 text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#800B30] hover:text-[#a01040] transition-colors text-center"
+                        className="w-full py-2 text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#0089C0] hover:text-[#007aaa] transition-colors text-center"
                       >
                         {showAllHistory ? 'Show Less' : `Show More (${history.length - 5})`}
                       </button>
@@ -978,9 +978,9 @@ import { Suspense } from 'react';
 const EmployerRegistrationPage = () => {
   return (
     <Suspense fallback={
-        <div className="flex items-center justify-center min-h-[600px]">
-          <Loader2 className="w-8 h-8 animate-spin text-[#800B30]" />
-        </div>
+      <div className="flex items-center justify-center min-h-[600px]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#0089C0]" />
+      </div>
     }>
       <RegistrationContent />
     </Suspense>
