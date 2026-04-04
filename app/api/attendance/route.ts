@@ -174,20 +174,12 @@ export async function POST(req: Request) {
         });
       }
 
-      // Special case: Can't time out if haven't timed in
+      // Special case: Can't time out if haven't timed in (unless it's end of shift/6pm)
       if (type === "time_out") {
         const hasTimeIn = todayLogs?.some((log) => log.type === "time_in");
         if (!hasTimeIn) {
-          return NextResponse.json({
-            success: false,
-            message: `Cannot Time Out without a Time In for today.`,
-            data: {
-              employer_id: employer_registration.employer_id,
-              employer_name: employer_registration.employer_name,
-              image: employer_registration.image,
-              match_percentage,
-            },
-          });
+          console.log(`Warning: ${employer_registration.employer_name} timed out without a time in.`);
+          // We allow it to prevent the "error" at 6pm
         }
       }
     } else {
@@ -200,13 +192,18 @@ export async function POST(req: Request) {
       }
     }
 
-    // 6. Determine status (basic logic)
-    const hour = now.getHours();
+    // 6. Determine status (9:15 AM or later is late)
+    // NOTE: We use 'on_time' internally for DB constraint compatibility, 
+    // but the UI will display it as 'present'.
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
 
     let status = "on_time";
 
-    if (type === "time_in" && hour >= 9) {
-      status = "late";
+    if (type === "time_in") {
+      if (hours > 9 || (hours === 9 && minutes >= 15)) {
+        status = "late";
+      }
     }
 
     // 7. Insert attendance

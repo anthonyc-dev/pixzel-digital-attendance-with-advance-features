@@ -562,7 +562,7 @@ const AttendancePage = () => {
                         {(log.status === 'present' || log.status === 'on_time') && <CheckCircle2 className="w-3 h-3" />}
                         {log.status === 'late' && <Clock className="w-3 h-3" />}
                         {log.status === 'absent' && <XCircle className="w-3 h-3" />}
-                        {log.status?.replace('_', ' ')}
+                        {log.status === 'on_time' ? 'present' : log.status?.replace('_', ' ')}
                       </span>
                     </td>
                   </tr>

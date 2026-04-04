@@ -361,7 +361,7 @@ const DTRPage = () => {
     );
 
     const onTimeRate = attendance.length > 0
-        ? Math.round((attendance.filter(a => a.status === 'on_time').length / attendance.length) * 100)
+        ? Math.round((attendance.filter(a => a.status === 'present').length / attendance.length) * 100)
         : 100;
 
     const stats = [
@@ -397,7 +397,7 @@ const DTRPage = () => {
 
             if (log.type === 'time_in') {
                 groups[dateKey].time_in = format(dateObj, 'hh:mm aa');
-                groups[dateKey].status = log.status; // 'on_time' or 'late'
+                groups[dateKey].status = log.status; // 'present' or 'late'
                 groups[dateKey].raw_in = dateObj;
             } else if (log.type === 'time_out') {
                 groups[dateKey].time_out = format(dateObj, 'hh:mm aa');
@@ -691,15 +691,15 @@ const DTRPage = () => {
                                                     <td className="p-3">
                                                         <div className={cn(
                                                             "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border ring-1 ring-inset",
-                                                            log.status === 'on_time' ? "bg-green-500/10 text-green-600 ring-green-600/20 border-green-600/30" :
+                                                            log.status === 'present' ? "bg-green-500/10 text-green-600 ring-green-600/20 border-green-600/30" :
                                                                 log.status === 'late' ? "bg-yellow-500/10 text-yellow-600 ring-yellow-600/20 border-yellow-600/30" :
                                                                     "bg-red-500/10 text-red-600 ring-red-600/20 border-red-600/30"
                                                         )}>
                                                             <div className={cn("w-1 h-1 rounded-full",
-                                                                log.status === 'on_time' ? "bg-green-600" :
+                                                                log.status === 'present' ? "bg-green-600" :
                                                                     log.status === 'late' ? "bg-yellow-600" : "bg-red-600"
                                                             )} />
-                                                            <span>{log.status.replace('_', ' ')}</span>
+                                                            <span>{log.status === 'on_time' ? 'present' : log.status.replace('_', ' ')}</span>
                                                         </div>
                                                     </td>
                                                     <td className="p-3">

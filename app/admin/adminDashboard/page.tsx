@@ -104,14 +104,14 @@ const AdminDashboard = () => {
             a.timestamp.startsWith(today)
         );
         
-        const onTime = todayAttendances.filter(a => a.status === 'on_time').length;
+        const presentCount = todayAttendances.filter(a => a.status === 'present').length;
         const late = todayAttendances.filter(a => a.status === 'late').length;
         const total = todayAttendances.length || 1;
         
         return [
-            { name: 'On Time', value: Math.round((onTime / total) * 100) || 0, color: '#10b981' },
+            { name: 'Present', value: Math.round((presentCount / total) * 100) || 0, color: '#10b981' },
             { name: 'Late', value: Math.round((late / total) * 100) || 0, color: '#f59e0b' },
-            { name: 'Absent', value: Math.round(((employees.length - onTime - late) / employees.length) * 100) || 0, color: '#ef4444' }
+            { name: 'Absent', value: Math.round(((employees.length - presentCount - late) / employees.length) * 100) || 0, color: '#ef4444' }
         ];
     };
 
@@ -274,7 +274,7 @@ const AdminDashboard = () => {
                             <div key={idx} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-all transition-colors cursor-default">
                                 <div className="flex items-center gap-3">
                                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                                    <span className="text-[10px] font-black text-foreground uppercase tracking-widest">{item.name}</span>
+                                    <span className={cn("text-[10px] font-black text-foreground uppercase tracking-widest", item.name === 'On Time' && "text-emerald-500")}>{item.name === 'On Time' ? 'Present' : item.name}</span>
                                 </div>
                                 <span className="text-[10px] font-black text-muted-foreground transition-colors group-hover:text-foreground">{item.value}%</span>
                             </div>
