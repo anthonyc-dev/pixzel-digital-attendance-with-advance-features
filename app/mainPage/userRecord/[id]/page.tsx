@@ -227,7 +227,8 @@ const UserRecord = () => {
         }
     };
 
-    const handleTimeIn = () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _handleTimeIn = () => {
         const newRecord: AttendanceRecord = {
             id: Date.now().toString(),
             date: new Date().toISOString().split('T')[0],
@@ -239,7 +240,8 @@ const UserRecord = () => {
         setCurrentStatus('clocked-in');
     };
 
-    const handleTimeOut = () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _handleTimeOut = () => {
         const today = new Date().toISOString().split('T')[0];
         const todayRecord = attendanceRecords.find(
             record => record.date === today && !record.timeOut
@@ -256,7 +258,8 @@ const UserRecord = () => {
         }
     };
 
-    const handleLeaveRequest = () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _handleLeaveRequest = () => {
         setShowLeaveModal(true);
     };
 
@@ -286,7 +289,8 @@ const UserRecord = () => {
         setCurrentStatus('on-leave');
     };
 
-    const handleEmergencyLeave = () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _handleEmergencyLeave = () => {
         setShowEmergencyModal(true);
     };
 
@@ -396,7 +400,7 @@ const UserRecord = () => {
                                     </div>
                                 </div>
                                 <Button
-                                    onClick={handleTimeOut}
+                                    onClick={_handleTimeOut}
                                     className="flex items-center gap-2 bg-destructive text-destructive-foreground"
                                 >
                                     <LogOut className="w-4 h-4" />
@@ -405,7 +409,7 @@ const UserRecord = () => {
                             </div>
                             <div className="flex gap-3">
                                 <Button
-                                    onClick={handleEmergencyLeave}
+onClick={_handleEmergencyLeave}
                                     variant="outline"
                                     className="flex-1 flex items-center justify-center gap-2"
                                 >
@@ -413,7 +417,7 @@ const UserRecord = () => {
                                     Emergency Leave
                                 </Button>
                                 <Button
-                                    onClick={handleLeaveRequest}
+onClick={_handleLeaveRequest}
                                     variant="outline"
                                     className="flex-1 flex items-center justify-center gap-2"
                                 >
@@ -463,7 +467,7 @@ const UserRecord = () => {
                     {!currentStatus && (
                         <div className="flex gap-4">
                             <Button
-                                onClick={handleTimeIn}
+                                onClick={_handleTimeIn}
                                 className="flex-1 flex items-center justify-center gap-2 bg-secondary text-secondary-foreground hover:opacity-90 py-6 text-lg"
                             >
                                 <LogIn className="w-5 h-5" />
