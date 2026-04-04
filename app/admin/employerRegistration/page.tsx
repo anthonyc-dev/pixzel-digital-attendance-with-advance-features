@@ -475,7 +475,7 @@ const RegistrationContent = () => {
         setTimeout(() => setScanResult(null), 3000);
       }
     }
-  }, [detectedFaces, formData, editId, isScanning, fetchHistory, showToast, router]);
+  }, [detectedFaces, formData, editId, isScanning, fetchHistory, showToast, router, playSuccessSound]);
 
   const toggleCamera = () => {
     setIsCameraOpen(prev => !prev);

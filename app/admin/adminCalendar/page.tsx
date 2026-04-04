@@ -71,7 +71,12 @@ const AdminCalendarPage = () => {
     { id: '1', title: 'Company Holiday', date: format(new Date(), 'yyyy-MM-dd'), type: 'holiday', description: 'Office is closed.' }
   ]);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
-  const [newEvent, setNewEvent] = useState({
+  const [newEvent, setNewEvent] = useState<{
+    title: string;
+    date: string;
+    type: CalendarEvent['type'];
+    description: string;
+  }>({
     title: '',
     date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     type: 'event' as CalendarEvent['type'],
@@ -613,7 +618,7 @@ const AdminCalendarPage = () => {
                   <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Type</label>
                   <select 
                     value={newEvent.type}
-                    onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as any })}
+                    onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as CalendarEvent['type'] })}
                     className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium appearance-none"
                   >
                     <option value="event">General Event</option>

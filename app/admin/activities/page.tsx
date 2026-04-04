@@ -40,7 +40,7 @@ interface AttendanceRecord {
 }
 
 const ActivitiesPage = () => {
-    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [, setEmployees] = useState<Employee[]>([]);
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
     const [loading, setLoading] = useState(true);
 
