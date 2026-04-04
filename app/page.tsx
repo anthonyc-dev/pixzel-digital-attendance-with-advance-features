@@ -32,7 +32,7 @@ interface AttendanceRecord {
   date?: string;
 }
 
-// Type for faceapi module
+// Type for faceapi modules
 type FaceAPI = typeof import('@vladmandic/face-api');
 
 interface ApiLogEntry {
