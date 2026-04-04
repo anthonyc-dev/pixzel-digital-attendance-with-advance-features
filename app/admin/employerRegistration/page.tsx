@@ -1,6 +1,8 @@
+export { };
 'use client';
+export const dynamic = 'force-dynamic';
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, Hash, ScanLine, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
@@ -8,7 +10,7 @@ import Image from 'next/image';
 
 let faceapi: typeof import('@vladmandic/face-api') | null = null;
 
-// Registration history type
+
 type RegistrationHistory = {
   id: string;
   employerId: string;
