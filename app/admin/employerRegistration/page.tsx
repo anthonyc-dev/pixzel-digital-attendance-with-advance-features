@@ -8,70 +8,6 @@ import Image from 'next/image';
 
 let faceapi: typeof import('@vladmandic/face-api') | null = null;
 
-const playSuccessSound = () => {
-  try {
-    const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-
-    const createTone = (frequency: number, startTime: number, duration: number, type: OscillatorType = 'sine', volume: number = 0.25) => {
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.type = type;
-      oscillator.frequency.setValueAtTime(frequency, startTime);
-
-      gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      oscillator.start(startTime);
-      oscillator.stop(startTime + duration);
-    };
-
-    const now = audioContext.currentTime;
-    createTone(523.25, now, 0.15, 'sine', 0.25);
-    createTone(659.25, now + 0.08, 0.15, 'sine', 0.25);
-    createTone(783.99, now + 0.16, 0.2, 'sine', 0.25);
-    createTone(1046.50, now + 0.28, 0.35, 'sine', 0.2);
-  } catch (error) {
-    console.warn('Audio playback failed:', error);
-  }
-};
-
-const playSuccessSound = () => {
-  try {
-    const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-    
-    const createTone = (frequency: number, startTime: number, duration: number, type: OscillatorType = 'sine', volume: number = 0.3) => {
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.type = type;
-      oscillator.frequency.setValueAtTime(frequency, startTime);
-      
-      gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.start(startTime);
-      oscillator.stop(startTime + duration);
-    };
-    
-    const now = audioContext.currentTime;
-    createTone(523.25, now, 0.15, 'sine', 0.25);
-    createTone(659.25, now + 0.08, 0.15, 'sine', 0.25);
-    createTone(783.99, now + 0.16, 0.2, 'sine', 0.25);
-    createTone(1046.50, now + 0.28, 0.35, 'sine', 0.2);
-  } catch (error) {
-    console.warn('Audio playback failed:', error);
-  }
-};
-
 // Registration history type
 type RegistrationHistory = {
   id: string;
@@ -115,6 +51,38 @@ const RegistrationContent = () => {
   const router = useRouter();
   const editId = searchParams?.get('edit');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  const playSuccessSound = useCallback(() => {
+    try {
+      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+
+      const createTone = (frequency: number, startTime: number, duration: number, type: OscillatorType = 'sine', volume: number = 0.25) => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(frequency, startTime);
+
+        gainNode.gain.setValueAtTime(0, startTime);
+        gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.02);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.start(startTime);
+        oscillator.stop(startTime + duration);
+      };
+
+      const now = audioContext.currentTime;
+      createTone(523.25, now, 0.15, 'sine', 0.25);
+      createTone(659.25, now + 0.08, 0.15, 'sine', 0.25);
+      createTone(783.99, now + 0.16, 0.2, 'sine', 0.25);
+      createTone(1046.50, now + 0.28, 0.35, 'sine', 0.2);
+    } catch (error) {
+      console.warn('Audio playback failed:', error);
+    }
+  }, []);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info') => {
     setToast({ message, type });
@@ -1011,9 +979,9 @@ import { Suspense } from 'react';
 const EmployerRegistrationPage = () => {
   return (
     <Suspense fallback={
-        <div className="flex items-center justify-center min-h-[600px]">
-          <Loader2 className="w-8 h-8 animate-spin text-[#800B30]" />
-        </div>
+      <div className="flex items-center justify-center min-h-[600px]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#800B30]" />
+      </div>
     }>
       <RegistrationContent />
     </Suspense>

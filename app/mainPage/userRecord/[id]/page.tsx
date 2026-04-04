@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import {
     Calendar,
@@ -17,7 +18,6 @@ import {
     ChevronRight,
     ChevronDown,
     Edit2,
-    Save,
     X,
     Home,
     Activity,
@@ -47,7 +47,7 @@ interface AttendanceRecord {
     timeOut: string | null;
     status: 'present' | 'absent' | 'late' | 'early-out' | 'emergency' | 'leave';
     remarks?: string;
-    leaveType?: 'emergency' | 'sick' | 'vacation' | 'personal' | 'family' | 'medical' | 'other';
+    leaveType?: LeaveType;
     leaveReason?: string;
     leaveDuration?: string;
     leaveApproved?: boolean;
@@ -61,15 +61,12 @@ interface UserProfile {
     employeeId: string;
     email: string;
     avatar?: string;
-    leaveBalance?: {
-        sick: number;
-        vacation: number;
-        personal: number;
-        emergency: number;
-    };
 }
 
 const UserRecord = () => {
+    const params = useParams();
+    const userId = params?.id as string;
+
     const [currentTime, setCurrentTime] = useState<Date | null>(null);
     const [userProfile, setUserProfile] = useState<UserProfile>({
         name: 'Loading...',
@@ -77,58 +74,56 @@ const UserRecord = () => {
         department: '---',
         employeeId: '---',
         email: '---',
-        leaveBalance: {
-            sick: 0,
-            vacation: 0,
-            personal: 0,
-            emergency: 0,
-        },
     });
 
     const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
 
     useEffect(() => {
-        const fetchUserData = async () => {
-            const savedUser = localStorage.getItem('selectedUser');
-            if (savedUser) {
-                const userData = JSON.parse(savedUser);
-                setUserProfile(prev => ({
-                    ...prev,
-                    name: userData.name || 'Unknown',
-                    position: userData.position || 'Employee',
-                    employeeId: userData.employer_id || 'N/A',
-                    avatar: userData.photo,
-                }));
+        if (!userId) return;
 
-                // Fetch history if we have an id
-                if (userData.employer_id) {
-                    try {
-                        const response = await fetch('/api/attendance'); // We'll filter client-side for now or fix [id] route
-                        if (response.ok) {
-                            const allLogs = await response.json();
-                            const userLogs = allLogs.filter((log: ApiLogEntry) => 
-                                log.employer_registration?.employer_id === userData.employer_id ||
-                                log.employer_id === userData.employer_id
-                            );
-                            
-                            setAttendanceRecords(userLogs.map((log: ApiLogEntry) => ({
-                                id: log.id,
-                                date: log.timestamp.split('T')[0],
-                                timeIn: log.type === 'time_in' ? new Date(log.timestamp).toLocaleTimeString() : null,
-                                timeOut: log.type === 'time_out' ? new Date(log.timestamp).toLocaleTimeString() : null,
-                                status: log.status || 'present',
-                                remarks: log.remarks,
-                            })));
-                        }
-                    } catch (error) {
-                        console.error('Failed to fetch user history:', error);
-                    }
+        const fetchUserData = async () => {
+            try {
+                const response = await fetch(`/api/users/${userId}`);
+                if (response.ok) {
+                    const userData = await response.json();
+                    setUserProfile({
+                        name: userData.employer_name || 'Unknown',
+                        position: userData.employer_position || 'Employee',
+                        employeeId: userData.employer_id || 'N/A',
+                        department: userData.department || '---',
+                        email: userData.email || '---',
+                        avatar: userData.image,
+                    });
                 }
+            } catch (error) {
+                console.error('Failed to fetch user data:', error);
+            }
+        };
+
+        const fetchAttendanceRecords = async () => {
+            try {
+                const logsResponse = await fetch(`/api/attendance?employer_id=${userId}`);
+                if (logsResponse.ok) {
+                    const allLogs = await logsResponse.json();
+                    setAttendanceRecords(allLogs.map((log: ApiLogEntry) => ({
+                        id: log.id,
+                        date: new Date(log.timestamp).toLocaleDateString('en-CA', {
+                            timeZone: 'Asia/Manila'
+                        }),
+                        timeIn: log.type === 'time_in' ? new Date(log.timestamp).toLocaleTimeString() : null,
+                        timeOut: log.type === 'time_out' ? new Date(log.timestamp).toLocaleTimeString() : null,
+                        status: log.status || 'present',
+                        remarks: log.remarks,
+                    })));
+                }
+            } catch (error) {
+                console.error('Failed to fetch attendance records:', error);
             }
         };
 
         fetchUserData();
-    }, []);
+        fetchAttendanceRecords();
+    }, [userId]);
 
     const [showLeaveModal, setShowLeaveModal] = useState(false);
     const [leaveDetails, setLeaveDetails] = useState({
@@ -276,7 +271,7 @@ const UserRecord = () => {
             leaveReason: leaveDetails.reason,
             leaveDuration: leaveDetails.duration,
             remarks: leaveDetails.remarks,
-            leaveApproved: true, // In real app, this would be pending approval
+            leaveApproved: true,
         };
         setAttendanceRecords([newRecord, ...attendanceRecords]);
         setShowLeaveModal(false);
@@ -349,11 +344,9 @@ const UserRecord = () => {
 
     return (
         <div className="min-h-screen bg-background text-foreground">
-            {/* Header */}
             <Header realTimeClock={formattedTime} />
 
             <main className="max-w-7xl mx-auto p-6">
-                {/* User Profile Section */}
                 <div className="bg-card border border-border rounded-2xl p-6 mb-8">
                     <div className="flex items-start justify-between">
                         <div className="flex items-center gap-4">
@@ -375,8 +368,8 @@ const UserRecord = () => {
                                 <p className="text-muted-foreground">{userProfile.position}</p>
                                 <div className="flex gap-4 mt-2 text-sm">
                                     <span className="text-muted-foreground">ID: {userProfile.employeeId}</span>
-                                    <span className="text-muted-foreground">Dept: {userProfile.department}</span>
-                                    <span className="text-muted-foreground">{userProfile.email}</span>
+                                    {/* <span className="text-muted-foreground">Dept: {userProfile.department}</span> */}
+                                    {/* <span className="text-muted-foreground">{userProfile.email}</span> */}
                                 </div>
                             </div>
                         </div>
@@ -389,56 +382,6 @@ const UserRecord = () => {
                     </div>
                 </div>
 
-                {/* Leave Balance Section */}
-                {/* {userProfile.leaveBalance && (
-                    <div className="bg-card border border-border rounded-2xl p-6 mb-8">
-                        <h2 className="text-lg font-bold text-foreground mb-4">Leave Balance</h2>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="p-4 bg-muted rounded-xl">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Heart className="w-4 h-4 text-red-500" />
-                                    <span className="text-sm text-muted-foreground">Sick Leave</span>
-                                </div>
-                                <p className={`text-2xl font-bold ${getLeaveBalanceColor(userProfile.leaveBalance.sick)}`}>
-                                    {userProfile.leaveBalance.sick}
-                                </p>
-                                <p className="text-xs text-muted-foreground">days remaining</p>
-                            </div>
-                            <div className="p-4 bg-muted rounded-xl">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Plane className="w-4 h-4 text-blue-500" />
-                                    <span className="text-sm text-muted-foreground">Vacation</span>
-                                </div>
-                                <p className={`text-2xl font-bold ${getLeaveBalanceColor(userProfile.leaveBalance.vacation)}`}>
-                                    {userProfile.leaveBalance.vacation}
-                                </p>
-                                <p className="text-xs text-muted-foreground">days remaining</p>
-                            </div>
-                            <div className="p-4 bg-muted rounded-xl">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <User className="w-4 h-4 text-purple-500" />
-                                    <span className="text-sm text-muted-foreground">Personal</span>
-                                </div>
-                                <p className={`text-2xl font-bold ${getLeaveBalanceColor(userProfile.leaveBalance.personal)}`}>
-                                    {userProfile.leaveBalance.personal}
-                                </p>
-                                <p className="text-xs text-muted-foreground">days remaining</p>
-                            </div>
-                            <div className="p-4 bg-muted rounded-xl">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <AlertTriangle className="w-4 h-4 text-orange-500" />
-                                    <span className="text-sm text-muted-foreground">Emergency</span>
-                                </div>
-                                <p className={`text-2xl font-bold ${getLeaveBalanceColor(userProfile.leaveBalance.emergency)}`}>
-                                    {userProfile.leaveBalance.emergency}
-                                </p>
-                                <p className="text-xs text-muted-foreground">days remaining</p>
-                            </div>
-                        </div>
-                    </div>
-                )} */}
-
-                {/* Today's Status Section */}
                 <div className="bg-card border border-border rounded-2xl p-6 mb-8">
                     <h2 className="text-lg font-bold text-foreground mb-4">Today&apos;s Status</h2>
 
@@ -490,13 +433,6 @@ const UserRecord = () => {
                                     <p className="text-sm text-green-700 dark:text-green-300">You&apos;ve completed your attendance for today</p>
                                 </div>
                             </div>
-                            <Button
-                                onClick={() => window.location.reload()}
-                                variant="outline"
-                                className="flex items-center gap-2"
-                            >
-                                View Summary
-                            </Button>
                         </div>
                     )}
 
@@ -553,7 +489,6 @@ const UserRecord = () => {
                     )}
                 </div>
 
-                {/* Attendance History */}
                 <div>
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-lg font-bold text-foreground">Attendance & Leave History</h2>
@@ -625,7 +560,7 @@ const UserRecord = () => {
                                             {record.remarks && (
                                                 <div className="text-xs text-muted-foreground flex items-center gap-1">
                                                     <FileText className="w-3 h-3" />
-                                                    <span className="truncate max-w-37.5">{record.remarks}</span>
+                                                    <span className="truncate max-w-[150px]">{record.remarks}</span>
                                                 </div>
                                             )}
                                             <button
@@ -727,7 +662,6 @@ const UserRecord = () => {
                 </div>
             </main>
 
-            {/* Leave Request Modal */}
             {showLeaveModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6">
@@ -847,7 +781,6 @@ const UserRecord = () => {
                 </div>
             )}
 
-            {/* Emergency Leave Modal */}
             {showEmergencyModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6">
@@ -941,7 +874,6 @@ const UserRecord = () => {
                 </div>
             )}
 
-            {/* Remark Modal */}
             {showRemarkModal && selectedRecord && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6">
@@ -965,7 +897,7 @@ const UserRecord = () => {
                                     onChange={(e) => setRemarkText(e.target.value)}
                                     rows={4}
                                     className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
-                                    placeholder="Add your remarks here..."
+                                    placeholder="Add your remark..."
                                 />
                             </div>
                         </div>
@@ -982,7 +914,6 @@ const UserRecord = () => {
                                 onClick={saveRemark}
                                 className="flex-1 bg-secondary text-secondary-foreground"
                             >
-                                <Save className="w-4 h-4 mr-2" />
                                 Save Remark
                             </Button>
                         </div>
