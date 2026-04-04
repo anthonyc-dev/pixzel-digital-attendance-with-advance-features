@@ -136,18 +136,18 @@ const AdminDashboard = () => {
             {/* Header Section */}
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 dark:border-white/5 pb-6">
                 <div className="space-y-1">
-                    <h1 className="text-3xl font-black tracking-tighter text-foreground">Analytics Overview</h1>
-                    <p className="text-muted-foreground text-xs font-bold uppercase tracking-[0.2em] opacity-80 flex items-center gap-2">
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Analytics Overview</h1>
+                    <p className="text-muted-foreground text-xs font-semibold uppercase tracking-[0.2em] opacity-80 flex items-center gap-2">
                         <Activity className="w-3 h-3 text-secondary" />
                         Real-time Performance Metrics
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-[10px] font-black uppercase tracking-widest text-foreground">
+                    <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-[10px] font-semibold uppercase tracking-widest text-foreground">
                         <Calendar className="w-3.5 h-3.5 text-secondary" />
                         <span>{format(new Date(), 'MMM dd')} - {format(subDays(new Date(), 7), 'MMM dd, yyyy')}</span>
                     </div>
-                    <button className="flex items-center gap-2 px-5 py-2.5 bg-secondary text-white rounded-lg font-black uppercase tracking-widest text-[10px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all active:scale-95">
+                    <button className="flex items-center gap-2 px-5 py-2.5 bg-secondary text-white rounded-lg font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all active:scale-95">
                         <Target className="w-3.5 h-3.5" />
                         <span>Report Details</span>
                     </button>
@@ -165,14 +165,14 @@ const AdminDashboard = () => {
                             <div className={cn("p-2.5 rounded-lg", stat.bg)}>
                                 <stat.icon className={cn("w-5 h-5", stat.color)} />
                             </div>
-                            <span className={cn("text-[10px] font-black px-2 py-0.5 rounded-full",
+                            <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full",
                                 stat.growth.startsWith('+') ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
                             )}>
                                 {stat.growth}
                             </span>
                         </div>
-                        <div className="text-3xl font-black text-foreground tracking-tighter tabular-nums mb-1">{stat.value}</div>
-                        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{stat.title}</div>
+                        <div className="text-3xl font-bold text-foreground tracking-tight tabular-nums mb-1">{stat.value}</div>
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{stat.title}</div>
                     </div>
                 ))}
             </section>
@@ -183,17 +183,17 @@ const AdminDashboard = () => {
                 <div className="lg:col-span-2 p-6 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm">
                     <div className="flex items-center justify-between mb-8">
                         <div>
-                            <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Attendance Trends</h3>
-                            <p className="text-[10px] font-bold text-muted-foreground">Daily activity breakdown for the current week</p>
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Attendance Trends</h3>
+                            <p className="text-[10px] font-semibold text-muted-foreground">Daily activity breakdown for the current week</p>
                         </div>
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-1.5">
                                 <div className="w-2 h-2 rounded-full bg-blue-500" />
-                                <span className="text-[9px] font-black uppercase text-muted-foreground">Present</span>
+                                <span className="text-[9px] font-semibold uppercase text-muted-foreground">Present</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <div className="w-2 h-2 rounded-full bg-amber-500" />
-                                <span className="text-[9px] font-black uppercase text-muted-foreground">Late</span>
+                                <span className="text-[9px] font-semibold uppercase text-muted-foreground">Late</span>
                             </div>
                         </div>
                     </div>
@@ -205,14 +205,14 @@ const AdminDashboard = () => {
                                     dataKey="name"
                                     axisLine={false}
                                     tickLine={false}
-                                    tick={{ fontSize: 10, fontWeight: 900, fill: 'currentColor' }}
+                                    tick={{ fontSize: 10, fontWeight: 700, fill: 'currentColor' }}
                                     dy={10}
                                     className="text-muted-foreground"
                                 />
                                 <YAxis
                                     axisLine={false}
                                     tickLine={false}
-                                    tick={{ fontSize: 10, fontWeight: 900, fill: 'currentColor' }}
+                                    tick={{ fontSize: 10, fontWeight: 700, fill: 'currentColor' }}
                                     className="text-muted-foreground"
                                 />
                                 <Tooltip
@@ -236,8 +236,8 @@ const AdminDashboard = () => {
                 {/* Secondary Metrics / Pie Chart */}
                 <div className="p-6 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm flex flex-col">
                     <div className="mb-6">
-                        <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Status Distribution</h3>
-                        <p className="text-[10px] font-bold text-muted-foreground">Overall ratio of attendance categories</p>
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Status Distribution</h3>
+                        <p className="text-[10px] font-semibold text-muted-foreground">Overall ratio of attendance categories</p>
                     </div>
                     <div className="h-[200px] w-full relative">
                         <ResponsiveContainer width="100%" height="100%">
@@ -265,8 +265,8 @@ const AdminDashboard = () => {
                             </PieChart>
                         </ResponsiveContainer>
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                            <span className="text-xl font-black text-foreground">{presentPercentage}%</span>
-                            <span className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Score</span>
+                            <span className="text-xl font-bold text-foreground">{presentPercentage}%</span>
+                            <span className="text-[8px] font-semibold uppercase text-muted-foreground tracking-widest">Score</span>
                         </div>
                     </div>
                     <div className="mt-auto space-y-3">
@@ -274,9 +274,9 @@ const AdminDashboard = () => {
                             <div key={idx} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-all transition-colors cursor-default">
                                 <div className="flex items-center gap-3">
                                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                                    <span className={cn("text-[10px] font-black text-foreground uppercase tracking-widest", item.name === 'On Time' && "text-emerald-500")}>{item.name === 'On Time' ? 'Present' : item.name}</span>
+                                    <span className={cn("text-[10px] font-bold text-foreground uppercase tracking-widest", item.name === 'On Time' && "text-emerald-500")}>{item.name === 'On Time' ? 'Present' : item.name}</span>
                                 </div>
-                                <span className="text-[10px] font-black text-muted-foreground transition-colors group-hover:text-foreground">{item.value}%</span>
+                                <span className="text-[10px] font-bold text-muted-foreground transition-colors group-hover:text-foreground">{item.value}%</span>
                             </div>
                         ))}
                     </div>
@@ -287,8 +287,8 @@ const AdminDashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="p-6 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Latest Departures</h3>
-                        <button className="text-[10px] font-black text-secondary flex items-center gap-1 hover:underline">
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Latest Departures</h3>
+                        <button className="text-[10px] font-bold text-secondary flex items-center gap-1 hover:underline">
                             View Logs <ChevronRight className="w-3 h-3" />
                         </button>
                     </div>
@@ -302,19 +302,19 @@ const AdminDashboard = () => {
                             return (
                                 <div key={idx} className="flex items-center justify-between group">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center font-black text-secondary border border-secondary/20">
+                                        <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center font-bold text-secondary border border-secondary/20">
                                             {emp.employer_name.charAt(0)}
                                         </div>
                                         <div>
-                                            <div className="text-[11px] font-black text-foreground group-hover:text-secondary transition-colors tabular-nums tracking-tight">{emp.employer_name}</div>
+                                            <div className="text-[11px] font-bold text-foreground group-hover:text-secondary transition-colors tabular-nums tracking-tight">{emp.employer_name}</div>
                                             <div className="text-[9px] font-bold text-muted-foreground uppercase opacity-60 tracking-wider transition-opacity">{emp.employer_position || 'Staff'}</div>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="text-[10px] font-black text-foreground tabular-nums tracking-tighter">
+                                        <div className="text-[10px] font-bold text-foreground tabular-nums tracking-tight">
                                             {latestTimeOut ? format(new Date(latestTimeOut.timestamp), 'hh:mm a') : '--:-- --'}
                                         </div>
-                                        <div className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">
+                                        <div className="text-[8px] font-bold text-emerald-500 uppercase tracking-widest">
                                             {latestTimeOut ? 'Exited' : 'Not Exited'}
                                         </div>
                                     </div>
@@ -326,8 +326,8 @@ const AdminDashboard = () => {
 
                 <div className="p-6 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm relative overflow-hidden">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Efficiency Index</h3>
-                        <button className="px-3 py-1 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full text-[9px] font-black uppercase tracking-widest text-foreground transition-all">Monthly</button>
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Efficiency Index</h3>
+                        <button className="px-3 py-1 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full text-[9px] font-bold uppercase tracking-widest text-foreground transition-all">Monthly</button>
                     </div>
                     <div className="h-[180px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -353,8 +353,8 @@ const AdminDashboard = () => {
                     </div>
                     <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/10">
                          <div className="space-y-1">
-                            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest block">Average Score</span>
-                            <span className="text-xl font-black text-foreground tracking-tighter">
+                            <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest block">Average Score</span>
+                            <span className="text-xl font-bold text-foreground tracking-tight">
                                 {weeklyData.length > 0 
                                     ? Math.round(weeklyData.reduce((acc, d) => acc + (d.present / (d.present + d.late + d.absent || 1)) * 100, 0) / weeklyData.length)
                                     : 0}%

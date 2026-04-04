@@ -345,7 +345,7 @@ const AttendancePage = () => {
                   {/* Status Overlay */}
                   <div className="absolute top-4 right-4 z-20">
                     <div className={cn(
-                      "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2",
+                      "px-3 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2",
                       detectedFaces > 0 ? "bg-emerald-500 text-white" : "bg-black/60 text-white/70 backdrop-blur-md border border-white/10"
                     )}>
                       <div className={cn("w-1.5 h-1.5 rounded-full bg-white", detectedFaces > 0 ? "animate-pulse" : "opacity-50")} />
@@ -377,7 +377,7 @@ const AttendancePage = () => {
                     <div className="w-24 h-24 rounded-full bg-emerald-500 flex items-center justify-center mx-auto shadow-[0_0_40px_rgba(16,185,129,0.4)]">
                       <CheckCircle2 className="w-12 h-12 text-white" />
                     </div>
-                    <h3 className="mt-6 text-2xl font-black text-white tracking-tight">Success!</h3>
+                    <h3 className="mt-6 text-2xl font-bold text-white tracking-tight">Success!</h3>
                     <p className="text-lg font-bold text-white/90 mt-1">{lastAttendance?.name}</p>
                     <p className="text-sm font-bold text-emerald-400 uppercase tracking-widest mt-2">{lastAttendance?.type.replace('_', ' ')} Recorded</p>
                   </div>
@@ -387,7 +387,7 @@ const AttendancePage = () => {
               {/* Matching Status */}
               {scanResult === 'scanning' && (
                 <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30">
-                  <div className="flex items-center gap-3 px-6 py-3 rounded-2xl bg-secondary text-white font-black uppercase tracking-widest text-xs shadow-xl animate-bounce">
+                  <div className="flex items-center gap-3 px-6 py-3 rounded-2xl bg-secondary text-white font-bold uppercase tracking-widest text-xs shadow-xl animate-bounce">
                     <Shield className="w-4 h-4" />
                     Analyzing Bio-Data...
                   </div>
@@ -443,7 +443,7 @@ const AttendancePage = () => {
                     </div>
                     <span className="font-bold text-foreground text-sm">Present</span>
                   </div>
-                  <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{stats.present}</span>
+                  <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.present}</span>
                 </div>
 
                 <div className="flex items-center justify-between p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 group hover:bg-amber-500/15 transition-colors">
@@ -453,7 +453,7 @@ const AttendancePage = () => {
                     </div>
                     <span className="font-bold text-foreground text-sm">Late</span>
                   </div>
-                  <span className="text-2xl font-black text-amber-600 dark:text-amber-400">{stats.late}</span>
+                  <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">{stats.late}</span>
                 </div>
 
                 <div className="flex items-center justify-between p-4 rounded-2xl bg-red-500/10 border border-red-500/20 group hover:bg-red-500/15 transition-colors">
@@ -463,7 +463,7 @@ const AttendancePage = () => {
                     </div>
                     <span className="font-bold text-foreground text-sm">Absent</span>
                   </div>
-                  <span className="text-2xl font-black text-red-600 dark:text-red-400 text-muted-foreground/30">{stats.absent}</span>
+                  <span className="text-2xl font-bold text-red-600 dark:text-red-400 text-muted-foreground/30">{stats.absent}</span>
                 </div>
               </div>
             </CardContent>
@@ -483,11 +483,11 @@ const AttendancePage = () => {
                     </div>
                   </div>
                   <div>
-                    <p className="font-black text-foreground">{lastAttendance.name}</p>
+                    <p className="font-bold text-foreground">{lastAttendance.name}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{lastAttendance.time}</span>
                       <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-secondary">{lastAttendance.type.replace('_', ' ')}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-secondary">{lastAttendance.type.replace('_', ' ')}</span>
                     </div>
                   </div>
                 </div>
@@ -514,10 +514,10 @@ const AttendancePage = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border/50">
-                  <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Employee</th>
-                  <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Time</th>
-                  <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Type</th>
-                  <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status</th>
+                  <th className="text-left py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Employee</th>
+                  <th className="text-left py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Time</th>
+                  <th className="text-left py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Type</th>
+                  <th className="text-left py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/30">
@@ -525,7 +525,7 @@ const AttendancePage = () => {
                   <tr key={log.id} className="hover:bg-muted/30 transition-colors group">
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center font-black text-secondary text-xs border border-secondary/5 overflow-hidden">
+                        <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center font-bold text-secondary text-xs border border-secondary/5 overflow-hidden">
                           {log.employer_registration?.image ? (
                             <Image src={log.employer_registration.image} alt="" className="w-full h-full object-cover" width={40} height={40} />
                           ) : (
@@ -545,7 +545,7 @@ const AttendancePage = () => {
                     </td>
                     <td className="py-4 px-6">
                       <span className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest",
                         log.type === 'time_in' ? "bg-secondary/10 text-secondary" : "bg-muted text-muted-foreground"
                       )}>
                         {log.type === 'time_in' ? <LogIn className="w-3 h-3" /> : <LogOut className="w-3 h-3" />}
@@ -554,7 +554,7 @@ const AttendancePage = () => {
                     </td>
                     <td className="py-4 px-6">
                       <span className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest",
                         (log.status === 'present' || log.status === 'on_time') && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
                         log.status === 'late' && "bg-amber-500/10 text-amber-600 dark:text-amber-400",
                         log.status === 'absent' && "bg-red-500/10 text-red-600 dark:text-red-400"

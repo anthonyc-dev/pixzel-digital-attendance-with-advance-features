@@ -128,13 +128,13 @@ const AdminCalendarPage = () => {
       {/* Dynamic Header Controls */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-3xl font-black tracking-tighter text-foreground flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-secondary/10 border border-secondary/20 transition-all hover:scale-110">
               <CalendarIcon className="w-6 h-6 text-secondary" />
             </div>
             Admin Calendar
           </h1>
-          <p className="text-muted-foreground text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] leading-none opacity-80 pl-14">
+          <p className="text-muted-foreground text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] leading-none opacity-80 pl-14">
             Managing employer activities & schedules
           </p>
         </div>
@@ -146,7 +146,7 @@ const AdminCalendarPage = () => {
                 key={type}
                 onClick={() => setViewType(type)}
                 className={cn(
-                  "px-4 sm:px-6 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all active:scale-95",
+                  "px-4 sm:px-6 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all active:scale-95",
                   viewType === type 
                     ? "bg-secondary text-white shadow-lg shadow-secondary/20" 
                     : "text-muted-foreground hover:bg-muted"
@@ -178,7 +178,7 @@ const AdminCalendarPage = () => {
           {/* Calendar Toolbar */}
           <div className="flex items-center justify-between mb-8 relative z-10">
             <div className="flex items-center gap-4">
-              <h2 className="text-2xl font-black text-foreground tracking-tight transition-all">
+              <h2 className="text-2xl font-bold text-foreground tracking-tight transition-all">
                 {format(currentDate, 'MMMM yyyy')}
               </h2>
               <div className="flex items-center bg-muted/50 rounded-lg p-0.5 border border-border">
@@ -211,7 +211,7 @@ const AdminCalendarPage = () => {
           <div className="grid grid-cols-7 mb-4 relative z-10 border-b border-border pb-4">
             {weekDays.map(day => (
               <div key={day} className="text-center">
-                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{day}</span>
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">{day}</span>
               </div>
             ))}
           </div>
@@ -241,7 +241,7 @@ const AdminCalendarPage = () => {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className={cn(
-                      "text-xs font-black w-6 h-6 flex items-center justify-center rounded-md transition-all",
+                      "text-xs font-bold w-6 h-6 flex items-center justify-center rounded-md transition-all",
                       isDayToday ? "bg-secondary text-white shadow-lg shadow-secondary/30" : isCurrentMonth ? "text-foreground" : "text-muted-foreground/20",
                       isSelected && !isDayToday && "bg-muted text-secondary"
                     )}>
@@ -279,7 +279,7 @@ const AdminCalendarPage = () => {
                       );
                     })}
                     {dayActivities.length > 5 && (
-                      <div className="w-6 h-6 rounded-full bg-muted border-2 border-white dark:border-[#0c0c0c] flex items-center justify-center text-[7px] font-black text-muted-foreground ring-1 ring-border z-0">
+                      <div className="w-6 h-6 rounded-full bg-muted border-2 border-white dark:border-[#0c0c0c] flex items-center justify-center text-[7px] font-bold text-muted-foreground ring-1 ring-border z-0">
                         +{dayActivities.length - 5}
                       </div>
                     )}
@@ -288,7 +288,7 @@ const AdminCalendarPage = () => {
                   {/* Date Watermark */}
                   {!isCurrentMonth && (
                     <div className="absolute inset-0 z-0 flex items-center justify-center opacity-[0.02] bg-white dark:bg-[#0c0c0c] h-full w-full pointer-events-none select-none">
-                       <span className="text-4xl font-black">{format(day, 'MM')}</span>
+                       <span className="text-4xl font-bold">{format(day, 'MM')}</span>
                     </div>
                   )}
                 </div>
@@ -306,11 +306,11 @@ const AdminCalendarPage = () => {
              </div>
 
              <div className="relative z-10">
-               <div className="text-[10px] font-black uppercase tracking-widest text-secondary mb-1 flex items-center gap-2">
+               <div className="text-[10px] font-semibold uppercase tracking-widest text-secondary mb-1 flex items-center gap-2">
                  <Clock className="w-3 h-3" /> Day Logs
                  {isLoading && <Loader2 className="w-3 h-3 animate-spin ml-auto" />}
                </div>
-               <h3 className="text-xl font-black text-foreground tracking-tight mb-4">
+               <h3 className="text-xl font-bold text-foreground tracking-tight mb-4">
                  {selectedDate ? format(selectedDate, 'EEEE, MMM do') : 'Select a date'}
                </h3>
 
@@ -340,11 +340,11 @@ const AdminCalendarPage = () => {
                              )} />
                            </div>
                            <div className="flex-1 min-w-0">
-                             <div className="text-xs font-black text-foreground truncate group-hover/item:text-secondary transition-colors">
+                             <div className="text-xs font-bold text-foreground truncate group-hover/item:text-secondary transition-colors">
                                {record.employer_registration?.employer_name || 'Unknown Guest'}
                              </div>
                              <div className="flex flex-col gap-0.5 mt-0.5">
-                               <span className="text-[8px] font-black text-muted-foreground/60 uppercase tracking-widest truncate">
+                               <span className="text-[8px] font-semibold text-muted-foreground/60 uppercase tracking-widest truncate">
                                  {record.employer_registration?.employer_position || 'Staff'}
                                </span>
                                <div className="flex items-center gap-1.5">
@@ -362,13 +362,13 @@ const AdminCalendarPage = () => {
                      <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-3">
                        <AlertCircle className="w-8 h-8" />
                      </div>
-                     <p className="text-[9px] font-black uppercase tracking-widest text-center px-4 leading-relaxed">No dynamic activity<br/>found for this date</p>
+                     <p className="text-[9px] font-bold uppercase tracking-widest text-center px-4 leading-relaxed">No dynamic activity<br/>found for this date</p>
                    </div>
                  )}
                </div>
 
                {dayRecords.length > 0 && (
-                 <button className="w-full mt-6 py-2.5 rounded-xl bg-secondary text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                 <button className="w-full mt-6 py-2.5 rounded-xl bg-secondary text-white text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
                    Export for {format(selectedDate!, 'MMM dd')}
                  </button>
                )}
@@ -385,15 +385,15 @@ const AdminCalendarPage = () => {
             <div className="relative z-10 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <Users className="w-6 h-6 text-white" />
-                <span className="text-[10px] font-black text-white/70 uppercase tracking-widest">Global Status</span>
+                <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Global Status</span>
               </div>
               <div>
-                 <div className="text-3xl font-black text-white tracking-tighter tabular-nums drop-shadow-md">
+                 <div className="text-3xl font-bold text-white tracking-tight tabular-nums drop-shadow-md">
                    {records.length > 0 ? Math.round((records.filter(r => !getStatusType(r.status).match(/absent|leave/)).length / records.length) * 100) : '--'}%
                  </div>
-                 <div className="text-[10px] font-black text-white/80 uppercase tracking-widest mt-1">System Efficiency</div>
+                 <div className="text-[10px] font-bold text-white/80 uppercase tracking-widest mt-1">System Efficiency</div>
               </div>
-              <div className="flex items-center gap-2 text-white/70 text-[9px] font-black uppercase tracking-widest mt-2 bg-black/10 px-2 py-1 rounded-lg w-fit backdrop-blur-md">
+              <div className="flex items-center gap-2 text-white/70 text-[9px] font-bold uppercase tracking-widest mt-2 bg-black/10 px-2 py-1 rounded-lg w-fit backdrop-blur-md">
                 <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                 <span>Real-time tracking active</span>
               </div>
@@ -407,11 +407,11 @@ const AdminCalendarPage = () => {
                 <AlertCircle className="w-5 h-5 text-muted-foreground group-hover:text-amber-500 transition-colors" />
               </div>
               <div>
-                <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Integrity Review</div>
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Integrity Review</div>
                 <div className="text-xs font-bold text-foreground truncate">Check discrepancy logs</div>
               </div>
             </div>
-            <div className="w-6 h-6 rounded-lg bg-red-500/10 flex items-center justify-center text-[10px] font-black text-red-600">2</div>
+            <div className="w-6 h-6 rounded-lg bg-red-500/10 flex items-center justify-center text-[10px] font-bold text-red-600">2</div>
           </div>
 
         </div>

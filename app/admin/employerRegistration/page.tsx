@@ -522,8 +522,8 @@ const RegistrationContent = () => {
                   <ScanLine className="w-4 h-4 sm:w-5 sm:h-5 text-[#0089C0]" />
                 </div>
                 <div>
-                  <h2 className="text-base sm:text-lg md:text-xl font-black tracking-tight text-foreground">New Registration</h2>
-                  <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mt-0.5 sm:mt-1">
+                  <h2 className="text-base sm:text-lg md:text-xl font-bold tracking-tight text-foreground">New Registration</h2>
+                  <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 mt-0.5 sm:mt-1">
                     Enter employer details to begin
                   </p>
                 </div>
@@ -531,7 +531,7 @@ const RegistrationContent = () => {
 
               <div className="space-y-3 sm:space-y-4">
                 <div className="space-y-1.5 sm:space-y-2">
-                  <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                  <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
                     {/* <Hash className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> */}
                     Employer ID
                   </label>
@@ -548,7 +548,7 @@ const RegistrationContent = () => {
                 </div>
 
                 <div className="space-y-1.5 sm:space-y-2">
-                  <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                  <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
                     {/* <User className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> */}
                     Employer Name
                   </label>
@@ -565,7 +565,7 @@ const RegistrationContent = () => {
                 </div>
 
                 <div className="space-y-1.5 sm:space-y-2">
-                  <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                  <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
                     {/* <Briefcase className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> */}
                     Position
                   </label>
@@ -586,14 +586,14 @@ const RegistrationContent = () => {
                 <button
                   onClick={handleStartRegistration}
                   disabled={!formData.employerId || !formData.employerName || !formData.employerPosition}
-                  className="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[10px] sm:text-[11px] font-black uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer"
+                  className="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer"
                 >
                   <ScanFace className="w-3 sm:w-4 h-3 sm:h-4" />
                   Start Scanner
                 </button>
                 <button
                   onClick={handleCancel}
-                  className="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-foreground text-[10px] sm:text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-all cursor-pointer"
+                  className="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-foreground text-[10px] sm:text-[11px] font-bold uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -606,12 +606,12 @@ const RegistrationContent = () => {
       <div className="flex flex-col gap-4 sm:gap-6 lg:gap-8 w-full max-w-7xl animate-in fade-in duration-500 ease-out pb-4 sm:pb-6 lg:pb-10">
         <header className="flex items-center justify-between gap-4 sm:gap-6">
           <div className="space-y-1 sm:space-y-2">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter text-foreground">Employer Registration</h1>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground">Employer Registration</h1>
           </div>
           {!isModalOpen && !isCameraOpen && (
             <button
               onClick={() => setIsModalOpen(true)}
-              className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all flex items-center gap-1.5 sm:gap-2 w-fit cursor-pointer"
+              className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all flex items-center gap-1.5 sm:gap-2 w-fit cursor-pointer"
             >
               <UserCheck className="w-3 sm:w-4 h-3 sm:h-4" />
               New Registration
@@ -628,8 +628,8 @@ const RegistrationContent = () => {
               <div className="p-4 sm:p-6 md:p-8 lg:p-10 flex flex-col h-full relative z-10 w-full">
                 <div className="flex flex-wrap items-start justify-between gap-4 sm:gap-6 mb-4 sm:mb-6 lg:mb-8 w-full flex-shrink-0">
                   <div className="w-full sm:w-auto">
-                    <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground">Registration Station</div>
-                    <h2 className="text-lg sm:text-xl md:text-2xl font-black tracking-tight text-foreground mt-1 sm:mt-2">Facial Recognition</h2>
+                    <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Registration Station</div>
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-foreground mt-1 sm:mt-2">Facial Recognition</h2>
                     <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/70 mt-1 sm:mt-2">
                       Position the employer&apos;s face inside the frame
                     </p>
@@ -681,7 +681,7 @@ const RegistrationContent = () => {
                           <User className="w-3 sm:w-4 h-3 sm:h-4 text-[#0089C0]" />
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-[10px] sm:text-xs font-black text-white leading-none tracking-tight">{formData.employerName}</span>
+                          <span className="text-[10px] sm:text-xs font-bold text-white leading-none tracking-tight">{formData.employerName}</span>
                           <span className="text-[8px] sm:text-[9px] font-bold text-white/60 uppercase tracking-widest mt-1">{formData.employerPosition}</span>
                         </div>
                       </div>
@@ -696,7 +696,7 @@ const RegistrationContent = () => {
                       <div className="absolute top-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-b from-black/60 to-transparent z-10">
                         <div className="flex items-center justify-between flex-wrap gap-2">
                           <div className={cn(
-                            "flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all",
+                            "flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-all",
                             detectedFaces > 0
                               ? "bg-green-500/80 text-white"
                               : isModelLoading
@@ -722,7 +722,7 @@ const RegistrationContent = () => {
                           </div>
 
                           {modelError && (
-                            <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-red-500/80 text-white text-[10px] sm:text-xs font-black uppercase tracking-widest">
+                            <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-red-500/80 text-white text-[10px] sm:text-xs font-bold uppercase tracking-widest">
                               <AlertCircle className="w-3 sm:w-4 h-3 sm:h-4" />
                               <span className="hidden sm:inline">{modelError}</span>
                               <span className="sm:hidden">Error</span>
@@ -757,7 +757,7 @@ const RegistrationContent = () => {
                             </div>
                             <button
                               onClick={handleNewRegistration}
-                              className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/20 text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer"
+                              className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/20 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer"
                             >
                               <UserCheck className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
                               New Registration
@@ -767,7 +767,7 @@ const RegistrationContent = () => {
                           <button
                             disabled={isScanning || detectedFaces === 0}
                             onClick={captureAndRegister}
-                            className="px-6 sm:px-10 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[10px] sm:text-[11px] font-black uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-1.5 sm:gap-2 cursor-pointer"
+                            className="px-6 sm:px-10 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-1.5 sm:gap-2 cursor-pointer"
                           >
                             <ScanFace className="w-3 sm:w-4 h-3 sm:h-4" />
                             {isScanning ? 'Generating Descriptor...' : detectedFaces === 0 ? 'Position Face in Frame' : 'Register Face'}
@@ -801,10 +801,10 @@ const RegistrationContent = () => {
                       </div>
 
                       <div className="relative z-10 text-center">
-                        <div className="text-lg sm:text-xl md:text-2xl font-black tracking-tighter text-[#0089C0]">
+                        <div className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-[#0089C0]">
                           {isModelLoading ? "Loading AI Model..." : "Enable Scanner"}
                         </div>
-                        <div className="mt-1 sm:mt-2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] text-[#0089C0]/70">
+                        <div className="mt-1 sm:mt-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] sm:tracking-[0.25em] text-[#0089C0]/70">
                           {isModelLoading ? "Please wait..." : "Click to start scanning"}
                         </div>
                       </div>
@@ -813,7 +813,7 @@ const RegistrationContent = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 mt-4 sm:mt-6 lg:mt-8 pt-4 sm:pt-6 border-t border-gray-100 dark:border-white/10 w-full flex-shrink-0">
-                  <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center flex-wrap gap-2">
+                  <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center flex-wrap gap-2">
                     <span>Scanner Status</span>
                     {isModelLoading ? (
                       <span className="flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20">
@@ -829,7 +829,7 @@ const RegistrationContent = () => {
                       </span>
                     )}
                   </div>
-                  <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 hidden sm:block">
+                  <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 hidden sm:block">
                     {isModelLoading ? "Waiting for AI model..." : isCameraOpen ? (detectedFaces > 0 ? "Face detected - Ready to register" : "Position your face in the frame") : "Enable camera to scan"}
                   </div>
                 </div>
@@ -845,8 +845,8 @@ const RegistrationContent = () => {
                   <History className="w-4 sm:w-5 h-4 sm:h-5 text-[#0089C0]" />
                 </div>
                 <div>
-                  <h3 className="text-sm sm:text-lg font-black tracking-tight text-foreground">Registration History</h3>
-                  <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mt-0.5 sm:mt-1">
+                  <h3 className="text-sm sm:text-lg font-bold tracking-tight text-foreground">Registration History</h3>
+                  <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 mt-0.5 sm:mt-1">
                     Facial recognition logs
                   </div>
                 </div>
@@ -891,7 +891,7 @@ const RegistrationContent = () => {
                             <div className="text-xs sm:text-sm font-bold text-foreground truncate">
                               {record.employerName}
                             </div>
-                            <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mt-0.5">
+                            <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 mt-0.5">
                               {record.employerId} &middot; {record.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
                             </div>
                           </div>
@@ -899,14 +899,14 @@ const RegistrationContent = () => {
 
                         <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2.5 py-1 rounded-lg bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 flex-shrink-0">
                           <CheckCircle className="w-2.5 sm:w-3 h-2.5 sm:h-3" />
-                          <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest hidden sm:block">Registered</span>
+                          <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest hidden sm:block">Registered</span>
                         </div>
                       </div>
                     ))}
                     {history.length > 5 && (
                       <button
                         onClick={() => setShowAllHistory(!showAllHistory)}
-                        className="w-full py-2 text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#0089C0] hover:text-[#007aaa] transition-colors text-center"
+                        className="w-full py-2 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-[#0089C0] hover:text-[#007aaa] transition-colors text-center"
                       >
                         {showAllHistory ? 'Show Less' : `Show More (${history.length - 5})`}
                       </button>
@@ -930,7 +930,7 @@ const RegistrationContent = () => {
             {toast.type === 'success' && <CheckCircle2 className="w-5 h-5" />}
             {toast.type === 'info' && <ScanFace className="w-5 h-5" />}
             {toast.type === 'error' && <AlertCircle className="w-5 h-5" />}
-            <span className="text-xs font-black uppercase tracking-widest">{toast.message}</span>
+            <span className="text-xs font-bold uppercase tracking-widest">{toast.message}</span>
             <button onClick={() => setToast(null)} className="ml-2 hover:opacity-70">
               <X className="w-4 h-4" />
             </button>
