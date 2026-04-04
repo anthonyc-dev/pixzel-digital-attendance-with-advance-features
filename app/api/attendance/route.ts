@@ -21,7 +21,7 @@ interface AttendanceLog {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const employer_id = searchParams.get('employer_id');
+  const employer_id = searchParams.get("employer_id");
 
   const supabase = await createSupabaseServer();
 
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
         employer_position,
         image
       )
-    `
+    `,
     )
     .order("timestamp", { ascending: false });
 
