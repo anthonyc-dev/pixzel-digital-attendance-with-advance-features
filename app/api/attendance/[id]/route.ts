@@ -22,7 +22,20 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const mappedData = data?.map((log: any) => ({
+interface AttendanceLog {
+  id: string;
+  employer_registration?: {
+    employer_id: string;
+    employer_name: string;
+    employer_position: string;
+    image: string;
+  };
+  status: string;
+  type: string;
+  timestamp: string;
+}
+
+const mappedData = data?.map((log: AttendanceLog) => ({
     id: log.id,
     employer_id: log.employer_registration?.employer_id,
     employer_name: log.employer_registration?.employer_name,

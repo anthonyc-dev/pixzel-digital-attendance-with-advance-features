@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import {
@@ -22,10 +23,11 @@ import {
   Banknote
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { LucideIcon } from 'lucide-react';
 
 interface NavItem {
   name: string;
-  icon: any;
+  icon: LucideIcon;
   href: string;
   hasSub?: boolean;
   subItems?: { name: string; href: string; badge?: string }[];
@@ -138,7 +140,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
 
           {!isCollapsed && (
             <div className="absolute left-4 top-6 flex items-center">
-              <img src="/Pixzel-Digital-Logo-Light-Land.png" alt="Pixzel Digital" className="h-8 w-auto" />
+              <Image src="/Pixzel-Digital-Logo-Light-Land.png" alt="Pixzel Digital" className="h-8 w-auto" width={120} height={32} />
             </div>
           )}
         </div>
@@ -290,7 +292,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
             <X className="w-5 h-5" />
           </button>
           <div className="flex items-center">
-            <img src="/Pixzel-Digital-Logo-Light-Land.png" alt="Pixzel Digital" className="h-7 w-auto" />
+            <Image src="/Pixzel-Digital-Logo-Light-Land.png" alt="Pixzel Digital" className="h-7 w-auto" width={100} height={28} />
           </div>
           <div className="w-8" />
         </div>

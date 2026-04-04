@@ -7,7 +7,6 @@ import {
     UserMinus, 
     Clock, 
     TrendingUp, 
-    ArrowUpRight, 
     Calendar,
     ChevronRight,
     Activity,
@@ -49,7 +48,6 @@ interface AttendanceRecord {
 }
 
 const AdminDashboard = () => {
-    const [loading, setLoading] = useState(true);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
 
@@ -72,8 +70,6 @@ const AdminDashboard = () => {
                 }
             } catch (e) {
                 console.error('Failed to fetch dashboard data:', e);
-            } finally {
-                setLoading(false);
             }
         };
         fetchData();

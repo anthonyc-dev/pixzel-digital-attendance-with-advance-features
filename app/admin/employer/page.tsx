@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Layout from '@/components/Layout';
 import { cn } from '@/lib/utils';
 import { Users, MoreHorizontal, CheckCircle2, ScanFace, Pencil, Trash2, X, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface Employer {
   id: string;
@@ -177,7 +177,7 @@ const EmployerPage = () => {
                             className="w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-none border border-gray-100 dark:border-white/10 overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-white/5 hover:opacity-80 transition-opacity cursor-zoom-in"
                           >
                             {employer.image ? (
-                              <img src={employer.image} alt={employer.employer_name} className="w-full h-full object-cover" />
+                              <Image src={employer.image} alt={employer.employer_name} className="w-full h-full object-cover" width={64} height={64} />
                             ) : (
                               <ScanFace className="w-6 h-6 text-[#0089C0]" />
                             )}
@@ -261,10 +261,12 @@ const EmployerPage = () => {
             onClick={() => setPreviewImage(null)}
           >
             <div className="relative max-w-4xl max-h-[80vh] w-fit h-fit overflow-hidden animate-in zoom-in-95 duration-200">
-              <img
+              <Image
                 src={previewImage}
                 alt="Preview"
                 className="max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl border border-white/10"
+                width={800}
+                height={600}
               />
               <button className="absolute top-4 right-4 p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-all">
                 <X className="w-5 h-5" />

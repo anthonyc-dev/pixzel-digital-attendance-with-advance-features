@@ -16,7 +16,15 @@ const Login = () => {
   const [isWarping, setIsWarping] = useState(false)
   const [isNavigating, setIsNavigating] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [employers, setEmployers] = useState<any[]>([])
+  interface Employer {
+  id: string;
+  employer_id: string;
+  employer_name: string;
+  employer_position: string;
+  image: string | null;
+}
+
+const [employers, setEmployers] = useState<Employer[]>([])
 
   useEffect(() => {
     const fetchEmployers = async () => {
@@ -181,13 +189,13 @@ const Login = () => {
                 >
                   <div className="absolute -inset-1 bg-white/30 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="relative w-10 h-10 lg:w-12 lg:h-12 rounded-full border-2 border-[#800B30] overflow-hidden bg-neutral-900 shadow-2xl flex items-center justify-center">
-                    {/* Using <img> tag instead of next/image to ensure local/base64 uploads display regardless of next.config domains */}
                     {emp.image ? (
-                      <img
+                      <Image
                         src={emp.image}
                         alt={emp.employer_name}
                         className="w-full h-full object-cover"
-                        loading="lazy"
+                        width={48}
+                        height={48}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-[#800B30]/30 text-white font-black text-sm uppercase">

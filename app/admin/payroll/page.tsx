@@ -1,12 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Layout from '@/components/Layout';
 import {
     Banknote,
     Search,
     Download,
-    ChevronRight,
     TrendingUp,
     Wallet,
     CreditCard,
@@ -15,8 +13,7 @@ import {
     PieChart,
     ArrowUpRight,
     Printer,
-    ChevronDown,
-    Info
+    ChevronDown
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';

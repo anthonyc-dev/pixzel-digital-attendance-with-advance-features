@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
+  <img src="public/Pixzel-Digital-Logo-Light-Land.png" alt="Pixzel Digital Logo" width="300" />
+</div>
 
-## Getting Started
+ <h1 style="margin-top: 50px;">Pixzel Digital Attendance System</h1>
 
-First, run the development server:
+An attendance management system built for Pixzel Digital company, developed by interns 2026 Batch 1.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Employee/Employer facial recognition registration
+- Real-time face detection
+- Attendance tracking
+- Registration history
+- Modern UI with dark mode support
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Tech Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Frontend:** Next.js, React, TypeScript
+- **Styling:** Tailwind CSS
+- **Database:** Supabase (PostgreSQL)
+- **Face Detection:** @vladmandic/face-api
 
-## Learn More
+## Contributors
 
-To learn more about Next.js, take a look at the following resources:
+<div align="center">
+  <table border="0" style="border: none;">
+    <tr>
+      <td align="center">
+        <a href="https://github.com/anthonyc-dev">
+          <img src="https://github.com/anthonyc-dev.png" width="50" height="50" style="border-radius: 50%;" alt="Anthony Crausus" />
+        </a>
+        <br />
+        <strong>Anthony Crausus</strong>
+        <br />
+        <sub>Intern Mobile Developer</sub>
+      </td>
+      <td align="center">
+        <a href="https://github.com/yansanity1998">
+          <img src="https://github.com/yansanity1998.png" width="50" height="50" style="border-radius: 50%;" alt="Anthony Crausus" />
+        </a>
+        <br />
+        <strong>Jasper Ian Barila</strong>
+        <br />
+        <sub>Intern Web Developer</sub>
+      </td>
+      <td align="center">
+        <a href="https://github.com/veegestable">
+          <img src="https://github.com/veegestable.png" width="50" height="50" style="border-radius: 50%;" alt="Anthony Crausus" />
+        </a>
+        <br />
+        <strong>Veejay B. Viovicente</strong>
+        <br />
+        <sub>Intern Web Developer</sub>
+      </td>
+       <td align="center">
+        <a href="https://github.com/Chavsz">
+          <img src="https://github.com/Chavsz.png" width="50" height="50" style="border-radius: 50%;" alt="Anthony Crausus" />
+        </a>
+        <br />
+        <strong>Chavy Martin Tapuyao</strong>
+        <br />
+        <sub>Intern Web Developer</sub>
+      </td>
+    </tr>
+  </table>
+</div>
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+<div align="center">
+  <small>Built by interns for Pixzel Digital</small>
+</div>

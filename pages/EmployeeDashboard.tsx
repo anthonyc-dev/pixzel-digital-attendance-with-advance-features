@@ -1,3 +1,5 @@
+"use client"
+
 import React from 'react';
 import Layout from '@/components/Layout';
 import { Download, Search, SlidersHorizontal, CalendarDays, CheckCircle2, Clock3, Umbrella, UserX, ArrowUpRight } from 'lucide-react';
