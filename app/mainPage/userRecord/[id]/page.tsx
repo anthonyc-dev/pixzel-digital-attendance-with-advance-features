@@ -382,7 +382,7 @@ const UserRecord = () => {
                     </div>
                 </div>
 
-                <div className="bg-card border border-border rounded-2xl p-6 mb-8">
+                {/* <div className="bg-card border border-border rounded-2xl p-6 mb-8">
                     <h2 className="text-lg font-bold text-foreground mb-4">Today&apos;s Status</h2>
 
                     {currentStatus === 'clocked-in' && (
@@ -487,7 +487,7 @@ const UserRecord = () => {
                             </Button>
                         </div>
                     )}
-                </div>
+                </div> */}
 
                 <div>
                     <div className="flex justify-between items-center mb-4">
