@@ -5,6 +5,8 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
+const API_URL = process.env.NEXT_PUBLIC_URL!
+
 const Login = () => {
   const router = useRouter()
   const [identifier, setIdentifier] = useState('')
@@ -17,14 +19,14 @@ const Login = () => {
   const [isNavigating, setIsNavigating] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   interface Employer {
-  id: string;
-  employer_id: string;
-  employer_name: string;
-  employer_position: string;
-  image: string | null;
-}
+    id: string;
+    employer_id: string;
+    employer_name: string;
+    employer_position: string;
+    image: string | null;
+  }
 
-const [employers, setEmployers] = useState<Employer[]>([])
+  const [employers, setEmployers] = useState<Employer[]>([])
 
   useEffect(() => {
     const fetchEmployers = async () => {
@@ -62,7 +64,7 @@ const [employers, setEmployers] = useState<Employer[]>([])
 
     // Supabase Auth signs in with email/phone, so resolve username to email first.
     if (!typedIdentifier.includes('@')) {
-      const resolveResponse = await fetch('/api/auth/resolve-username', {
+      const resolveResponse = await fetch(`${API_URL}/auth/resolve-username`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

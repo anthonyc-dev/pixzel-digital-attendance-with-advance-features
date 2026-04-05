@@ -104,7 +104,7 @@ const AttendancePage = () => {
         const today = new Date();
         const todayStr = format(today, 'yyyy-MM-dd');
  
-        const activeEvent = events.find((event: any) => {
+        const activeEvent = events.find((event: { start_date?: string; end_date?: string; date?: string; title?: string; type?: string }) => {
           try {
             const startStr = event.start_date || event.date;
             const endStr = event.end_date || event.date;
@@ -115,7 +115,7 @@ const AttendancePage = () => {
             const start = startOfDay(parseISO(startStr));
             const end = endOfDay(parseISO(endStr));
             return isWithinInterval(today, { start, end });
-          } catch (err) {
+          } catch {
             return false;
           }
         });

@@ -55,7 +55,6 @@ interface AttendanceRecord {
 interface CalendarEvent {
   id: string;
   title: string;
-  date: string;
   start_date: string;
   end_date: string;
   type: 'holiday' | 'event' | 'meeting' | 'other';
@@ -75,14 +74,12 @@ const AdminCalendarPage = () => {
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [newEvent, setNewEvent] = useState<{
     title: string;
-    date: string;
     start_date: string;
     end_date: string;
     type: CalendarEvent['type'];
     description: string;
   }>({
     title: '',
-    date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     start_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     end_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     type: 'event' as CalendarEvent['type'],
@@ -150,10 +147,6 @@ const AdminCalendarPage = () => {
               groups[dateStr].push(event);
             }
           });
-        } else if (event.date) {
-          // Fallback if start/end dates are missing
-          if (!groups[event.date]) groups[event.date] = [];
-          groups[event.date].push(event);
         }
       } catch (err) {
         console.error('Error grouping event:', event, err);
@@ -202,7 +195,6 @@ const AdminCalendarPage = () => {
         },
         body: JSON.stringify({
           title: newEvent.title,
-          date: newEvent.date,
           type: newEvent.type,
           description: newEvent.description,
           start_date: newEvent.start_date,
@@ -222,7 +214,6 @@ const AdminCalendarPage = () => {
         const resetDate = format(new Date(), 'yyyy-MM-dd');
         setNewEvent({
           title: '',
-          date: resetDate,
           start_date: resetDate,
           end_date: resetDate,
           type: 'event',
@@ -245,7 +236,6 @@ const AdminCalendarPage = () => {
     setEditingEventId(event.id);
     setNewEvent({
       title: event.title,
-      date: event.date,
       start_date: event.start_date,
       end_date: event.end_date,
       type: event.type,
@@ -327,7 +317,6 @@ const AdminCalendarPage = () => {
               setEditingEventId(null);
               setNewEvent({
                 title: '',
-                date: dateStr,
                 start_date: dateStr,
                 end_date: dateStr,
                 type: 'event',
@@ -750,18 +739,18 @@ const AdminCalendarPage = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Main Date</label>
                   <input
                     type="date"
-                    value={newEvent.date}
+                    value={newEvent.start_date}
                     onChange={(e) => {
                       const val = e.target.value;
-                      setNewEvent({ ...newEvent, date: val, start_date: val, end_date: val });
+                      setNewEvent({ ...newEvent, start_date: val, end_date: val });
                     }}
                     className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium"
                   />
-                </div>
+                </div> */}
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Event Type</label>
                   <select
