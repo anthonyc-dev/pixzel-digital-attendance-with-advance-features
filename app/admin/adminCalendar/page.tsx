@@ -6,7 +6,6 @@ import {
   ChevronRight,
   Calendar as CalendarIcon,
   Search,
-  UserPlus,
   Clock,
   CheckCircle2,
   AlertCircle,
@@ -18,10 +17,12 @@ import {
   X,
   Info,
   Trash2,
-  Pencil
+  Pencil,
+  ChevronDown
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import {
   format,
   addMonths,
@@ -61,11 +62,8 @@ interface CalendarEvent {
   description?: string;
 }
 
-type ViewType = 'month' | 'week' | 'day';
-
 const AdminCalendarPage = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewType, setViewType] = useState<ViewType>('month');
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [isAnimating, setIsAnimating] = useState(false);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
@@ -86,6 +84,8 @@ const AdminCalendarPage = () => {
     description: ''
   });
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<CalendarEvent | null>(null);
 
   // Fetch Attendance Records & Events
   useEffect(() => {
@@ -181,7 +181,7 @@ const AdminCalendarPage = () => {
   };
 
   const handleSaveEvent = async () => {
-    if (!newEvent.title || !newEvent.date) return;
+    if (!newEvent.title || !newEvent.start_date || !newEvent.end_date) return;
 
     try {
       setIsLoading(true);
@@ -211,6 +211,7 @@ const AdminCalendarPage = () => {
         }
         setIsEventModalOpen(false);
         setEditingEventId(null);
+        toast.success(`Event ${editingEventId ? 'updated' : 'created'} successfully!`);
         const resetDate = format(new Date(), 'yyyy-MM-dd');
         setNewEvent({
           title: '',
@@ -222,11 +223,11 @@ const AdminCalendarPage = () => {
       } else {
         const errorData = await response.json();
         console.error('Failed to save event:', errorData.error);
-        alert(`Failed to save event: ${errorData.error}`);
+        toast.error(`Failed to save event: ${errorData.error}`);
       }
     } catch (err) {
       console.error('Error saving event:', err);
-      alert('An error occurred while saving the event.');
+      toast.error('An error occurred while saving the event.');
     } finally {
       setIsLoading(false);
     }
@@ -244,25 +245,33 @@ const AdminCalendarPage = () => {
     setIsEventModalOpen(true);
   };
 
-  const handleDeleteEvent = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this event?')) return;
+  const handleDeleteEvent = (event: CalendarEvent) => {
+    setEventToDelete(event);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!eventToDelete) return;
 
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/events/${id}`, {
+      const response = await fetch(`/api/events/${eventToDelete.id}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        setEvents(prev => prev.filter(e => e.id !== id));
+        setEvents(prev => prev.filter(e => e.id !== eventToDelete.id));
+        toast.success('Event deleted successfully');
+        setIsDeleteConfirmOpen(false);
+        setEventToDelete(null);
       } else {
         const errorData = await response.json();
         console.error('Failed to delete event:', errorData.error);
-        alert(`Failed to delete event: ${errorData.error}`);
+        toast.error(`Failed to delete event: ${errorData.error}`);
       }
     } catch (err) {
       console.error('Error deleting event:', err);
-      alert('An error occurred while deleting the event.');
+      toast.error('An error occurred while deleting the event.');
     } finally {
       setIsLoading(false);
     }
@@ -294,7 +303,7 @@ const AdminCalendarPage = () => {
         </div>
 
         <div className="flex items-center gap-3 self-end md:self-auto">
-          <div className="flex items-center gap-1 p-1 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl shadow-lg">
+          {/* <div className="flex items-center gap-1 p-1 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl shadow-lg">
             {(['month', 'week', 'day'] as ViewType[]).map((type) => (
               <button
                 key={type}
@@ -309,7 +318,7 @@ const AdminCalendarPage = () => {
                 {type}
               </button>
             ))}
-          </div>
+          </div> */}
 
           <button
             onClick={() => {
@@ -324,7 +333,7 @@ const AdminCalendarPage = () => {
               });
               setIsEventModalOpen(true);
             }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-secondary text-white rounded-xl shadow-lg shadow-secondary/20 hover:scale-105 active:scale-95 transition-all group font-bold text-xs uppercase tracking-widest"
+            className="flex items-center gap-2 px-5 py-2.5 bg-secondary text-white rounded-xl shadow-lg shadow-secondary/20 hover:scale-105 active:scale-95 transition-all group font-bold text-xs uppercase tracking-widest cursor-pointer"
           >
             <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
             Add Event
@@ -351,11 +360,11 @@ const AdminCalendarPage = () => {
                 {format(currentDate, 'MMMM yyyy')}
               </h2>
               <div className="flex items-center bg-muted/50 rounded-lg p-0.5 border border-border">
-                <button onClick={handlePrevMonth} className="p-1.5 hover:bg-background rounded-md transition-all text-muted-foreground">
+                <button onClick={handlePrevMonth} className="p-1.5 hover:bg-background rounded-md transition-all text-muted-foreground cursor-pointer">
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <div className="w-px h-4 bg-border mx-0.5" />
-                <button onClick={handleNextMonth} className="p-1.5 hover:bg-background rounded-md transition-all text-muted-foreground">
+                <button onClick={handleNextMonth} className="p-1.5 hover:bg-background rounded-md transition-all text-muted-foreground cursor-pointer">
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -613,16 +622,16 @@ const AdminCalendarPage = () => {
                                   e.stopPropagation();
                                   handleOpenEditModal(event);
                                 }}
-                                className="w-8 h-8 rounded-xl flex items-center justify-center bg-secondary/10 text-secondary hover:bg-secondary hover:text-white transition-all shadow-md active:scale-95"
+                                className="w-8 h-8 rounded-xl flex items-center justify-center bg-secondary/10 text-secondary hover:bg-secondary hover:text-white transition-all shadow-md active:scale-95 cursor-pointer"
                               >
                                 <Pencil className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleDeleteEvent(event.id);
+                                  handleDeleteEvent(event);
                                 }}
-                                className="w-8 h-8 rounded-xl flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-md active:scale-95"
+                                className="w-8 h-8 rounded-xl flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-md active:scale-95 cursor-pointer"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -649,9 +658,9 @@ const AdminCalendarPage = () => {
               )}
 
               {dayRecords.length > 0 && (
-                <button className="w-full mt-6 py-2.5 rounded-xl bg-secondary text-white text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
-                  Export for {format(selectedDate!, 'MMM dd')}
-                </button>
+                  <button className="w-full mt-6 py-2.5 rounded-xl bg-secondary text-white text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer">
+                    Export for {format(selectedDate!, 'MMM dd')}
+                  </button>
               )}
             </div>
           </div>
@@ -705,13 +714,13 @@ const AdminCalendarPage = () => {
             className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity animate-in fade-in duration-300"
             onClick={() => setIsEventModalOpen(false)}
           />
-          <div className="relative w-full max-w-md bg-white dark:bg-[#121212] border border-white/20 rounded-3xl shadow-2xl p-8 animate-in zoom-in-95 duration-300">
-            <div className="flex items-center justify-between mb-8">
+          <div className="relative w-full max-w-sm bg-white dark:bg-[#121212] border border-white/20 rounded-3xl shadow-2xl p-6 animate-in zoom-in-95 duration-300">
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-2xl font-bold tracking-tight text-foreground">
+                <h3 className="text-xl font-bold tracking-tight text-foreground">
                   {editingEventId ? 'Edit Event' : 'Create Event'}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-[10px] text-muted-foreground mt-0.5">
                   {editingEventId ? 'Modify currently scheduled activity' : 'Schedule a new holiday or activity'}
                 </p>
               </div>
@@ -720,13 +729,13 @@ const AdminCalendarPage = () => {
                   setIsEventModalOpen(false);
                   setEditingEventId(null);
                 }}
-                className="p-2 hover:bg-muted rounded-xl transition-all"
+                className="p-2 hover:bg-muted rounded-xl transition-all cursor-pointer"
               >
                 <X className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Event Title</label>
                 <input
@@ -734,35 +743,24 @@ const AdminCalendarPage = () => {
                   value={newEvent.title}
                   onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
                   placeholder="e.g., Independence Day"
-                  className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium"
+                  className="w-full px-3 py-2 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium text-xs"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Main Date</label>
-                  <input
-                    type="date"
-                    value={newEvent.start_date}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setNewEvent({ ...newEvent, start_date: val, end_date: val });
-                    }}
-                    className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium"
-                  />
-                </div> */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Event Type</label>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Event Type</label>
+                <div className="relative">
                   <select
                     value={newEvent.type}
                     onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as CalendarEvent['type'] })}
-                    className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium appearance-none"
+                    className="w-full px-3 py-2 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium appearance-none cursor-pointer text-xs"
                   >
                     <option value="event">General Event</option>
                     <option value="holiday">Holiday (No Attendance)</option>
                     <option value="meeting">Meeting</option>
                     <option value="other">Other</option>
                   </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 </div>
               </div>
 
@@ -773,7 +771,7 @@ const AdminCalendarPage = () => {
                     type="date"
                     value={newEvent.start_date}
                     onChange={(e) => setNewEvent({ ...newEvent, start_date: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium"
+                    className="w-full px-4 py-2 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium text-xs custom-date-input"
                   />
                 </div>
                 <div className="space-y-2">
@@ -782,7 +780,7 @@ const AdminCalendarPage = () => {
                     type="date"
                     value={newEvent.end_date}
                     onChange={(e) => setNewEvent({ ...newEvent, end_date: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium"
+                    className="w-full px-4 py-2 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium text-xs custom-date-input"
                   />
                 </div>
               </div>
@@ -793,7 +791,7 @@ const AdminCalendarPage = () => {
                   value={newEvent.description}
                   onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
                   placeholder="Details about the event..."
-                  className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium min-h-[100px] resize-none"
+                  className="w-full px-4 py-2 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium min-h-[80px] resize-none text-xs"
                 />
               </div>
 
@@ -803,17 +801,51 @@ const AdminCalendarPage = () => {
                     setIsEventModalOpen(false);
                     setEditingEventId(null);
                   }}
-                  className="flex-1 py-3 rounded-xl border border-border hover:bg-muted transition-all text-xs font-bold uppercase tracking-widest"
+                  className="flex-1 py-3 rounded-xl border border-border hover:bg-muted transition-all text-xs font-bold uppercase tracking-widest cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveEvent}
-                  className="flex-[2] py-3 rounded-xl bg-secondary text-white shadow-lg shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-xs font-bold uppercase tracking-widest"
+                  className="flex-[2] py-3 rounded-xl bg-secondary text-white shadow-lg shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-xs font-bold uppercase tracking-widest cursor-pointer"
                 >
                   {editingEventId ? 'Update Event' : 'Create Event'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteConfirmOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity animate-in fade-in duration-300"
+            onClick={() => setIsDeleteConfirmOpen(false)}
+          />
+          <div className="relative w-full max-w-[320px] bg-white dark:bg-[#121212] border border-white/20 rounded-3xl shadow-2xl p-6 animate-in zoom-in-95 duration-300 text-center">
+            <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-8 h-8 text-red-600" />
+            </div>
+            <h3 className="text-xl font-bold text-foreground mb-2">Delete Event?</h3>
+            <p className="text-xs text-muted-foreground mb-6">
+              Are you sure you want to delete <span className="font-bold text-foreground">&quot;{eventToDelete?.title}&quot;</span>? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="flex-1 py-2.5 rounded-xl border border-border hover:bg-muted transition-all text-xs font-bold uppercase tracking-widest cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isLoading}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 text-white shadow-lg shadow-red-600/20 hover:bg-red-700 transition-all text-xs font-bold uppercase tracking-widest disabled:opacity-50 cursor-pointer"
+              >
+                {isLoading ? 'Deleting...' : 'Delete'}
+              </button>
             </div>
           </div>
         </div>
@@ -844,6 +876,15 @@ const AdminCalendarPage = () => {
         }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb {
           background: rgba(255, 255, 255, 0.1);
+        }
+        .custom-date-input::-webkit-calendar-picker-indicator {
+          cursor: pointer;
+          padding-left: 10px;
+          opacity: 0.5;
+          transition: opacity 0.2s;
+        }
+        .custom-date-input::-webkit-calendar-picker-indicator:hover {
+          opacity: 1;
         }
       `}</style>
     </div>
