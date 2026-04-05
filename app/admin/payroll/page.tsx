@@ -8,7 +8,6 @@ import {
     TrendingUp,
     Wallet,
     CreditCard,
-    DollarSign,
     Plus,
     X,
     RefreshCw,
@@ -62,73 +61,10 @@ const PayrollPage = () => {
     const [processing, setProcessing] = useState(false);
     const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
 
-    useEffect(() => {
-        const handleClickOutside = () => setOpenActionMenu(null);
-        if (openActionMenu) {
-            document.addEventListener('click', handleClickOutside);
-            return () => document.removeEventListener('click', handleClickOutside);
-        }
-    }, [openActionMenu]);
-
-    const handleDeletePayroll = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this payroll record?')) return;
-        
-        try {
-            const res = await fetch(`${ENV.API_URL}/payroll/${id}`, {
-                method: 'DELETE'
-            });
-            
-            if (res.ok) {
-                setPayrollRecords(prev => prev.filter(p => p.id !== id));
-                setOpenActionMenu(null);
-            }
-        } catch (e) {
-            console.error('Failed to delete payroll:', e);
-        }
+    const formatDate = (dateStr: string) => {
+        const [year, month, day] = dateStr.split('-');
+        return `${month}-${day}-${year}`;
     };
-
-    const fetchAttendanceData = useCallback(async () => {
-        if (!selectedEmployer || !startDate || !endDate) return;
-
-        const employee = employees.get(selectedEmployer);
-        if (!employee) return;
-
-        try {
-            const res = await fetch(`${ENV.API_URL}/dtr?employer_id=${employee.employer_id}&start_date=${startDate}&end_date=${endDate}`);
-            if (res.ok) {
-                const data = await res.json();
-                const records = Array.isArray(data) ? data : (data.data || []);
-
-                console.log('DTR Records:', records);
-
-                let late = 0;
-                let absent = 0;
-
-                records.forEach((record: { date?: string; status?: string; is_late?: boolean }) => {
-                    const status = record.status?.toLowerCase();
-                    if (status === 'absent') {
-                        absent++;
-                    } else if (record.is_late === true) {
-                        late++;
-                    }
-                });
-
-                console.log('Late:', late, 'Absent:', absent);
-                setLateCount(late);
-                setAbsentCount(absent);
-            }
-        } catch (e) {
-            console.error('Failed to fetch DTR:', e);
-        }
-    }, [selectedEmployer, startDate, endDate, employees]);
-
-    useEffect(() => {
-        fetchAttendanceData();
-    }, [fetchAttendanceData]);
-
-    useEffect(() => {
-        fetchData();
-    }, []);
 
     const fetchData = async () => {
         setLoading(true);
@@ -151,7 +87,6 @@ const PayrollPage = () => {
                     empMap.set(String(emp.id), emp);
                 });
                 setEmployees(empMap);
-                console.log('Employees loaded:', empList.length);
             }
         } catch (e) {
             console.error('Failed to fetch payroll data:', e);
@@ -160,17 +95,68 @@ const PayrollPage = () => {
         }
     };
 
-    const handleAddSalary = async () => {
-        console.log('handleAddSalary called', { selectedEmployer, salaryAmount, employeesSize: employees.size });
+    const fetchAttendanceData = useCallback(async () => {
+        if (!selectedEmployer || !startDate || !endDate) return;
 
+        const employee = employees.get(selectedEmployer);
+        if (!employee) return;
+
+        try {
+            const res = await fetch(`${ENV.API_URL}/dtr?employer_id=${employee.employer_id}&start_date=${startDate}&end_date=${endDate}`);
+            if (res.ok) {
+                const data = await res.json();
+                const records = Array.isArray(data) ? data : (data.data || []);
+
+                let late = 0;
+                let absent = 0;
+
+                records.forEach((record: { date?: string; status?: string; is_late?: boolean }) => {
+                    const status = record.status?.toLowerCase();
+                    if (status === 'absent') {
+                        absent++;
+                    } else if (record.is_late === true) {
+                        late++;
+                    }
+                });
+
+                setLateCount(late);
+                setAbsentCount(absent);
+            }
+        } catch (e) {
+            console.error('Failed to fetch DTR:', e);
+        }
+    }, [selectedEmployer, startDate, endDate, employees]);
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    useEffect(() => {
+        fetchAttendanceData();
+    }, [fetchAttendanceData]);
+
+    useEffect(() => {
+        const handleClickOutside = (e: Event) => {
+            const target = e.target as HTMLElement;
+            if (target && !target.closest('.action-menu-button') && !target.closest('.action-menu-dropdown')) {
+                setOpenActionMenu(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
+    }, []);
+
+    const handleAddSalary = async () => {
         if (!selectedEmployer || !salaryAmount || !startDate || !endDate) {
             alert('Please select an employee, enter a salary amount, and select date range');
             return;
         }
 
         const employee = employees.get(selectedEmployer);
-        console.log('Looking for employee:', selectedEmployer, 'Found:', employee);
-
         if (!employee) {
             alert('Employee not found. Please refresh and try again.');
             return;
@@ -187,7 +173,7 @@ const PayrollPage = () => {
 
             const netPay = grossPay - totalDeduction;
 
-            const period = `${startDate} to ${endDate}`;
+            const period = `${formatDate(startDate)} - ${formatDate(endDate)}`;
 
             const res = await fetch(`${ENV.API_URL}/payroll`, {
                 method: 'POST',
@@ -253,6 +239,23 @@ const PayrollPage = () => {
             }
         } catch (e) {
             console.error('Failed to update status:', e);
+        }
+    };
+
+    const handleDeletePayroll = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this payroll record?')) return;
+        
+        try {
+            const res = await fetch(`${ENV.API_URL}/payroll/${id}`, {
+                method: 'DELETE'
+            });
+            
+            if (res.ok) {
+                setPayrollRecords(prev => prev.filter(p => p.id !== id));
+                setOpenActionMenu(null);
+            }
+        } catch (e) {
+            console.error('Failed to delete payroll:', e);
         }
     };
 
@@ -357,17 +360,13 @@ const PayrollPage = () => {
                         <select
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
-                            className="flex items-center gap-1.5 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[9px] font-bold uppercase tracking-widest text-foreground/70 hover:bg-gray-50 transition-all shadow-sm"
+                            className="flex items-center gap-1.5 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[9px] font-bold uppercase tracking-widest text-black dark:text-white hover:bg-gray-50 transition-all shadow-sm"
                         >
-                            <option value="all">All Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="processed">Processed</option>
-                            <option value="paid">Paid</option>
+                            <option value="all" className="text-black">All Status</option>
+                            <option value="pending" className="text-black">Pending</option>
+                            <option value="processed" className="text-black">Processed</option>
+                            <option value="paid" className="text-black">Paid</option>
                         </select>
-                        <button className="flex items-center gap-1.5 px-4 py-2.5 bg-secondary text-white rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all shadow-md shadow-secondary/10">
-                            <DollarSign className="w-3.5 h-3.5" />
-                            <span>Batch Process</span>
-                        </button>
                     </div>
                 </div>
 
@@ -422,7 +421,15 @@ const PayrollPage = () => {
                                                     <TrendingUp className="w-3 h-3 text-emerald-500" />
                                                 </div>
                                             </td>
-                                            <td className="p-5 text-xs font-bold text-foreground/70">{record.period}</td>
+                                            <td className="p-5 text-xs font-bold text-foreground/70">
+                                                {(() => {
+                                                    const parts = record.period.split(/ to | - /);
+                                                    if (parts.length === 2) {
+                                                        return `${formatDate(parts[0])} - ${formatDate(parts[1])}`;
+                                                    }
+                                                    return record.period;
+                                                })()}
+                                            </td>
                                             <td className="p-5">
                                                 <div className="flex flex-col items-center gap-1.5">
                                                     <span className={cn(
@@ -437,24 +444,25 @@ const PayrollPage = () => {
                                                 </div>
                                             </td>
                                             <td className="p-5">
-                                                <div className="relative">
+                                                <div className="relative inline-block">
                                                     <button
+                                                        type="button"
                                                         onClick={() => setOpenActionMenu(openActionMenu === record.id ? null : record.id)}
-                                                        className="p-2 hover:bg-muted rounded-lg transition-colors"
+                                                        className="action-menu-button p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
                                                     >
-                                                        <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+                                                        <MoreHorizontal className="w-4 h-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
                                                     </button>
                                                     {openActionMenu === record.id && (
-                                                        <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-white/10 border border-border rounded-lg shadow-lg z-10 overflow-hidden">
+                                                        <div className="action-menu-dropdown absolute right-[calc(100%+12px)] top-1/2 -translate-y-[68%] z-50 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 min-w-[140px] animate-in fade-in slide-in-from-right-4 duration-200">
                                                             <button
                                                                 onClick={() => {
                                                                     handleUpdateStatus(record.id, 'processed');
                                                                     setOpenActionMenu(null);
                                                                 }}
                                                                 disabled={record.status !== 'pending'}
-                                                                className="w-full px-3 py-2 text-left text-xs font-bold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-emerald-600 hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                                                             >
-                                                                <CheckCircle className="w-3.5 h-3.5" />
+                                                                <CheckCircle className="w-4 h-4" />
                                                                 Process
                                                             </button>
                                                             <button
@@ -463,25 +471,23 @@ const PayrollPage = () => {
                                                                     setOpenActionMenu(null);
                                                                 }}
                                                                 disabled={record.status !== 'processed'}
-                                                                className="w-full px-3 py-2 text-left text-xs font-bold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-blue-600 hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                                                             >
-                                                                <CheckCircle className="w-3.5 h-3.5" />
+                                                                <CheckCircle className="w-4 h-4" />
                                                                 Mark Paid
                                                             </button>
                                                             <button
-                                                                onClick={() => {
-                                                                    setOpenActionMenu(null);
-                                                                }}
-                                                                className="w-full px-3 py-2 text-left text-xs font-bold text-foreground hover:bg-muted flex items-center gap-2"
+                                                                onClick={() => setOpenActionMenu(null)}
+                                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
                                                             >
-                                                                <Pencil className="w-3.5 h-3.5" />
-                                                                Edit
+                                                                <Pencil className="w-4 h-4 text-secondary" />
+                                                                Edit Payroll
                                                             </button>
                                                             <button
                                                                 onClick={() => handleDeletePayroll(record.id)}
-                                                                className="w-full px-3 py-2 text-left text-xs font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center gap-2"
+                                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                                                             >
-                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                                <Trash2 className="w-4 h-4" />
                                                                 Delete
                                                             </button>
                                                         </div>
