@@ -19,6 +19,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { toast } from 'sonner';
+import { ENV } from '@/lib/api';
+import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 
 let faceapi: typeof import('@vladmandic/face-api') | null = null;
 
@@ -48,11 +50,23 @@ const AttendancePage = () => {
   const [detectedFaces, setDetectedFaces] = useState(0);
   const [attendanceType, setAttendanceType] = useState<'time_in' | 'time_out' | null>(null);
   const [stats, setStats] = useState({ present: 0, late: 0, absent: 0 });
+  const [holidayToday, setHolidayToday] = useState<{ title: string; type: string } | null>(null);
+  const [isLoadingHoliday, setIsLoadingHoliday] = useState(true);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isMatchingRef = useRef(false);
+
+  const speak = (text: string) => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.1;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
 
   // Load face-api.js models
   useEffect(() => {
@@ -75,20 +89,60 @@ const AttendancePage = () => {
     };
     loadModels();
     fetchLogs();
+    checkHoliday();
 
     return () => {
       stopCamera();
     };
   }, []);
 
+  const checkHoliday = async () => {
+    try {
+      setIsLoadingHoliday(true);
+      const response = await fetch(`${ENV.API_URL}/events`);
+      if (response.ok) {
+        const events = await response.json();
+        const today = new Date();
+        const todayStr = format(today, 'yyyy-MM-dd');
+ 
+        const activeEvent = events.find((event: { start_date?: string; end_date?: string; date?: string; title?: string; type?: string }) => {
+          try {
+            const startStr = event.start_date || event.date;
+            const endStr = event.end_date || event.date;
+            if (!startStr || !endStr) return false;
+            
+            if (startStr === todayStr || endStr === todayStr) return true;
+            
+            const start = startOfDay(parseISO(startStr));
+            const end = endOfDay(parseISO(endStr));
+            return isWithinInterval(today, { start, end });
+          } catch {
+            return false;
+          }
+        });
+ 
+        if (activeEvent) {
+          setHolidayToday({
+            title: activeEvent.title,
+            type: activeEvent.type
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Failed to check holiday:', e);
+    } finally {
+      setIsLoadingHoliday(false);
+    }
+  };
+
   const fetchLogs = async () => {
     try {
       // 1. Fetch Logs
-      const logResponse = await fetch('/api/attendance');
+      const logResponse = await fetch(`${ENV.API_URL}/attendance`);
       const data = await logResponse.json();
 
       // 2. Fetch Total Employees for accurate stats
-      const empResponse = await fetch('/api/registration');
+      const empResponse = await fetch(`${ENV.API_URL}/registration`);
       const empData = await empResponse.json();
       const totalEmployees = Array.isArray(empData.data) ? empData.data.length : 0;
 
@@ -196,11 +250,14 @@ const AttendancePage = () => {
     }, 500);
   };
 
-  // Prevent multiple simultaneous API calls
-  const isMatchingRef = useRef(false);
-
   const handleFaceMatch = async () => {
     if (isMatchingRef.current || !videoRef.current || !isScanning) return;
+ 
+    if (holidayToday) {
+      toast.error(`Scanning restricted for ${holidayToday.title}`);
+      toggleScanning(null);
+      return;
+    }
 
     isMatchingRef.current = true;
     setScanResult('scanning');
@@ -213,7 +270,7 @@ const AttendancePage = () => {
         .withFaceDescriptor();
 
       if (detection) {
-        const response = await fetch('/api/attendance', {
+        const response = await fetch(`${ENV.API_URL}/attendance`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -225,7 +282,12 @@ const AttendancePage = () => {
         const result = await response.json();
 
         if (result.success) {
+          setLogs(prev => [result.data, ...prev]);
           setScanResult('success');
+          
+          // Announce result
+          speak(result.data.type === 'time_in' ? 'Time in' : 'Time out');
+
           setLastAttendance({
             name: result.data.employer_name,
             time: new Date().toLocaleTimeString(),
@@ -345,7 +407,7 @@ const AttendancePage = () => {
                   {/* Status Overlay */}
                   <div className="absolute top-4 right-4 z-20">
                     <div className={cn(
-                      "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2",
+                      "px-3 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2",
                       detectedFaces > 0 ? "bg-emerald-500 text-white" : "bg-black/60 text-white/70 backdrop-blur-md border border-white/10"
                     )}>
                       <div className={cn("w-1.5 h-1.5 rounded-full bg-white", detectedFaces > 0 ? "animate-pulse" : "opacity-50")} />
@@ -363,9 +425,21 @@ const AttendancePage = () => {
                   </div>
                   <div className="text-center px-6">
                     <p className="text-xl font-bold text-foreground">Terminal Ready</p>
-                    <p className="text-sm text-muted-foreground mt-2 max-w-xs">
-                      Please select the attendance type below to activate the facial recognition scanner.
-                    </p>
+                    {holidayToday ? (
+                      <div className="mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 max-w-xs mx-auto animate-in fade-in zoom-in duration-500">
+                        <div className="flex items-center gap-2 text-red-500 justify-center mb-1">
+                          <AlertCircle className="w-4 h-4" />
+                          <span className="text-xs font-black uppercase tracking-widest">{holidayToday.title}</span>
+                        </div>
+                        <p className="text-[10px] text-red-600/80 font-bold uppercase tracking-tight leading-relaxed">
+                          Attendance system is restricted today due to this {holidayToday.type}.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground mt-2 max-w-xs">
+                        Please select the attendance type below to activate the facial recognition scanner.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -377,7 +451,7 @@ const AttendancePage = () => {
                     <div className="w-24 h-24 rounded-full bg-emerald-500 flex items-center justify-center mx-auto shadow-[0_0_40px_rgba(16,185,129,0.4)]">
                       <CheckCircle2 className="w-12 h-12 text-white" />
                     </div>
-                    <h3 className="mt-6 text-2xl font-black text-white tracking-tight">Success!</h3>
+                    <h3 className="mt-6 text-2xl font-bold text-white tracking-tight">Success!</h3>
                     <p className="text-lg font-bold text-white/90 mt-1">{lastAttendance?.name}</p>
                     <p className="text-sm font-bold text-emerald-400 uppercase tracking-widest mt-2">{lastAttendance?.type.replace('_', ' ')} Recorded</p>
                   </div>
@@ -387,7 +461,7 @@ const AttendancePage = () => {
               {/* Matching Status */}
               {scanResult === 'scanning' && (
                 <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30">
-                  <div className="flex items-center gap-3 px-6 py-3 rounded-2xl bg-secondary text-white font-black uppercase tracking-widest text-xs shadow-xl animate-bounce">
+                  <div className="flex items-center gap-3 px-6 py-3 rounded-2xl bg-secondary text-white font-bold uppercase tracking-widest text-xs shadow-xl animate-bounce">
                     <Shield className="w-4 h-4" />
                     Analyzing Bio-Data...
                   </div>
@@ -401,18 +475,24 @@ const AttendancePage = () => {
                 <div className="flex flex-wrap justify-center gap-4 w-full max-w-md">
                   <button
                     onClick={() => toggleScanning('time_in')}
-                    disabled={isModelLoading}
-                    className="flex-1 min-w-[140px] flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-secondary hover:bg-secondary/90 text-white font-bold transition-all shadow-lg shadow-secondary/20 active:scale-[0.98] disabled:opacity-50"
+                    disabled={isModelLoading || isLoadingHoliday || !!holidayToday}
+                    className={cn(
+                      "flex-1 min-w-[140px] flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-secondary hover:bg-secondary/90 text-white font-bold transition-all shadow-lg shadow-secondary/20 active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed",
+                      isLoadingHoliday && "animate-pulse"
+                    )}
                   >
-                    {isModelLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}
+                    {isModelLoading || isLoadingHoliday ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}
                     Time In
                   </button>
                   <button
                     onClick={() => toggleScanning('time_out')}
-                    disabled={isModelLoading}
-                    className="flex-1 min-w-[140px] flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-muted hover:bg-muted/80 text-foreground font-bold border border-border transition-all active:scale-[0.98] disabled:opacity-50"
+                    disabled={isModelLoading || isLoadingHoliday || !!holidayToday}
+                    className={cn(
+                      "flex-1 min-w-[140px] flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-muted hover:bg-muted/80 text-foreground font-bold border border-border transition-all active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed",
+                      isLoadingHoliday && "animate-pulse"
+                    )}
                   >
-                    {isModelLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogOut className="w-5 h-5" />}
+                    {isModelLoading || isLoadingHoliday ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogOut className="w-5 h-5" />}
                     Time Out
                   </button>
                 </div>
@@ -443,7 +523,7 @@ const AttendancePage = () => {
                     </div>
                     <span className="font-bold text-foreground text-sm">Present</span>
                   </div>
-                  <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{stats.present}</span>
+                  <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.present}</span>
                 </div>
 
                 <div className="flex items-center justify-between p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 group hover:bg-amber-500/15 transition-colors">
@@ -453,7 +533,7 @@ const AttendancePage = () => {
                     </div>
                     <span className="font-bold text-foreground text-sm">Late</span>
                   </div>
-                  <span className="text-2xl font-black text-amber-600 dark:text-amber-400">{stats.late}</span>
+                  <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">{stats.late}</span>
                 </div>
 
                 <div className="flex items-center justify-between p-4 rounded-2xl bg-red-500/10 border border-red-500/20 group hover:bg-red-500/15 transition-colors">
@@ -463,7 +543,7 @@ const AttendancePage = () => {
                     </div>
                     <span className="font-bold text-foreground text-sm">Absent</span>
                   </div>
-                  <span className="text-2xl font-black text-red-600 dark:text-red-400 text-muted-foreground/30">{stats.absent}</span>
+                  <span className="text-2xl font-bold text-red-600 dark:text-red-400 text-muted-foreground/30">{stats.absent}</span>
                 </div>
               </div>
             </CardContent>
@@ -483,11 +563,11 @@ const AttendancePage = () => {
                     </div>
                   </div>
                   <div>
-                    <p className="font-black text-foreground">{lastAttendance.name}</p>
+                    <p className="font-bold text-foreground">{lastAttendance.name}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{lastAttendance.time}</span>
                       <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-secondary">{lastAttendance.type.replace('_', ' ')}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-secondary">{lastAttendance.type.replace('_', ' ')}</span>
                     </div>
                   </div>
                 </div>
@@ -514,10 +594,10 @@ const AttendancePage = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border/50">
-                  <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Employee</th>
-                  <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Time</th>
-                  <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Type</th>
-                  <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status</th>
+                  <th className="text-left py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Employee</th>
+                  <th className="text-left py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Time</th>
+                  <th className="text-left py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Type</th>
+                  <th className="text-left py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/30">
@@ -525,7 +605,7 @@ const AttendancePage = () => {
                   <tr key={log.id} className="hover:bg-muted/30 transition-colors group">
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center font-black text-secondary text-xs border border-secondary/5 overflow-hidden">
+                        <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center font-bold text-secondary text-xs border border-secondary/5 overflow-hidden">
                           {log.employer_registration?.image ? (
                             <Image src={log.employer_registration.image} alt="" className="w-full h-full object-cover" width={40} height={40} />
                           ) : (
@@ -545,7 +625,7 @@ const AttendancePage = () => {
                     </td>
                     <td className="py-4 px-6">
                       <span className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest",
                         log.type === 'time_in' ? "bg-secondary/10 text-secondary" : "bg-muted text-muted-foreground"
                       )}>
                         {log.type === 'time_in' ? <LogIn className="w-3 h-3" /> : <LogOut className="w-3 h-3" />}
@@ -554,7 +634,7 @@ const AttendancePage = () => {
                     </td>
                     <td className="py-4 px-6">
                       <span className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest",
                         (log.status === 'present' || log.status === 'on_time') && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
                         log.status === 'late' && "bg-amber-500/10 text-amber-600 dark:text-amber-400",
                         log.status === 'absent' && "bg-red-500/10 text-red-600 dark:text-red-400"
@@ -562,7 +642,7 @@ const AttendancePage = () => {
                         {(log.status === 'present' || log.status === 'on_time') && <CheckCircle2 className="w-3 h-3" />}
                         {log.status === 'late' && <Clock className="w-3 h-3" />}
                         {log.status === 'absent' && <XCircle className="w-3 h-3" />}
-                        {log.status?.replace('_', ' ')}
+                        {log.status === 'on_time' ? 'present' : log.status?.replace('_', ' ')}
                       </span>
                     </td>
                   </tr>

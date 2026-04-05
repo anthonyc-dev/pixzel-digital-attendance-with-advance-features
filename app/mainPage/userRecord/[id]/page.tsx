@@ -23,6 +23,7 @@ import {
     Activity,
     Plane,
 } from 'lucide-react';
+import { ENV } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/mainPage/Header';
 
@@ -83,7 +84,7 @@ const UserRecord = () => {
 
         const fetchUserData = async () => {
             try {
-                const response = await fetch(`/api/users/${userId}`);
+                const response = await fetch(`${ENV.API_URL}/users/${userId}`);
                 if (response.ok) {
                     const userData = await response.json();
                     setUserProfile({
@@ -102,7 +103,7 @@ const UserRecord = () => {
 
         const fetchAttendanceRecords = async () => {
             try {
-                const logsResponse = await fetch(`/api/attendance?employer_id=${userId}`);
+                const logsResponse = await fetch(`${ENV.API_URL}/attendance?employer_id=${userId}`);
                 if (logsResponse.ok) {
                     const allLogs = await logsResponse.json();
                     setAttendanceRecords(allLogs.map((log: ApiLogEntry) => ({
@@ -227,7 +228,8 @@ const UserRecord = () => {
         }
     };
 
-    const handleTimeIn = () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _handleTimeIn = () => {
         const newRecord: AttendanceRecord = {
             id: Date.now().toString(),
             date: new Date().toISOString().split('T')[0],
@@ -239,7 +241,8 @@ const UserRecord = () => {
         setCurrentStatus('clocked-in');
     };
 
-    const handleTimeOut = () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _handleTimeOut = () => {
         const today = new Date().toISOString().split('T')[0];
         const todayRecord = attendanceRecords.find(
             record => record.date === today && !record.timeOut
@@ -256,7 +259,8 @@ const UserRecord = () => {
         }
     };
 
-    const handleLeaveRequest = () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _handleLeaveRequest = () => {
         setShowLeaveModal(true);
     };
 
@@ -286,7 +290,8 @@ const UserRecord = () => {
         setCurrentStatus('on-leave');
     };
 
-    const handleEmergencyLeave = () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _handleEmergencyLeave = () => {
         setShowEmergencyModal(true);
     };
 
@@ -382,7 +387,7 @@ const UserRecord = () => {
                     </div>
                 </div>
 
-                <div className="bg-card border border-border rounded-2xl p-6 mb-8">
+                {/* <div className="bg-card border border-border rounded-2xl p-6 mb-8">
                     <h2 className="text-lg font-bold text-foreground mb-4">Today&apos;s Status</h2>
 
                     {currentStatus === 'clocked-in' && (
@@ -396,7 +401,7 @@ const UserRecord = () => {
                                     </div>
                                 </div>
                                 <Button
-                                    onClick={handleTimeOut}
+                                    onClick={_handleTimeOut}
                                     className="flex items-center gap-2 bg-destructive text-destructive-foreground"
                                 >
                                     <LogOut className="w-4 h-4" />
@@ -405,7 +410,7 @@ const UserRecord = () => {
                             </div>
                             <div className="flex gap-3">
                                 <Button
-                                    onClick={handleEmergencyLeave}
+onClick={_handleEmergencyLeave}
                                     variant="outline"
                                     className="flex-1 flex items-center justify-center gap-2"
                                 >
@@ -413,7 +418,7 @@ const UserRecord = () => {
                                     Emergency Leave
                                 </Button>
                                 <Button
-                                    onClick={handleLeaveRequest}
+onClick={_handleLeaveRequest}
                                     variant="outline"
                                     className="flex-1 flex items-center justify-center gap-2"
                                 >
@@ -463,7 +468,7 @@ const UserRecord = () => {
                     {!currentStatus && (
                         <div className="flex gap-4">
                             <Button
-                                onClick={handleTimeIn}
+                                onClick={_handleTimeIn}
                                 className="flex-1 flex items-center justify-center gap-2 bg-secondary text-secondary-foreground hover:opacity-90 py-6 text-lg"
                             >
                                 <LogIn className="w-5 h-5" />
@@ -487,7 +492,7 @@ const UserRecord = () => {
                             </Button>
                         </div>
                     )}
-                </div>
+                </div> */}
 
                 <div>
                     <div className="flex justify-between items-center mb-4">
