@@ -393,6 +393,7 @@ const AttendancePage = () => {
             setCurrentMatchPercentage(data.match_percentage);
           }
           toast.info(result.message);
+          speak(attendanceType === 'in' ? 'You already timed in' : 'You already timed out');
           setIsProcessing(false);
           setIsScanning(false);
 

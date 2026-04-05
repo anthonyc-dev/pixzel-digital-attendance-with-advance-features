@@ -59,6 +59,18 @@ interface GroupedAttendance {
     status: string;
     remarks?: string;
     logIds?: string[];
+    isEvent?: boolean;
+    eventTitle?: string;
+    eventType?: 'holiday' | 'event' | 'meeting' | 'other';
+}
+
+interface CalendarEvent {
+    id: string;
+    title: string;
+    start_date: string;
+    end_date: string;
+    type: 'holiday' | 'event' | 'meeting' | 'other';
+    description?: string;
 }
 
 // Function to convert image to base64 for PDF
@@ -128,6 +140,7 @@ const MOCK_DTR_DATA = {
 const DTRPage = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+    const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -346,6 +359,13 @@ const DTRPage = () => {
                 const attData = await attRes.json();
                 setAttendance(attData || []);
 
+                // Fetch events
+                const eventsRes = await fetch('/api/events', { cache: 'no-store' });
+                if (eventsRes.ok) {
+                    const eventsData = await eventsRes.json();
+                    setEvents(eventsData || []);
+                }
+
             } catch (error) {
                 console.error('Failed to fetch DTR data:', error);
             } finally {
@@ -361,20 +381,33 @@ const DTRPage = () => {
         emp.employer_position.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const today = new Date().toISOString().split('T')[0];
-    const todayAttendance = attendance.filter(a => a.timestamp?.startsWith(today));
-    
+    const todayDate = format(new Date(), 'yyyy-MM-dd');
+    const todayEvent = events.find(e => todayDate >= e.start_date && todayDate <= e.end_date);
+    const todayAttendance = attendance.filter(a => a.timestamp?.startsWith(todayDate));
+
     const onTimeToday = todayAttendance.filter(a => (a.status === 'present' || a.status === 'on_time') && a.type === 'time_in').length;
     const lateToday = todayAttendance.filter(a => a.status === 'late' && a.type === 'time_in').length;
     // Align with dashboard: total pool is all employees
     const totalPool = employees.length || 1;
-    const onTimeRateToday = Math.round((onTimeToday / totalPool) * 100) || 0;
+    const onTimeRateToday = todayEvent?.type === 'holiday' ? 100 : Math.round((onTimeToday / totalPool) * 100) || 0;
 
     const stats = [
         { title: 'Registered Employers', value: employees.length.toString().padStart(2, '0'), icon: UserCheck, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-        { title: 'Today\'s On-Time Rate', value: `${onTimeRateToday}%`, icon: TrendingUp, color: 'text-green-500', bg: 'bg-green-500/10' },
-        { title: 'Today\'s Late Entries', value: lateToday.toString().padStart(2, '0'), icon: Clock, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-        { title: 'Today\'s Total Activity', value: todayAttendance.length.toString().padStart(2, '0'), icon: ClipboardCheck, color: 'text-secondary', bg: 'bg-secondary/10' },
+        {
+            title: todayEvent?.type === 'holiday' ? 'Holiday Mode Active' : "Today's On-Time Rate",
+            value: todayEvent?.type === 'holiday' ? 'REST' : `${onTimeRateToday}%`,
+            icon: TrendingUp,
+            color: todayEvent?.type === 'holiday' ? 'text-rose-500' : 'text-green-500',
+            bg: todayEvent?.type === 'holiday' ? 'bg-rose-500/10' : 'bg-green-500/10'
+        },
+        {
+            title: todayEvent ? `Event: ${todayEvent.title}` : "Today's Late Entries",
+            value: todayEvent ? 'INFO' : lateToday.toString().padStart(2, '0'),
+            icon: Clock,
+            color: todayEvent ? 'text-secondary' : 'text-orange-500',
+            bg: todayEvent ? 'bg-secondary/10' : 'bg-orange-500/10'
+        },
+        { title: "Today's Total Activity", value: todayAttendance.length.toString().padStart(2, '0'), icon: ClipboardCheck, color: 'text-secondary', bg: 'bg-secondary/10' },
     ];
 
     // Helper to group logs by day for a specific employee
@@ -382,9 +415,13 @@ const DTRPage = () => {
         const empLogs = attendance.filter(a => a.employer_registration_id === empId);
         const groups: Record<string, GroupedAttendance & { raw_in?: Date, raw_out?: Date }> = {};
 
+        // Track dates that have logs
+        const loggedDates = new Set<string>();
+
         empLogs.forEach(log => {
             const dateObj = new Date(log.timestamp);
             const dateKey = format(dateObj, 'yyyy-MM-dd');
+            loggedDates.add(dateKey);
 
             if (!groups[dateKey]) {
                 groups[dateKey] = {
@@ -403,11 +440,52 @@ const DTRPage = () => {
 
             if (log.type === 'time_in') {
                 groups[dateKey].time_in = format(dateObj, 'hh:mm aa');
-                groups[dateKey].status = log.status; // 'present' or 'late'
+                groups[dateKey].status = log.status;
                 groups[dateKey].raw_in = dateObj;
             } else if (log.type === 'time_out') {
                 groups[dateKey].time_out = format(dateObj, 'hh:mm aa');
                 groups[dateKey].raw_out = dateObj;
+            }
+        });
+
+        // Add events/holidays that might not have logs
+        events.forEach(event => {
+            try {
+                const start = new Date(event.start_date + 'T00:00:00');
+                const end = new Date(event.end_date + 'T00:00:00');
+
+                // For each day in the event range
+                const curr = new Date(start);
+                while (curr <= end) {
+                    const dateKey = format(curr, 'yyyy-MM-dd');
+
+                    if (!groups[dateKey]) {
+                        groups[dateKey] = {
+                            id: `event-${event.id}-${dateKey}`,
+                            rawDate: dateKey,
+                            date: format(curr, 'MMM dd, yyyy'),
+                            day: format(curr, 'EEEE'),
+                            status: event.type === 'holiday' ? 'holiday' : 'event',
+                            remarks: event.title,
+                            isEvent: true,
+                            eventTitle: event.title,
+                            eventType: event.type
+                        };
+                    } else {
+                        // If log already exists, attach event info
+                        groups[dateKey].isEvent = true;
+                        groups[dateKey].eventTitle = event.title;
+                        groups[dateKey].eventType = event.type;
+                        if (!groups[dateKey].remarks || groups[dateKey].remarks === '') {
+                            groups[dateKey].remarks = event.title;
+                        } else if (!groups[dateKey].remarks.includes(event.title)) {
+                            groups[dateKey].remarks += ` | ${event.title}`;
+                        }
+                    }
+                    curr.setDate(curr.getDate() + 1);
+                }
+            } catch (err) {
+                console.error("Error processing event for DTR:", event, err);
             }
         });
 
@@ -423,23 +501,6 @@ const DTRPage = () => {
         return Object.values(groups).sort((a, b) => {
             return new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime();
         });
-    };
-
-    const getEmployerTodayStatus = (empId: string) => {
-        const now = new Date();
-        const todayStr = now.toISOString().split('T')[0];
-        const logsToday = attendance.filter(a => a.employer_registration_id === empId && a.timestamp?.startsWith(todayStr));
-        
-        const timeInLog = logsToday.find(l => l.type === 'time_in');
-        
-        if (!timeInLog) {
-            // If it's after 9:15 AM, consider them 'Absent' instead of 'Not Logged'
-            const isWorkStarted = now.getHours() > 9 || (now.getHours() === 9 && now.getMinutes() >= 15);
-            return isWorkStarted ? { status: 'absent', label: 'Absent' } : { status: 'none', label: 'Not Logged' };
-        }
-        
-        if (timeInLog.status === 'late') return { status: 'late', label: 'Late' };
-        return { status: 'present', label: 'Present' };
     };
 
     return (
@@ -581,27 +642,10 @@ const DTRPage = () => {
                                             </div>
                                         )}
                                     </div>
-
                                     <div className="space-y-1 mb-4 z-10 w-full flex flex-col items-center">
                                         <span className="text-[10px] font-bold text-secondary tracking-[0.2em] uppercase">{emp.employer_id}</span>
                                         <h3 className="font-bold text-sm text-foreground tracking-tight line-clamp-1">{emp.employer_name}</h3>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest line-clamp-1 mb-2">{emp.employer_position}</p>
-
-                                        {(() => {
-                                            const todayStatus = getEmployerTodayStatus(emp.id);
-                                            return (
-                                                <div className={cn(
-                                                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest border border-current",
-                                                    todayStatus.status === 'present' ? "bg-green-500/10 text-green-600 border-green-500/20" :
-                                                    todayStatus.status === 'late' ? "bg-orange-500/10 text-orange-600 border-orange-500/20" :
-                                                    todayStatus.status === 'absent' ? "bg-red-500/10 text-red-600 border-red-500/20" :
-                                                    "bg-gray-500/10 text-gray-400 border-gray-500/20"
-                                                )}>
-                                                    <div className="w-1 h-1 rounded-full bg-current" />
-                                                    {todayStatus.label}
-                                                </div>
-                                            );
-                                        })()}
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest line-clamp-1">{emp.employer_position}</p>
                                     </div>
 
                                     <div className="mt-auto pt-4 border-t border-gray-100 dark:border-white/5 w-full flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 z-10">
@@ -720,13 +764,18 @@ const DTRPage = () => {
                                                     <td className="p-3">
                                                         <div className={cn(
                                                             "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest border ring-1 ring-inset",
-                                                            log.status === 'present' ? "bg-green-500/10 text-green-600 ring-green-600/20 border-green-600/30" :
+                                                            log.status === 'present' || log.status === 'on_time' ? "bg-green-500/10 text-green-600 ring-green-600/20 border-green-600/30" :
                                                                 log.status === 'late' ? "bg-yellow-500/10 text-yellow-600 ring-yellow-600/20 border-yellow-600/30" :
-                                                                    "bg-red-500/10 text-red-600 ring-red-600/20 border-red-600/30"
+                                                                    log.status === 'holiday' ? "bg-red-500/10 text-red-600 ring-red-600/20 border-red-600/30" :
+                                                                        log.status === 'event' ? "bg-secondary/10 text-secondary ring-secondary/20 border-secondary/30" :
+                                                                            "bg-red-500/10 text-red-600 ring-red-600/20 border-red-600/30"
                                                         )}>
                                                             <div className={cn("w-1 h-1 rounded-full",
-                                                                log.status === 'present' ? "bg-green-600" :
-                                                                    log.status === 'late' ? "bg-yellow-600" : "bg-red-600"
+                                                                log.status === 'present' || log.status === 'on_time' ? "bg-green-600" :
+                                                                    log.status === 'late' ? "bg-yellow-600" :
+                                                                        log.status === 'holiday' ? "bg-red-600" :
+                                                                            log.status === 'event' ? "bg-secondary" :
+                                                                                "bg-red-600"
                                                             )} />
                                                             <span>{log.status === 'on_time' ? 'present' : log.status.replace('_', ' ')}</span>
                                                         </div>
@@ -744,31 +793,35 @@ const DTRPage = () => {
                                                         </div>
                                                     </td>
                                                     <td className="p-3 text-center relative">
-                                                        <div className="relative inline-block">
-                                                            <button
-                                                                onClick={() => setOpenMenuId(openMenuId === log.id ? null : log.id)}
-                                                                className="action-menu-button p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-all text-gray-400 cursor-pointer"
-                                                            >
-                                                                <MoreHorizontal className="w-4 h-4 pointer-events-none" />
-                                                            </button>
+                                                        {!log.isEvent ? (
+                                                            <div className="relative inline-block">
+                                                                <button
+                                                                    onClick={() => setOpenMenuId(openMenuId === log.id ? null : log.id)}
+                                                                    className="action-menu-button p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-all text-gray-400 cursor-pointer"
+                                                                >
+                                                                    <MoreHorizontal className="w-4 h-4 pointer-events-none" />
+                                                                </button>
 
-                                                            {openMenuId === log.id && (
-                                                                <div className="action-menu-dropdown absolute right-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 min-w-[120px] animate-in fade-in slide-in-from-right-2 duration-200">
-                                                                    <button
-                                                                        className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
-                                                                    >
-                                                                        <Pencil className="w-3 h-3 text-secondary" />
-                                                                        Edit
-                                                                    </button>
-                                                                    <button
-                                                                        className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-                                                                    >
-                                                                        <Trash2 className="w-3 h-3" />
-                                                                        Delete
-                                                                    </button>
-                                                                </div>
-                                                            )}
-                                                        </div>
+                                                                {openMenuId === log.id && (
+                                                                    <div className="action-menu-dropdown absolute right-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 min-w-[120px] animate-in fade-in slide-in-from-right-2 duration-200">
+                                                                        <button
+                                                                            className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                                                                        >
+                                                                            <Pencil className="w-3 h-3 text-secondary" />
+                                                                            Edit
+                                                                        </button>
+                                                                        <button
+                                                                            className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                                                                        >
+                                                                            <Trash2 className="w-3 h-3" />
+                                                                            Delete
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-[0.2em]">Locked</div>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             )

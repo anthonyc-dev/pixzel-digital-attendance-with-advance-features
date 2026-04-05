@@ -8,16 +8,27 @@ import {
     TrendingUp,
     Wallet,
     CreditCard,
-    History,
     DollarSign,
     PieChart,
     ArrowUpRight,
     Printer,
-    ChevronDown
+    ChevronDown,
+    Plus,
+    X
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { ENV } from '@/lib/api';
+
+interface SalaryRecord {
+    id?: string;
+    employer_id: string;
+    base_salary: number;
+    status: string;
+    total_deductions?: number;
+    late_count?: number;
+    absent_count?: number;
+}
 
 interface Employee {
     id: string;
@@ -27,6 +38,7 @@ interface Employee {
     status: string;
     image: string | null;
     created_at: string;
+    base_salary?: number;
 }
 
 interface AttendanceRecord {
@@ -40,8 +52,12 @@ interface AttendanceRecord {
 const PayrollPage = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+    const [salaries, setSalaries] = useState<SalaryRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showSalaryModal, setShowSalaryModal] = useState(false);
+    const [selectedEmployer, setSelectedEmployer] = useState('');
+    const [salaryAmount, setSalaryAmount] = useState('');
 
     useEffect(() => {
         const fetchData = async () => {
@@ -68,6 +84,82 @@ const PayrollPage = () => {
         };
         fetchData();
     }, []);
+
+    const handleAddSalary = () => {
+        if (!selectedEmployer || !salaryAmount) return;
+        
+        const newSalary: SalaryRecord = {
+            employer_id: selectedEmployer,
+            base_salary: parseFloat(salaryAmount),
+            status: 'pending'
+        };
+        
+        console.log('Adding salary:', newSalary);
+        
+        setSalaries(prev => {
+            const existing = prev.find(s => s.employer_id === selectedEmployer);
+            if (existing) {
+                return prev.map(s => s.employer_id === selectedEmployer ? newSalary : s);
+            }
+            return [...prev, newSalary];
+        });
+        
+        setShowSalaryModal(false);
+        setSelectedEmployer('');
+        setSalaryAmount('');
+    };
+
+    const getSalary = (empId: string): number => {
+        const salary = salaries.find(s => s.employer_id === empId);
+        return salary ? salary.base_salary : 0;
+    };
+
+    const getSalaryStatus = (empId: string): string => {
+        const salary = salaries.find(s => s.employer_id === empId);
+        return salary ? salary.status : 'not_set';
+    };
+
+    const calculateLateAndAbsent = (empId: string) => {
+        const empLogs = attendance.filter(a => a.employer_registration_id === empId);
+        const logsByDate: Record<string, { status: string }> = {};
+        
+        empLogs.forEach(log => {
+            const date = log.timestamp.split('T')[0];
+            if (!logsByDate[date]) {
+                logsByDate[date] = { status: log.status };
+            }
+        });
+        
+        let lateCount = 0;
+        let absentCount = 0;
+        
+        Object.values(logsByDate).forEach(day => {
+            if (day.status === 'late') lateCount++;
+            if (day.status === 'absent') absentCount++;
+        });
+        
+        return { lateCount, absentCount };
+    };
+
+    const calculateDeductions = (empId: string) => {
+        const { lateCount, absentCount } = calculateLateAndAbsent(empId);
+        const baseSalary = getSalary(empId);
+        
+        const lateAmount = lateCount * 100;
+        const absentAmount = absentCount * (baseSalary / 22);
+        
+        return {
+            totalDeductions: lateAmount + absentAmount,
+            lateCount,
+            absentCount
+        };
+    };
+
+    const calculateNetPay = (empId: string) => {
+        const baseSalary = getSalary(empId);
+        const { totalDeductions } = calculateDeductions(empId);
+        return baseSalary - totalDeductions;
+    };
 
     const calculateHours = (empId: string) => {
         const empLogs = attendance.filter(a => a.employer_registration_id === empId);
@@ -113,19 +205,18 @@ const PayrollPage = () => {
                 {/* Page Header */}
                 <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div className="space-y-2">
-                        <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-secondary/10 text-secondary rounded-full border border-secondary/20">
-                            <History className="w-3 h-3" />
-                            <span className="text-[9px] font-bold uppercase tracking-widest">Payroll Period: Aug 2026</span>
-                        </div>
                         <div className="flex items-center gap-3">
                             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Employee Payroll</h1>
-                            <div className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[8px] font-bold uppercase tracking-widest">
-                                Calculator Active
-                            </div>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2">
+                        <button 
+                            onClick={() => setShowSalaryModal(true)}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-all">
+                            <Plus className="w-3.5 h-3.5 text-secondary" />
+                            <span>Add Salary</span>
+                        </button>
                         <button className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-all">
                             <Printer className="w-3.5 h-3.5 text-secondary" />
                             <span>Print Slips</span>
@@ -214,6 +305,13 @@ const PayrollPage = () => {
                                 ) : (
                                     filteredEmployees.map((emp) => {
                                         const { hours, days } = calculateHours(emp.id);
+                                        const baseSalary = getSalary(emp.id);
+                                        const salaryStatus = getSalaryStatus(emp.id);
+                                        const { totalDeductions } = calculateDeductions(emp.id);
+                                        const netPay = calculateNetPay(emp.id);
+                                        const salaryDisplay = baseSalary > 0 ? `₱ ${baseSalary.toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : 'Not Set';
+                                        const deductionsDisplay = totalDeductions > 0 ? `-₱ ${totalDeductions.toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '₱ 0.00';
+                                        const netPayDisplay = netPay > 0 ? `₱ ${netPay.toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '₱ 0.00';
                                         return (
                                             <tr key={emp.id} className="group hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
                                                 <td className="p-5 text-left">
@@ -233,24 +331,30 @@ const PayrollPage = () => {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="p-5 font-bold text-foreground/80 tabular-nums text-xs">₱ 28,000.00</td>
+                                                <td className="p-5 font-bold text-foreground/80 tabular-nums text-xs">{salaryDisplay}</td>
                                                 <td className="p-5">
                                                     <div className="flex flex-col leading-tight items-center">
                                                         <span className="font-bold text-foreground text-xs">{hours}h</span>
                                                         <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{days} Days Solid</span>
                                                     </div>
                                                 </td>
-                                                <td className="p-5 text-rose-500 font-bold tabular-nums text-xs">-₱ 1,450.00</td>
+                                                <td className="p-5 text-rose-500 font-bold tabular-nums text-xs">{deductionsDisplay}</td>
                                                 <td className="p-5">
                                                     <div className="flex items-center justify-center gap-2">
-                                                        <span className="font-bold text-sm text-foreground tracking-tight">₱ 26,550.00</span>
+                                                        <span className="font-bold text-sm text-foreground tracking-tight">{netPayDisplay}</span>
                                                         <TrendingUp className="w-3 h-3 text-emerald-500" />
                                                     </div>
                                                 </td>
                                                 <td className="p-5">
                                                     <div className="flex flex-col items-center gap-1.5">
-                                                        <span className="px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[8px] font-bold uppercase tracking-[0.1em] rounded-lg border border-emerald-500/20">
-                                                            Processed
+                                                        <span className={cn(
+                                                            "px-3 py-1 text-[8px] font-bold uppercase tracking-[0.1em] rounded-lg border",
+                                                            salaryStatus === 'pending' && "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+                                                            salaryStatus === 'processed' && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+                                                            salaryStatus === 'paid' && "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+                                                            salaryStatus === 'not_set' && "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-white/10"
+                                                        )}>
+                                                            {salaryStatus === 'not_set' ? 'Not Set' : salaryStatus}
                                                         </span>
                                                     </div>
                                                 </td>
@@ -262,6 +366,54 @@ const PayrollPage = () => {
                         </table>
                     </div>
                 </div>
+
+                {showSalaryModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-bold text-foreground">Set Base Salary</h3>
+                                <button 
+                                    onClick={() => setShowSalaryModal(false)}
+                                    className="p-1 hover:bg-muted rounded-lg"
+                                >
+                                    <X className="w-5 h-5 text-foreground" />
+                                </button>
+                            </div>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-foreground mb-2">Select Employee</label>
+                                    <select
+                                        value={selectedEmployer}
+                                        onChange={(e) => setSelectedEmployer(e.target.value)}
+                                        className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
+                                    >
+                                        <option value="" className="text-foreground">Choose an employee...</option>
+                                        {employees.map(emp => (
+                                            <option key={emp.id} value={emp.id} className="text-foreground">{emp.employer_name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-foreground mb-2">Base Salary (PHP)</label>
+                                    <input
+                                        type="number"
+                                        value={salaryAmount}
+                                        onChange={(e) => setSalaryAmount(e.target.value)}
+                                        placeholder="Enter amount"
+                                        className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
+                                    />
+                                </div>
+                                <button
+                                    onClick={handleAddSalary}
+                                    disabled={!selectedEmployer || !salaryAmount}
+                                    className="w-full py-3 bg-secondary text-white rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Save Salary
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
     );
 };
