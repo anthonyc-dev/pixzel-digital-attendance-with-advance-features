@@ -124,9 +124,9 @@ const AttendancePage = () => {
             const startStr = event.start_date || event.date;
             const endStr = event.end_date || event.date;
             if (!startStr || !endStr) return false;
-            
+
             if (startStr === todayStr || endStr === todayStr) return true;
-            
+
             const start = startOfDay(parseISO(startStr));
             const end = endOfDay(parseISO(endStr));
             return isWithinInterval(today, { start, end });
@@ -309,7 +309,7 @@ const AttendancePage = () => {
     isProcessingRef.current = true;
     setIsProcessing(true);
     setScanStatus('Verifying face...');
-    
+
     if (holidayToday) {
       toast.error(`Scanning restricted for ${holidayToday.title}`);
       setIsScanning(false);
@@ -724,7 +724,7 @@ const AttendancePage = () => {
                   )}
                 </div>
 
-{/* Action Buttons */}
+                {/* Action Buttons */}
                 <div className="flex justify-center gap-4 flex-wrap">
 
                   {!isScanning && !isCaptured && !showSuccess && (

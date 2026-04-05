@@ -21,19 +21,18 @@ export async function POST(req: Request) {
     const supabase = await createSupabaseServer();
     const body = await req.json();
 
-    const { date, description, type, title, start_date, end_date } = body;
+    const { description, type, title, start_date, end_date } = body;
 
-    if (!date || !title) {
+    if (!start_date || !end_date || !title) {
       return NextResponse.json(
-        { error: "date and title are required" },
-        { status: 400 }
+        { error: "start_date, end_date and title are required" },
+        { status: 400 },
       );
     }
 
     const { data, error } = await supabase
       .from("events")
       .insert({
-        date,
         description,
         type,
         title,
