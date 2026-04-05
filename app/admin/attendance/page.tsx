@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { toast } from 'sonner';
+import { ENV } from '@/lib/api';
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 
 let faceapi: typeof import('@vladmandic/face-api') | null = null;
@@ -98,7 +99,7 @@ const AttendancePage = () => {
   const checkHoliday = async () => {
     try {
       setIsLoadingHoliday(true);
-      const response = await fetch('/api/events');
+      const response = await fetch(`${ENV.API_URL}/events`);
       if (response.ok) {
         const events = await response.json();
         const today = new Date();
@@ -137,11 +138,11 @@ const AttendancePage = () => {
   const fetchLogs = async () => {
     try {
       // 1. Fetch Logs
-      const logResponse = await fetch('/api/attendance');
+      const logResponse = await fetch(`${ENV.API_URL}/attendance`);
       const data = await logResponse.json();
 
       // 2. Fetch Total Employees for accurate stats
-      const empResponse = await fetch('/api/registration');
+      const empResponse = await fetch(`${ENV.API_URL}/registration`);
       const empData = await empResponse.json();
       const totalEmployees = Array.isArray(empData.data) ? empData.data.length : 0;
 
@@ -269,7 +270,7 @@ const AttendancePage = () => {
         .withFaceDescriptor();
 
       if (detection) {
-        const response = await fetch('/api/attendance', {
+        const response = await fetch(`${ENV.API_URL}/attendance`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

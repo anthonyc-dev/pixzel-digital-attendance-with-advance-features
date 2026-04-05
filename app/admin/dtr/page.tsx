@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { ENV } from '@/lib/api';
 import { format } from 'date-fns';
 
 interface Employee {
@@ -346,12 +347,12 @@ const DTRPage = () => {
             try {
                 setLoading(true);
                 // Fetch employers
-                const empRes = await fetch('/api/registration', { cache: 'no-store' });
+                const empRes = await fetch(`${ENV.API_URL}/registration`, { cache: 'no-store' });
                 const empData = await empRes.json();
                 setEmployees(empData.data || []);
 
                 // Fetch attendance records
-                const attRes = await fetch('/api/attendance', { cache: 'no-store' });
+                const attRes = await fetch(`${ENV.API_URL}/attendance`, { cache: 'no-store' });
                 if (!attRes.ok) {
                     throw new Error('Failed to fetch attendance');
                 }
