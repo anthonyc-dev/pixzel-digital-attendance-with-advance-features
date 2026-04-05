@@ -27,6 +27,7 @@ import {
     Cell
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { ENV } from '@/lib/api';
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
 
 interface Employee {
@@ -55,8 +56,8 @@ const AdminDashboard = () => {
         const fetchData = async () => {
             try {
                 const [empRes, attRes] = await Promise.all([
-                    fetch('/api/registration'),
-                    fetch('/api/attendance')
+                    fetch(`${ENV.API_URL}/registration`),
+                    fetch(`${ENV.API_URL}/attendance`)
                 ]);
                 
                 if (empRes.ok) {

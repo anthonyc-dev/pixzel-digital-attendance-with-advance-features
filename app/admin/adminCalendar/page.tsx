@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { ENV } from '@/lib/api';
 import { toast } from 'sonner';
 import {
   format,
@@ -93,8 +94,8 @@ const AdminCalendarPage = () => {
       try {
         setIsLoading(true);
         const [attendanceRes, eventsRes] = await Promise.all([
-          fetch('/api/attendance'),
-          fetch('/api/events')
+          fetch(`${ENV.API_URL}/attendance`),
+          fetch(`${ENV.API_URL}/events`)
         ]);
 
         if (attendanceRes.ok) {
@@ -185,7 +186,7 @@ const AdminCalendarPage = () => {
 
     try {
       setIsLoading(true);
-      const url = editingEventId ? `/api/events/${editingEventId}` : '/api/events';
+      const url = editingEventId ? `${ENV.API_URL}/events/${editingEventId}` : `${ENV.API_URL}/events`;
       const method = editingEventId ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -255,7 +256,7 @@ const AdminCalendarPage = () => {
 
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/events/${eventToDelete.id}`, {
+      const response = await fetch(`${ENV.API_URL}/events/${eventToDelete.id}`, {
         method: 'DELETE',
       });
 
@@ -658,9 +659,9 @@ const AdminCalendarPage = () => {
               )}
 
               {dayRecords.length > 0 && (
-                  <button className="w-full mt-6 py-2.5 rounded-xl bg-secondary text-white text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer">
-                    Export for {format(selectedDate!, 'MMM dd')}
-                  </button>
+                <button className="w-full mt-6 py-2.5 rounded-xl bg-secondary text-white text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer">
+                  Export for {format(selectedDate!, 'MMM dd')}
+                </button>
               )}
             </div>
           </div>

@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import Header from '@/components/mainPage/Header';
+import { ENV } from '@/lib/api';
 
 interface AttendanceRecord {
   id: number;
@@ -80,7 +81,7 @@ const AttendancePage = () => {
     const fetchInitialLogs = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch('/api/attendance');
+        const response = await fetch(`${ENV.API_URL}/attendance`);
         if (response.ok) {
           const data = await response.json();
           const mappedLogs: AttendanceRecord[] = data.map((log: ApiLogEntry) => ({
@@ -113,7 +114,7 @@ const AttendancePage = () => {
   const checkHoliday = async () => {
     try {
       setIsLoadingHoliday(true);
-      const response = await fetch('/api/events');
+      const response = await fetch(`${ENV.API_URL}/events`);
       if (response.ok) {
         const events = await response.json();
         const today = new Date();
@@ -320,7 +321,7 @@ const AttendancePage = () => {
 
     try {
       console.log('Sending descriptor to API...', { type: attendanceType });
-      const response = await fetch('/api/attendance', {
+      const response = await fetch(`${ENV.API_URL}/attendance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
