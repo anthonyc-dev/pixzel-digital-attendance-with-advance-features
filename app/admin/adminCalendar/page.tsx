@@ -6,7 +6,6 @@ import {
   ChevronRight, 
   Calendar as CalendarIcon, 
   Search, 
-  UserPlus, 
   Clock,
   CheckCircle2,
   AlertCircle,
