@@ -28,12 +28,11 @@ export async function PUT(req: Request, { params }: RouteParams) {
     const supabase = await createSupabaseServer();
     const body = await req.json();
 
-    const { date, description, type, title, start_date, end_date } = body;
+    const { description, type, title, start_date, end_date } = body;
 
     const { data, error } = await supabase
       .from("events")
       .update({
-        date,
         description,
         type,
         title,
