@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, Hash, ScanLine, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
+import { ENV } from '@/lib/api';
 
 let faceapi: typeof import('@vladmandic/face-api') | null = null;
 
@@ -97,7 +98,7 @@ const RegistrationContent = () => {
   const fetchHistory = useCallback(async () => {
     try {
       setIsLoadingHistory(true);
-      const response = await fetch('/api/registration');
+      const response = await fetch(`${ENV.API_URL}/registration`);
       if (response.ok) {
         const result = await response.json();
         const historyWithDates = result.data.map((item: EmployerData) => ({
@@ -346,7 +347,7 @@ const RegistrationContent = () => {
     // Skip duplicate checks if we are editing an existing employer
     if (!editId) {
       try {
-        const checkResponse = await fetch('/api/employers');
+        const checkResponse = await fetch(`${ENV.API_URL}/registration`);
         if (checkResponse.ok) {
           const { data: allEmployers } = await checkResponse.json();
 
@@ -425,7 +426,7 @@ const RegistrationContent = () => {
       }
 
       try {
-        const endpoint = editId ? `/api/registration/${editId}` : '/api/registration';
+        const endpoint = editId ? `${ENV.API_URL}/registration/${editId}` : `${ENV.API_URL}/registration`;
         const response = await fetch(endpoint, {
           method: editId ? 'PUT' : 'POST',
           headers: {

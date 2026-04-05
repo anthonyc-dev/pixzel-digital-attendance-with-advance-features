@@ -23,6 +23,7 @@ import {
     Activity,
     Plane,
 } from 'lucide-react';
+import { ENV } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/mainPage/Header';
 
@@ -83,7 +84,7 @@ const UserRecord = () => {
 
         const fetchUserData = async () => {
             try {
-                const response = await fetch(`/api/users/${userId}`);
+                const response = await fetch(`${ENV.API_URL}/users/${userId}`);
                 if (response.ok) {
                     const userData = await response.json();
                     setUserProfile({
@@ -102,7 +103,7 @@ const UserRecord = () => {
 
         const fetchAttendanceRecords = async () => {
             try {
-                const logsResponse = await fetch(`/api/attendance?employer_id=${userId}`);
+                const logsResponse = await fetch(`${ENV.API_URL}/attendance?employer_id=${userId}`);
                 if (logsResponse.ok) {
                     const allLogs = await logsResponse.json();
                     setAttendanceRecords(allLogs.map((log: ApiLogEntry) => ({

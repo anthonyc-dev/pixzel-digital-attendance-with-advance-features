@@ -4,8 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-
-const API_URL = process.env.NEXT_PUBLIC_URL!
+import { ENV } from '@/lib/api'
 
 const Login = () => {
   const router = useRouter()
@@ -32,7 +31,7 @@ const Login = () => {
     const fetchEmployers = async () => {
       try {
         console.log('Fetching personnel for login bubbles...')
-        const res = await fetch('/api/registration', { cache: 'no-store' })
+        const res = await fetch(`${ENV.API_URL}/registration`, { cache: 'no-store' })
         const contentType = res.headers.get('content-type')
         if (contentType && contentType.indexOf('application/json') !== -1) {
           const data = await res.json()
@@ -64,7 +63,7 @@ const Login = () => {
 
     // Supabase Auth signs in with email/phone, so resolve username to email first.
     if (!typedIdentifier.includes('@')) {
-      const resolveResponse = await fetch(`${API_URL}/auth/resolve-username`, {
+      const resolveResponse = await fetch(`${ENV.API_URL}/auth/resolve-username`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

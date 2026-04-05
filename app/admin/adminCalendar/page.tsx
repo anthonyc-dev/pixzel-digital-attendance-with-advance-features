@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { ENV } from '@/lib/api';
 import {
   format,
   addMonths,
@@ -92,8 +93,8 @@ const AdminCalendarPage = () => {
       try {
         setIsLoading(true);
         const [attendanceRes, eventsRes] = await Promise.all([
-          fetch('/api/attendance'),
-          fetch('/api/events')
+          fetch(`${ENV.API_URL}/attendance`),
+          fetch(`${ENV.API_URL}/events`)
         ]);
 
         if (attendanceRes.ok) {
@@ -184,7 +185,7 @@ const AdminCalendarPage = () => {
 
     try {
       setIsLoading(true);
-      const url = editingEventId ? `/api/events/${editingEventId}` : '/api/events';
+      const url = editingEventId ? `${ENV.API_URL}/events/${editingEventId}` : `${ENV.API_URL}/events`;
       const method = editingEventId ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -248,7 +249,7 @@ const AdminCalendarPage = () => {
 
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/events/${id}`, {
+      const response = await fetch(`${ENV.API_URL}/events/${id}`, {
         method: 'DELETE',
       });
 

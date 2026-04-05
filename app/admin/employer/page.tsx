@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { Users, MoreHorizontal, CheckCircle2, ScanFace, Pencil, Trash2, X, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { ENV } from '@/lib/api';
 
 interface Employer {
   id: string;
@@ -35,7 +36,7 @@ const EmployerPage = () => {
   useEffect(() => {
     const fetchEmployers = async () => {
       try {
-        const response = await fetch('/api/registration');
+        const response = await fetch(`${ENV.API_URL}/registration`);
         if (response.ok) {
           const result = await response.json();
           setEmployers(result.data || []);
@@ -70,7 +71,7 @@ const EmployerPage = () => {
     const id = showDeleteConfirm;
     setIsDeleting(id);
     try {
-      const response = await fetch(`/api/registration/${id}`, {
+      const response = await fetch(`${ENV.API_URL}/registration/${id}`, {
         method: 'DELETE',
       });
       if (response.ok) {

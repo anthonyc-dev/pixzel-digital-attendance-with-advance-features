@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { ENV } from '@/lib/api';
 
 interface Employee {
     id: string;
@@ -46,8 +47,8 @@ const PayrollPage = () => {
         const fetchData = async () => {
             try {
                 const [empRes, attRes] = await Promise.all([
-                    fetch('/api/registration'),
-                    fetch('/api/attendance')
+                    fetch(`${ENV.API_URL}/registration`),
+                    fetch(`${ENV.API_URL}/attendance`)
                 ]);
                 
                 if (empRes.ok) {
