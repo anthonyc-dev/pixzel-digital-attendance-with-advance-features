@@ -256,7 +256,7 @@ const AdminCalendarPage = () => {
 
     try {
       setIsLoading(true);
-      const response = await fetch(`${ENV.API_URL}/events/${id}`, {
+      const response = await fetch(`${ENV.API_URL}/events/${eventToDelete.id}`, {
         method: 'DELETE',
       });
 
@@ -659,9 +659,9 @@ const AdminCalendarPage = () => {
               )}
 
               {dayRecords.length > 0 && (
-                  <button className="w-full mt-6 py-2.5 rounded-xl bg-secondary text-white text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer">
-                    Export for {format(selectedDate!, 'MMM dd')}
-                  </button>
+                <button className="w-full mt-6 py-2.5 rounded-xl bg-secondary text-white text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer">
+                  Export for {format(selectedDate!, 'MMM dd')}
+                </button>
               )}
             </div>
           </div>
