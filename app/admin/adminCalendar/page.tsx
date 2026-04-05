@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Calendar as CalendarIcon,
   Search,
+  UserPlus,
   Clock,
   CheckCircle2,
   AlertCircle,
@@ -180,7 +181,7 @@ const AdminCalendarPage = () => {
   };
 
   const handleSaveEvent = async () => {
-    if (!newEvent.title || !newEvent.start_date || !newEvent.end_date) return;
+    if (!newEvent.title || !newEvent.date) return;
 
     try {
       setIsLoading(true);
@@ -285,12 +286,9 @@ const AdminCalendarPage = () => {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-secondary/10 border border-secondary/20 transition-all hover:scale-110">
-              <CalendarIcon className="w-6 h-6 text-secondary" />
-            </div>
             Admin Calendar
           </h1>
-          <p className="text-muted-foreground text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] leading-none opacity-80 pl-14">
+          <p className="text-muted-foreground text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] leading-none opacity-80 flex items-center gap-2">
             Managing employer activities & schedules
           </p>
         </div>
