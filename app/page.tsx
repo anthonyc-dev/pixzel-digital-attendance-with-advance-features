@@ -15,10 +15,13 @@ import {
   Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { AlertCircle } from 'lucide-react';
 
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 import Header from '@/components/mainPage/Header';
 
 interface AttendanceRecord {
@@ -70,6 +73,8 @@ const AttendancePage = () => {
   const [currentMatchPercentage, setCurrentMatchPercentage] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCameraLoading, setIsCameraLoading] = useState<boolean>(true);
+  const [holidayToday, setHolidayToday] = useState<{ title: string; type: string } | null>(null);
+  const [isLoadingHoliday, setIsLoadingHoliday] = useState(true);
 
   useEffect(() => {
     const fetchInitialLogs = async () => {
@@ -102,7 +107,47 @@ const AttendancePage = () => {
       }
     };
     fetchInitialLogs();
+    checkHoliday();
   }, []);
+
+  const checkHoliday = async () => {
+    try {
+      setIsLoadingHoliday(true);
+      const response = await fetch('/api/events');
+      if (response.ok) {
+        const events = await response.json();
+        const today = new Date();
+        const todayStr = format(today, 'yyyy-MM-dd');
+
+        const activeEvent = events.find((event: { start_date?: string; end_date?: string; date?: string; title?: string; type?: string }) => {
+          try {
+            const startStr = event.start_date || event.date;
+            const endStr = event.end_date || event.date;
+            if (!startStr || !endStr) return false;
+            
+            if (startStr === todayStr || endStr === todayStr) return true;
+            
+            const start = startOfDay(parseISO(startStr));
+            const end = endOfDay(parseISO(endStr));
+            return isWithinInterval(today, { start, end });
+          } catch {
+            return false;
+          }
+        });
+
+        if (activeEvent) {
+          setHolidayToday({
+            title: activeEvent.title,
+            type: activeEvent.type
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Failed to check holiday:', e);
+    } finally {
+      setIsLoadingHoliday(false);
+    }
+  };
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -249,12 +294,29 @@ const AttendancePage = () => {
   const isProcessingRef = useRef(false);
   const lastScanTimeRef = useRef(0);
 
+  const speak = (text: string) => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.1;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
   const processAttendanceDescriptor = useCallback(async (descriptor: number[]) => {
     if (isProcessingRef.current || showSuccess) return;
 
     isProcessingRef.current = true;
     setIsProcessing(true);
     setScanStatus('Verifying face...');
+    
+    if (holidayToday) {
+      toast.error(`Scanning restricted for ${holidayToday.title}`);
+      setIsScanning(false);
+      isProcessingRef.current = false;
+      setIsProcessing(false);
+      return;
+    }
 
     try {
       console.log('Sending descriptor to API...', { type: attendanceType });
@@ -304,6 +366,9 @@ const AttendancePage = () => {
         setIsProcessing(false);
         setIsScanning(false); // Stop scanning after success
 
+        // Announce result
+        speak(data.type === 'time_in' ? 'Time in' : 'Time out');
+
         // Keep camera running and resume readiness after success
         setTimeout(() => {
           setShowSuccess(false);
@@ -352,7 +417,7 @@ const AttendancePage = () => {
       isProcessingRef.current = false;
       setIsProcessing(false);
     }
-  }, [attendanceType, showSuccess, captureCurrentFrame]);
+  }, [attendanceType, showSuccess, captureCurrentFrame, holidayToday]);
 
   // Auto-scan logic
   useEffect(() => {
@@ -575,15 +640,34 @@ const AttendancePage = () => {
                     </div>
                   )}
 
-                  {/* Camera Error */}
-                  {cameraError && (
+                  {/* Camera Error / Holiday Message */}
+                  {cameraError || holidayToday ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center bg-muted">
-                      <Camera className="w-12 h-12 text-destructive" />
-                      <p className="text-sm font-medium text-destructive">
-                        {cameraError}
-                      </p>
+                      {holidayToday ? (
+                        <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
+                          <div className="w-20 h-20 rounded-full bg-red-500/10 border-2 border-red-500/30 flex items-center justify-center shadow-xl shadow-red-500/10">
+                            <AlertCircle className="w-10 h-10 text-red-500" />
+                          </div>
+                          <div className="space-y-2">
+                            <h3 className="text-xl font-bold text-foreground tracking-tight">{holidayToday.title}</h3>
+                            <p className="text-sm font-bold text-red-600/60 uppercase tracking-[0.2em] max-w-xs mx-auto">
+                              Attendance is blocked due to this {holidayToday.type}
+                            </p>
+                          </div>
+                          <div className="mt-4 px-4 py-2 rounded-lg bg-red-500/5 border border-red-500/10 text-[10px] font-black text-red-500 uppercase tracking-widest">
+                            System Lock Active
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <Camera className="w-12 h-12 text-destructive" />
+                          <p className="text-sm font-medium text-destructive">
+                            {cameraError}
+                          </p>
+                        </>
+                      )}
                     </div>
-                  )}
+                  ) : null}
 
                   {/* Success Overlay */}
                   {showSuccess && (
@@ -640,24 +724,32 @@ const AttendancePage = () => {
                   )}
                 </div>
 
-                {/* Action Buttons */}
+{/* Action Buttons */}
                 <div className="flex justify-center gap-4 flex-wrap">
 
                   {!isScanning && !isCaptured && !showSuccess && (
                     <>
                       <Button
                         onClick={() => handleAttendance('in')}
-                        className="flex items-center gap-3 bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity h-10 px-5 font-bold"
+                        disabled={isLoadingHoliday || !!holidayToday || isModelLoading}
+                        className={cn(
+                          "flex items-center gap-3 bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity h-10 px-5 font-bold disabled:opacity-50 disabled:cursor-not-allowed",
+                          isLoadingHoliday && "animate-pulse"
+                        )}
                       >
-                        <AlarmClockCheck className="w-6 h-6" />
+                        {isLoadingHoliday ? <Loader2 className="w-5 h-5 animate-spin" /> : <AlarmClockCheck className="w-6 h-6" />}
                         Time In
                       </Button>
 
                       <Button
                         onClick={() => handleAttendance('out')}
-                        className="flex items-center gap-3 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity h-10 px-5 font-bold"
+                        disabled={isLoadingHoliday || !!holidayToday || isModelLoading}
+                        className={cn(
+                          "flex items-center gap-3 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity h-10 px-5 font-bold disabled:opacity-50 disabled:cursor-not-allowed",
+                          isLoadingHoliday && "animate-pulse"
+                        )}
                       >
-                        <AlarmClockOff className="w-6 h-6" />
+                        {isLoadingHoliday ? <Loader2 className="w-5 h-5 animate-spin" /> : <AlarmClockOff className="w-6 h-6" />}
                         Time Out
                       </Button>
                     </>

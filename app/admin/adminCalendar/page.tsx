@@ -6,7 +6,6 @@ import {
   ChevronRight, 
   Calendar as CalendarIcon, 
   Search, 
-  UserPlus, 
   Clock,
   CheckCircle2,
   AlertCircle,
@@ -16,7 +15,9 @@ import {
   Loader2,
   Plus,
   X,
-  Info
+  Info,
+  Trash2,
+  Pencil
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -54,6 +55,8 @@ interface CalendarEvent {
   id: string;
   title: string;
   date: string;
+  start_date: string;
+  end_date: string;
   type: 'holiday' | 'event' | 'meeting' | 'other';
   description?: string;
 }
@@ -67,39 +70,51 @@ const AdminCalendarPage = () => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [events, setEvents] = useState<CalendarEvent[]>([
-    { id: '1', title: 'Company Holiday', date: format(new Date(), 'yyyy-MM-dd'), type: 'holiday', description: 'Office is closed.' }
-  ]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [newEvent, setNewEvent] = useState<{
     title: string;
     date: string;
+    start_date: string;
+    end_date: string;
     type: CalendarEvent['type'];
     description: string;
   }>({
     title: '',
     date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+    start_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+    end_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     type: 'event' as CalendarEvent['type'],
     description: ''
   });
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
 
-  // Fetch Attendance Records
+  // Fetch Attendance Records & Events
   useEffect(() => {
-    const fetchAttendance = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('/api/attendance');
-        if (response.ok) {
-          const data = await response.json();
-          setRecords(data || []);
+        const [attendanceRes, eventsRes] = await Promise.all([
+          fetch('/api/attendance'),
+          fetch('/api/events')
+        ]);
+
+        if (attendanceRes.ok) {
+          const attendanceData = await attendanceRes.json();
+          setRecords(attendanceData || []);
+        }
+
+        if (eventsRes.ok) {
+          const eventsData = await eventsRes.json();
+          setEvents(eventsData || []);
         }
       } catch (err) {
-        console.error('Failed to fetch attendance:', err);
+        console.error('Failed to fetch data:', err);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchAttendance();
+    fetchData();
   }, []);
 
   // Organize Records by Date
@@ -113,12 +128,35 @@ const AdminCalendarPage = () => {
     return groups;
   }, [records]);
 
-  // Organize Events by Date
+  // Organize Events by Date Range
   const groupedEvents = useMemo(() => {
     const groups: Record<string, CalendarEvent[]> = {};
     events.forEach(event => {
-      if (!groups[event.date]) groups[event.date] = [];
-      groups[event.date].push(event);
+      try {
+        if (event.start_date && event.end_date) {
+          const start = parseISO(event.start_date);
+          const end = parseISO(event.end_date);
+          
+          // Generate all days within the event range
+          const daysInRange = eachDayOfInterval({ start, end });
+          
+          daysInRange.forEach(day => {
+            const dateStr = format(day, 'yyyy-MM-dd');
+            if (!groups[dateStr]) groups[dateStr] = [];
+            
+            // Avoid duplicate events on same day if data is somehow redundant
+            if (!groups[dateStr].find(e => e.id === event.id)) {
+              groups[dateStr].push(event);
+            }
+          });
+        } else if (event.date) {
+          // Fallback if start/end dates are missing
+          if (!groups[event.date]) groups[event.date] = [];
+          groups[event.date].push(event);
+        }
+      } catch (err) {
+        console.error('Error grouping event:', event, err);
+      }
     });
     return groups;
   }, [events]);
@@ -148,25 +186,95 @@ const AdminCalendarPage = () => {
     }, 200);
   };
 
-  const handleAddEvent = () => {
+  const handleSaveEvent = async () => {
     if (!newEvent.title || !newEvent.date) return;
     
-    const event: CalendarEvent = {
-      id: Math.random().toString(36).substr(2, 9),
-      ...newEvent
-    };
+    try {
+      setIsLoading(true);
+      const url = editingEventId ? `/api/events/${editingEventId}` : '/api/events';
+      const method = editingEventId ? 'PUT' : 'POST';
 
-    console.log("BACKEND DATA: Payload for adding event:", event);
-    console.log("BACKEND LOGIC: If type is 'holiday', attendance checking should be disabled for this date.");
-    
-    setEvents(prev => [...prev, event]);
-    setIsEventModalOpen(false);
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: newEvent.title,
+          date: newEvent.date,
+          type: newEvent.type,
+          description: newEvent.description,
+          start_date: newEvent.start_date,
+          end_date: newEvent.end_date
+        }),
+      });
+
+      if (response.ok) {
+        const savedEvent = await response.json();
+        if (editingEventId) {
+          setEvents(prev => prev.map(e => e.id === editingEventId ? savedEvent : e));
+        } else {
+          setEvents(prev => [...prev, savedEvent]);
+        }
+        setIsEventModalOpen(false);
+        setEditingEventId(null);
+        const resetDate = format(new Date(), 'yyyy-MM-dd');
+        setNewEvent({
+          title: '',
+          date: resetDate,
+          start_date: resetDate,
+          end_date: resetDate,
+          type: 'event',
+          description: ''
+        });
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to save event:', errorData.error);
+        alert(`Failed to save event: ${errorData.error}`);
+      }
+    } catch (err) {
+      console.error('Error saving event:', err);
+      alert('An error occurred while saving the event.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOpenEditModal = (event: CalendarEvent) => {
+    setEditingEventId(event.id);
     setNewEvent({
-      title: '',
-      date: format(new Date(), 'yyyy-MM-dd'),
-      type: 'event',
-      description: ''
+      title: event.title,
+      date: event.date,
+      start_date: event.start_date,
+      end_date: event.end_date,
+      type: event.type,
+      description: event.description || ''
     });
+    setIsEventModalOpen(true);
+  };
+
+  const handleDeleteEvent = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this event?')) return;
+    
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/events/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setEvents(prev => prev.filter(e => e.id !== id));
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to delete event:', errorData.error);
+        alert(`Failed to delete event: ${errorData.error}`);
+      }
+    } catch (err) {
+      console.error('Error deleting event:', err);
+      alert('An error occurred while deleting the event.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const dayRecords = selectedDate ? (groupedRecords[format(selectedDate, 'yyyy-MM-dd')] || []) : [];
@@ -217,17 +325,22 @@ const AdminCalendarPage = () => {
           
           <button 
             onClick={() => {
-              setNewEvent(prev => ({ ...prev, date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd') }));
+              const dateStr = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
+              setEditingEventId(null);
+              setNewEvent({ 
+                title: '',
+                date: dateStr,
+                start_date: dateStr,
+                end_date: dateStr,
+                type: 'event',
+                description: ''
+              });
               setIsEventModalOpen(true);
             }}
             className="flex items-center gap-2 px-5 py-2.5 bg-secondary text-white rounded-xl shadow-lg shadow-secondary/20 hover:scale-105 active:scale-95 transition-all group font-bold text-xs uppercase tracking-widest"
           >
             <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
             Add Event
-          </button>
-          
-          <button className="p-3 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 text-muted-foreground rounded-xl shadow-sm hover:scale-105 active:scale-95 transition-all group">
-            <UserPlus className="w-5 h-5 group-hover:rotate-[360deg] transition-transform duration-700" />
           </button>
         </div>
       </header>
@@ -492,14 +605,41 @@ const AdminCalendarPage = () => {
                                 )}>
                                   {event.type}
                                 </span>
-                                <span className="text-[9px] font-bold text-muted-foreground/60">{format(parseISO(event.date + 'T00:00:00'), 'MMM dd')}</span>
+                                 <span className="text-[9px] font-bold text-muted-foreground/60">
+                                   {event.start_date === event.end_date 
+                                     ? format(parseISO(event.start_date + 'T00:00:00'), 'MMM dd')
+                                     : `${format(parseISO(event.start_date + 'T00:00:00'), 'MMM dd')} - ${format(parseISO(event.end_date + 'T00:00:00'), 'MMM dd')}`
+                                   }
+                                 </span>
                               </div>
                             </div>
-                            <div className={cn(
-                              "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
-                              event.type === 'holiday' ? "bg-red-500/10" : "bg-secondary/10"
-                            )}>
-                              {event.type === 'holiday' ? <Info className="w-4 h-4 text-red-500" /> : <CalendarIcon className="w-4 h-4 text-secondary" />}
+                            <div className="flex flex-col gap-2 shrink-0">
+                              <div className={cn(
+                                "w-8 h-8 rounded-xl flex items-center justify-center",
+                                event.type === 'holiday' ? "bg-red-500/10" : "bg-secondary/10"
+                              )}>
+                                {event.type === 'holiday' ? <Info className="w-4 h-4 text-red-500" /> : <CalendarIcon className="w-4 h-4 text-secondary" />}
+                              </div>
+                              <div className="flex flex-col gap-2 opacity-0 group-hover/event:opacity-100 transition-opacity">
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenEditModal(event);
+                                  }}
+                                  className="w-8 h-8 rounded-xl flex items-center justify-center bg-secondary/10 text-secondary hover:bg-secondary hover:text-white transition-all shadow-md active:scale-95"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteEvent(event.id);
+                                  }}
+                                  className="w-8 h-8 rounded-xl flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-md active:scale-95"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                             </div>
                           </div>
                           
@@ -581,11 +721,18 @@ const AdminCalendarPage = () => {
           <div className="relative w-full max-w-md bg-white dark:bg-[#121212] border border-white/20 rounded-3xl shadow-2xl p-8 animate-in zoom-in-95 duration-300">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h3 className="text-2xl font-bold tracking-tight text-foreground">Create Event</h3>
-                <p className="text-xs text-muted-foreground mt-1">Schedule a new holiday or activity</p>
+                <h3 className="text-2xl font-bold tracking-tight text-foreground">
+                  {editingEventId ? 'Edit Event' : 'Create Event'}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {editingEventId ? 'Modify currently scheduled activity' : 'Schedule a new holiday or activity'}
+                </p>
               </div>
               <button 
-                onClick={() => setIsEventModalOpen(false)}
+                onClick={() => {
+                  setIsEventModalOpen(false);
+                  setEditingEventId(null);
+                }}
                 className="p-2 hover:bg-muted rounded-xl transition-all"
               >
                 <X className="w-5 h-5 text-muted-foreground" />
@@ -606,16 +753,19 @@ const AdminCalendarPage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Date</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Main Date</label>
                   <input 
                     type="date"
                     value={newEvent.date}
-                    onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setNewEvent({ ...newEvent, date: val, start_date: val, end_date: val });
+                    }}
                     className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Type</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Event Type</label>
                   <select 
                     value={newEvent.type}
                     onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as CalendarEvent['type'] })}
@@ -626,6 +776,27 @@ const AdminCalendarPage = () => {
                     <option value="meeting">Meeting</option>
                     <option value="other">Other</option>
                   </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Start Date</label>
+                  <input 
+                    type="date"
+                    value={newEvent.start_date}
+                    onChange={(e) => setNewEvent({ ...newEvent, start_date: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">End Date</label>
+                  <input 
+                    type="date"
+                    value={newEvent.end_date}
+                    onChange={(e) => setNewEvent({ ...newEvent, end_date: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:ring-2 focus:ring-secondary/20 focus:outline-none transition-all font-medium"
+                  />
                 </div>
               </div>
 
@@ -641,16 +812,19 @@ const AdminCalendarPage = () => {
 
               <div className="pt-4 flex gap-3">
                 <button 
-                  onClick={() => setIsEventModalOpen(false)}
+                  onClick={() => {
+                    setIsEventModalOpen(false);
+                    setEditingEventId(null);
+                  }}
                   className="flex-1 py-3 rounded-xl border border-border hover:bg-muted transition-all text-xs font-bold uppercase tracking-widest"
                 >
                   Cancel
                 </button>
                 <button 
-                  onClick={handleAddEvent}
+                  onClick={handleSaveEvent}
                   className="flex-[2] py-3 rounded-xl bg-secondary text-white shadow-lg shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-xs font-bold uppercase tracking-widest"
                 >
-                  Create Event
+                  {editingEventId ? 'Update Event' : 'Create Event'}
                 </button>
               </div>
             </div>

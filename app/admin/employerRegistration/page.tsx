@@ -584,6 +584,12 @@ const RegistrationContent = () => {
 
               <div className="flex items-center gap-2 sm:gap-3 mt-5 sm:mt-6">
                 <button
+                  onClick={handleCancel}
+                  className="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-foreground text-[10px] sm:text-[11px] font-bold uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
                   onClick={handleStartRegistration}
                   disabled={!formData.employerId || !formData.employerName || !formData.employerPosition}
                   className="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-[#0089C0] hover:bg-[#007aaa] text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-widest shadow-lg shadow-[#0089C0]/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer"
@@ -591,12 +597,7 @@ const RegistrationContent = () => {
                   <ScanFace className="w-3 sm:w-4 h-3 sm:h-4" />
                   Start Scanner
                 </button>
-                <button
-                  onClick={handleCancel}
-                  className="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-foreground text-[10px] sm:text-[11px] font-bold uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-all cursor-pointer"
-                >
-                  Cancel
-                </button>
+
               </div>
             </div>
           </div>

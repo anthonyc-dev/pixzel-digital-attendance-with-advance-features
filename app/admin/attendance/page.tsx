@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { toast } from 'sonner';
+import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 
 let faceapi: typeof import('@vladmandic/face-api') | null = null;
 
@@ -48,11 +49,23 @@ const AttendancePage = () => {
   const [detectedFaces, setDetectedFaces] = useState(0);
   const [attendanceType, setAttendanceType] = useState<'time_in' | 'time_out' | null>(null);
   const [stats, setStats] = useState({ present: 0, late: 0, absent: 0 });
+  const [holidayToday, setHolidayToday] = useState<{ title: string; type: string } | null>(null);
+  const [isLoadingHoliday, setIsLoadingHoliday] = useState(true);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isMatchingRef = useRef(false);
+
+  const speak = (text: string) => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.1;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
 
   // Load face-api.js models
   useEffect(() => {
@@ -75,11 +88,51 @@ const AttendancePage = () => {
     };
     loadModels();
     fetchLogs();
+    checkHoliday();
 
     return () => {
       stopCamera();
     };
   }, []);
+
+  const checkHoliday = async () => {
+    try {
+      setIsLoadingHoliday(true);
+      const response = await fetch('/api/events');
+      if (response.ok) {
+        const events = await response.json();
+        const today = new Date();
+        const todayStr = format(today, 'yyyy-MM-dd');
+ 
+        const activeEvent = events.find((event: { start_date?: string; end_date?: string; date?: string; title?: string; type?: string }) => {
+          try {
+            const startStr = event.start_date || event.date;
+            const endStr = event.end_date || event.date;
+            if (!startStr || !endStr) return false;
+            
+            if (startStr === todayStr || endStr === todayStr) return true;
+            
+            const start = startOfDay(parseISO(startStr));
+            const end = endOfDay(parseISO(endStr));
+            return isWithinInterval(today, { start, end });
+          } catch {
+            return false;
+          }
+        });
+ 
+        if (activeEvent) {
+          setHolidayToday({
+            title: activeEvent.title,
+            type: activeEvent.type
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Failed to check holiday:', e);
+    } finally {
+      setIsLoadingHoliday(false);
+    }
+  };
 
   const fetchLogs = async () => {
     try {
@@ -196,11 +249,14 @@ const AttendancePage = () => {
     }, 500);
   };
 
-  // Prevent multiple simultaneous API calls
-  const isMatchingRef = useRef(false);
-
   const handleFaceMatch = async () => {
     if (isMatchingRef.current || !videoRef.current || !isScanning) return;
+ 
+    if (holidayToday) {
+      toast.error(`Scanning restricted for ${holidayToday.title}`);
+      toggleScanning(null);
+      return;
+    }
 
     isMatchingRef.current = true;
     setScanResult('scanning');
@@ -225,7 +281,12 @@ const AttendancePage = () => {
         const result = await response.json();
 
         if (result.success) {
+          setLogs(prev => [result.data, ...prev]);
           setScanResult('success');
+          
+          // Announce result
+          speak(result.data.type === 'time_in' ? 'Time in' : 'Time out');
+
           setLastAttendance({
             name: result.data.employer_name,
             time: new Date().toLocaleTimeString(),
@@ -363,9 +424,21 @@ const AttendancePage = () => {
                   </div>
                   <div className="text-center px-6">
                     <p className="text-xl font-bold text-foreground">Terminal Ready</p>
-                    <p className="text-sm text-muted-foreground mt-2 max-w-xs">
-                      Please select the attendance type below to activate the facial recognition scanner.
-                    </p>
+                    {holidayToday ? (
+                      <div className="mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 max-w-xs mx-auto animate-in fade-in zoom-in duration-500">
+                        <div className="flex items-center gap-2 text-red-500 justify-center mb-1">
+                          <AlertCircle className="w-4 h-4" />
+                          <span className="text-xs font-black uppercase tracking-widest">{holidayToday.title}</span>
+                        </div>
+                        <p className="text-[10px] text-red-600/80 font-bold uppercase tracking-tight leading-relaxed">
+                          Attendance system is restricted today due to this {holidayToday.type}.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground mt-2 max-w-xs">
+                        Please select the attendance type below to activate the facial recognition scanner.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -401,18 +474,24 @@ const AttendancePage = () => {
                 <div className="flex flex-wrap justify-center gap-4 w-full max-w-md">
                   <button
                     onClick={() => toggleScanning('time_in')}
-                    disabled={isModelLoading}
-                    className="flex-1 min-w-[140px] flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-secondary hover:bg-secondary/90 text-white font-bold transition-all shadow-lg shadow-secondary/20 active:scale-[0.98] disabled:opacity-50"
+                    disabled={isModelLoading || isLoadingHoliday || !!holidayToday}
+                    className={cn(
+                      "flex-1 min-w-[140px] flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-secondary hover:bg-secondary/90 text-white font-bold transition-all shadow-lg shadow-secondary/20 active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed",
+                      isLoadingHoliday && "animate-pulse"
+                    )}
                   >
-                    {isModelLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}
+                    {isModelLoading || isLoadingHoliday ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}
                     Time In
                   </button>
                   <button
                     onClick={() => toggleScanning('time_out')}
-                    disabled={isModelLoading}
-                    className="flex-1 min-w-[140px] flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-muted hover:bg-muted/80 text-foreground font-bold border border-border transition-all active:scale-[0.98] disabled:opacity-50"
+                    disabled={isModelLoading || isLoadingHoliday || !!holidayToday}
+                    className={cn(
+                      "flex-1 min-w-[140px] flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-muted hover:bg-muted/80 text-foreground font-bold border border-border transition-all active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed",
+                      isLoadingHoliday && "animate-pulse"
+                    )}
                   >
-                    {isModelLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogOut className="w-5 h-5" />}
+                    {isModelLoading || isLoadingHoliday ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogOut className="w-5 h-5" />}
                     Time Out
                   </button>
                 </div>
