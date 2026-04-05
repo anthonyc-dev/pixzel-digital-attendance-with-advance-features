@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     Banknote,
     Search,
@@ -10,15 +10,12 @@ import {
     CreditCard,
     DollarSign,
     PieChart,
-    ArrowUpRight,
     Printer,
-    ChevronDown,
     Plus,
     X,
     RefreshCw,
     CheckCircle,
-    Clock,
-    XCircle
+    Clock
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -57,6 +54,12 @@ interface Employee {
     created_at: string;
 }
 
+interface AttendanceRecord {
+    status?: string;
+    timestamp?: string;
+    created_at?: string;
+}
+
 const PayrollPage = () => {
     const [payrollRecords, setPayrollRecords] = useState<PayrollRecord[]>([]);
     const [employees, setEmployees] = useState<Map<string, Employee>>(new Map());
@@ -72,26 +75,17 @@ const PayrollPage = () => {
     const [absentCount, setAbsentCount] = useState(0);
     const [processing, setProcessing] = useState(false);
 
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    useEffect(() => {
-        if (selectedEmployer && startDate && endDate) {
-            fetchAttendanceData();
-        }
-    }, [selectedEmployer, startDate, endDate]);
-
-    const fetchAttendanceData = async () => {
+    const fetchAttendanceData = useCallback(async () => {
+        if (!selectedEmployer || !startDate || !endDate) return;
+        
         try {
             const res = await fetch(`${ENV.API_URL}/attendance?employer_id=${selectedEmployer}&start_date=${startDate}&end_date=${endDate}`);
             if (res.ok) {
                 const data = await res.json();
                 const records = Array.isArray(data) ? data : (data.data || []);
 
-                // Identify dates that are holidays or events
-                const holidayDates = new Set();
-                records.forEach((record: any) => {
+                const holidayDates = new Set<string>();
+                records.forEach((record: AttendanceRecord) => {
                     const status = record.status?.toLowerCase();
                     if (status === 'holiday' || status === 'event') {
                         const timestamp = record.timestamp || record.created_at;
@@ -105,19 +99,16 @@ const PayrollPage = () => {
                 let late = 0;
                 let absent = 0;
 
-                // Track dates to ensure we only count one late/absent per day
                 const countedDates = new Set<string>();
 
-                records.forEach((record: any) => {
+                records.forEach((record: AttendanceRecord) => {
                     const status = record.status?.toLowerCase();
                     const timestamp = record.timestamp || record.created_at;
                     if (!timestamp) return;
 
-                    // Get local date string YYYY-MM-DD to avoid UTC shift
                     const dateObj = new Date(timestamp);
                     const date = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
 
-                    // Skip if this date is a holiday/event
                     if (holidayDates.has(date)) return;
 
                     if (status === 'absent') {
@@ -139,7 +130,15 @@ const PayrollPage = () => {
         } catch (e) {
             console.error('Failed to fetch attendance:', e);
         }
-    };
+    }, [selectedEmployer, startDate, endDate]);
+
+    useEffect(() => {
+        fetchAttendanceData();
+    }, [fetchAttendanceData]);
+
+    useEffect(() => {
+        fetchData();
+    }, []);
 
     const fetchData = async () => {
         setLoading(true);
