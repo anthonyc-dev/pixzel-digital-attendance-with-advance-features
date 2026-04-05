@@ -22,6 +22,8 @@ interface AttendanceLog {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const employer_id = searchParams.get("employer_id");
+  const start_date = searchParams.get("start_date");
+  const end_date = searchParams.get("end_date");
 
   const supabase = await createSupabaseServer();
 
@@ -31,6 +33,7 @@ export async function GET(request: Request) {
       `
       *,
       employer_registration (
+        id,
         employer_id,
         employer_name,
         employer_position,
@@ -50,6 +53,14 @@ export async function GET(request: Request) {
     if (employer) {
       query = query.eq("employer_registration_id", employer.id);
     }
+  }
+
+  if (start_date) {
+    query = query.gte("timestamp", `${start_date}T00:00:00+08:00`);
+  }
+
+  if (end_date) {
+    query = query.lte("timestamp", `${end_date}T23:59:59+08:00`);
   }
 
   const { data, error } = await query;
