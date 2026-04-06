@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, Hash, ScanLine, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import { History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, Hash, ScanLine, AlertCircle, Loader2, CheckCircle2, Mail, MapPin, Calendar, DollarSign } from 'lucide-react';
 import Image from 'next/image';
 import { ENV } from '@/lib/api';
 
@@ -32,6 +32,12 @@ type EmployerForm = {
   employerId: string;
   employerName: string;
   employerPosition: string;
+  contactNo: string;
+  email: string;
+  address: string;
+  gender: string;
+  birthDay: string;
+  baseSalary: string;
 };
 
 const RegistrationContent = () => {
@@ -46,6 +52,12 @@ const RegistrationContent = () => {
     employerId: '',
     employerName: '',
     employerPosition: '',
+    contactNo: '',
+    email: '',
+    address: '',
+    gender: '',
+    birthDay: '',
+    baseSalary: '',
   });
   const [showAllHistory, setShowAllHistory] = useState(false);
   const searchParams = useSearchParams();
@@ -132,7 +144,13 @@ const RegistrationContent = () => {
       setFormData({
         employerId: id,
         employerName: name,
-        employerPosition: pos
+        employerPosition: pos,
+        contactNo: '',
+        email: '',
+        address: '',
+        gender: '',
+        birthDay: '',
+        baseSalary: '',
       });
       setIsModalOpen(true);
       setIsCameraOpen(false);
@@ -436,6 +454,12 @@ const RegistrationContent = () => {
             employer_id: formData.employerId,
             employer_name: formData.employerName,
             employer_position: formData.employerPosition,
+            contact_no: formData.contactNo,
+            email: formData.email,
+            address: formData.address,
+            gender: formData.gender,
+            birth_day: formData.birthDay,
+            base_salary: formData.baseSalary,
             face_detected: true,
             status: 'present',
             image: imageSrc,
@@ -456,7 +480,7 @@ const RegistrationContent = () => {
           fetchHistory();
 
           setTimeout(() => {
-            setFormData({ employerId: '', employerName: '', employerPosition: '' });
+            setFormData({ employerId: '', employerName: '', employerPosition: '', contactNo: '', email: '', address: '', gender: '', birthDay: '', baseSalary: '' });
             setIsModalOpen(true);
             setIsCameraOpen(false);
             setScanResult(null);
@@ -496,12 +520,12 @@ const RegistrationContent = () => {
   };
 
   const handleCancel = () => {
-    setFormData({ employerId: '', employerName: '', employerPosition: '' });
+    setFormData({ employerId: '', employerName: '', employerPosition: '', contactNo: '', email: '', address: '', gender: '', birthDay: '', baseSalary: '' });
     setIsModalOpen(false);
   };
 
   const handleNewRegistration = () => {
-    setFormData({ employerId: '', employerName: '', employerPosition: '' });
+    setFormData({ employerId: '', employerName: '', employerPosition: '', contactNo: '', email: '', address: '', gender: '', birthDay: '', baseSalary: '' });
     setIsModalOpen(true);
     setIsCameraOpen(false);
     setScanResult(null);
@@ -530,7 +554,7 @@ const RegistrationContent = () => {
                 </div>
               </div>
 
-              <div className="space-y-3 sm:space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                 <div className="space-y-1.5 sm:space-y-2">
                   <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
                     {/* <Hash className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> */}
@@ -579,6 +603,101 @@ const RegistrationContent = () => {
                       className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
                     />
                     <Briefcase className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                    Contact No.
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.contactNo}
+                      onChange={(e) => handleFormChange('contactNo', e.target.value)}
+                      placeholder="Enter contact number"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                    />
+                    <Hash className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                    Email
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleFormChange('email', e.target.value)}
+                      placeholder="Enter email address"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                    />
+                    <Mail className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                    Address
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.address}
+                      onChange={(e) => handleFormChange('address', e.target.value)}
+                      placeholder="Enter address"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                    />
+                    <MapPin className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                    Gender
+                  </label>
+                  <select
+                    value={formData.gender}
+                    onChange={(e) => handleFormChange('gender', e.target.value)}
+                    className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white"
+                  >
+                    <option value="">Select gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                    Birth Day
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={formData.birthDay}
+                      onChange={(e) => handleFormChange('birthDay', e.target.value)}
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white"
+                    />
+                    <Calendar className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                    Base Salary
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={formData.baseSalary}
+                      onChange={(e) => handleFormChange('baseSalary', e.target.value)}
+                      placeholder="Enter base salary"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                    />
+                    <DollarSign className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
                   </div>
                 </div>
               </div>

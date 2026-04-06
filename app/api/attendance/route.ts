@@ -112,7 +112,18 @@ export async function POST(req: Request) {
 
     // 3. Face matching
     console.log(`Starting match for ${employees?.length || 0} employees...`);
-    const match = findBestMatch(descriptor, employees);
+    
+    const validEmployees = employees?.filter(emp => emp.descriptor && emp.descriptor.length > 0) || [];
+    console.log(`Valid employees with descriptors: ${validEmployees.length}`);
+    
+    if (validEmployees.length === 0) {
+      return NextResponse.json({
+        success: false,
+        message: "No registered employees found. Please register first.",
+      });
+    }
+    
+    const match = findBestMatch(descriptor, validEmployees);
     console.log(
       "Match result:",
       match
@@ -252,6 +263,7 @@ export async function POST(req: Request) {
       },
     });
   } catch (err: unknown) {
+    console.error("Attendance API error:", err);
     if (err instanceof Error) {
       return NextResponse.json(
         { success: false, message: err.message },
