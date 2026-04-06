@@ -504,7 +504,7 @@ const DTRPage = () => {
     };
 
     return (
-        <div className="flex flex-col gap-8 w-full max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out pb-10">
+        <div className="flex flex-col gap-8 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out pb-10">
 
             {/* Header Section */}
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">

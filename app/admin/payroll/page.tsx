@@ -350,7 +350,7 @@ const PayrollPage = () => {
     };
 
     return (
-        <div className="flex flex-col gap-6 w-full max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out pb-10">
+        <div className="flex flex-col gap-6 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out pb-10">
 
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div className="space-y-2">

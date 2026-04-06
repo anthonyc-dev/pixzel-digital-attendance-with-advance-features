@@ -760,7 +760,7 @@ const RegistrationContent = () => {
         </div>
       )}
 
-      <div className="flex flex-col gap-4 sm:gap-6 lg:gap-8 w-full max-w-7xl animate-in fade-in duration-500 ease-out pb-4 sm:pb-6 lg:pb-10">
+      <div className="flex flex-col gap-4 sm:gap-6 lg:gap-8 w-full mx-auto max-w-7xl animate-in fade-in duration-500 ease-out pb-4 sm:pb-6 lg:pb-10">
         <header className="flex items-center justify-between gap-4 sm:gap-6">
           <div className="space-y-1 sm:space-y-2">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground">Employer Registration</h1>
