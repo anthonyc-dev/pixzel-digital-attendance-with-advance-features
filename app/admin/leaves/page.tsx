@@ -54,6 +54,12 @@ const LeavesPage = () => {
         end_date: '',
     });
 
+    const filteredLeaves = leaves.filter(leave => 
+        leave.employee_name?.toLowerCase().includes(search.toLowerCase()) ||
+        leave.leave_type?.toLowerCase().includes(search.toLowerCase()) ||
+        leave.reason?.toLowerCase().includes(search.toLowerCase())
+    );
+
     const showToast = (message: string, type: 'success' | 'error' | 'delete') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
