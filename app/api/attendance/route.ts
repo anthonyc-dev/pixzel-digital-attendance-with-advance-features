@@ -189,7 +189,9 @@ export async function POST(req: Request) {
       if (type === "time_out") {
         const hasTimeIn = todayLogs?.some((log) => log.type === "time_in");
         if (!hasTimeIn) {
-          console.log(`Warning: ${employer_registration.employer_name} timed out without a time in.`);
+          console.log(
+            `Warning: ${employer_registration.employer_name} timed out without a time in.`,
+          );
           // We allow it to prevent the "error" at 6pm
         }
       }
@@ -204,7 +206,7 @@ export async function POST(req: Request) {
     }
 
     // 6. Determine status (9:15 AM or later is late)
-    // NOTE: We use 'on_time' internally for DB constraint compatibility, 
+    // NOTE: We use 'on_time' internally for DB constraint compatibility,
     // but the UI will display it as 'present'.
     const hours = now.getHours();
     const minutes = now.getMinutes();
