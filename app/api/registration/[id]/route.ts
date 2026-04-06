@@ -14,7 +14,7 @@ export async function PUT(
   if (body.descriptor === undefined) {
     return NextResponse.json(
       { error: "Face descriptor is required for registration" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -26,6 +26,12 @@ export async function PUT(
       employer_position: body.employer_position,
       face_detected: body.face_detected,
       status: body.status,
+      contact_no: body.contact_no,
+      email: body.email,
+      address: body.address,
+      gender: body.gender,
+      birth_day: body.birth_day,
+      base_salary: body.base_salary,
       image: body.image,
       descriptor: body.descriptor,
     })
