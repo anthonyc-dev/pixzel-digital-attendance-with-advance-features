@@ -520,7 +520,7 @@ const PayrollPage = () => {
                                 }}
                                 className="p-1 hover:bg-muted rounded-lg"
                             >
-                                <X className="w-5 h-5 text-foreground" />
+                                <X className="w-5 h-5 text-foreground cursor-pointer" />
                             </button>
                         </div>
                         <div className="space-y-4">
@@ -586,7 +586,7 @@ const PayrollPage = () => {
                             <button
                                 onClick={handleAddSalary}
                                 disabled={!selectedEmployer || !salaryAmount || !startDate || !endDate || processing}
-                                className="w-full py-3 bg-secondary text-white rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full py-3 bg-secondary text-white rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                             >
                                 {processing ? 'Creating...' : 'Create Payroll'}
                             </button>
