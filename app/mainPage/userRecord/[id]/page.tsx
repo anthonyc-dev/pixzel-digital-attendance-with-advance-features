@@ -22,6 +22,11 @@ import {
     Home,
     Activity,
     Plane,
+    Phone,
+    Mail,
+    MapPin,
+    CalendarDays,
+    DollarSign,
 } from 'lucide-react';
 import { ENV } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -61,6 +66,11 @@ interface UserProfile {
     department: string;
     employeeId: string;
     email: string;
+    contactNo: string;
+    address: string;
+    gender: string;
+    birthDay: string;
+    baseSalary: string;
     avatar?: string;
 }
 
@@ -75,6 +85,11 @@ const UserRecord = () => {
         department: '---',
         employeeId: '---',
         email: '---',
+        contactNo: '---',
+        address: '---',
+        gender: '---',
+        birthDay: '---',
+        baseSalary: '---',
     });
 
     const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
@@ -93,6 +108,11 @@ const UserRecord = () => {
                         employeeId: userData.employer_id || 'N/A',
                         department: userData.department || '---',
                         email: userData.email || '---',
+                        contactNo: userData.contact_no || '---',
+                        address: userData.address || '---',
+                        gender: userData.gender || '---',
+                        birthDay: userData.birth_day || '---',
+                        baseSalary: userData.base_salary || '---',
                         avatar: userData.image,
                     });
                 }
@@ -373,8 +393,44 @@ const UserRecord = () => {
                                 <p className="text-muted-foreground">{userProfile.position}</p>
                                 <div className="flex gap-4 mt-2 text-sm">
                                     <span className="text-muted-foreground">ID: {userProfile.employeeId}</span>
-                                    {/* <span className="text-muted-foreground">Dept: {userProfile.department}</span> */}
-                                    {/* <span className="text-muted-foreground">{userProfile.email}</span> */}
+                                </div>
+                                <div className="mt-3 space-y-1 text-sm">
+                                    {userProfile.email !== '---' && (
+                                        <div className="flex items-center gap-2 text-muted-foreground">
+                                            <Mail className="w-3 h-3" />
+                                            <span>{userProfile.email}</span>
+                                        </div>
+                                    )}
+                                    {userProfile.contactNo !== '---' && (
+                                        <div className="flex items-center gap-2 text-muted-foreground">
+                                            <Phone className="w-3 h-3" />
+                                            <span>{userProfile.contactNo}</span>
+                                        </div>
+                                    )}
+                                    {userProfile.address !== '---' && (
+                                        <div className="flex items-center gap-2 text-muted-foreground">
+                                            <MapPin className="w-3 h-3" />
+                                            <span>{userProfile.address}</span>
+                                        </div>
+                                    )}
+                                    {userProfile.gender !== '---' && (
+                                        <div className="flex items-center gap-2 text-muted-foreground">
+                                            <User className="w-3 h-3" />
+                                            <span className="capitalize">{userProfile.gender}</span>
+                                        </div>
+                                    )}
+                                    {userProfile.birthDay !== '---' && (
+                                        <div className="flex items-center gap-2 text-muted-foreground">
+                                            <CalendarDays className="w-3 h-3" />
+                                            <span>{userProfile.birthDay}</span>
+                                        </div>
+                                    )}
+                                    {userProfile.baseSalary !== '---' && (
+                                        <div className="flex items-center gap-2 text-muted-foreground">
+                                            <DollarSign className="w-3 h-3" />
+                                            <span>₱{userProfile.baseSalary}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
