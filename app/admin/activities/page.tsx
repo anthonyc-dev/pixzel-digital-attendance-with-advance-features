@@ -83,7 +83,7 @@ const ActivitiesPage = () => {
     ];
 
     return (
-        <div className="flex flex-col gap-4 sm:gap-5 w-full max-w-7xl animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out pb-6 lg:pb-10">
+        <div className="flex flex-col gap-4 sm:gap-5 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out pb-6 lg:pb-10">
 
             {/* Page Title */}
             <header className="flex flex-wrap items-center justify-between gap-4 py-2">

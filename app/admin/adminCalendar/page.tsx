@@ -290,7 +290,7 @@ const AdminCalendarPage = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 w-full max-w-7xl animate-in fade-in duration-700 ease-out pb-10">
+    <div className="flex flex-col gap-6 w-full mx-auto max-w-7xl animate-in fade-in duration-700 ease-out pb-10">
 
       {/* Dynamic Header Controls */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -377,7 +377,7 @@ const AdminCalendarPage = () => {
                 <input
                   type="text"
                   placeholder="Search events..."
-                  className="pl-9 pr-4 py-2 bg-muted/30 border border-border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all w-48 font-medium"
+                  className="pl-9 pr-4 py-2 bg-muted/30 border border-border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all w-63 font-medium"
                 />
               </div>
               <button className="p-2 border border-border rounded-lg hover:bg-muted transition-all">
