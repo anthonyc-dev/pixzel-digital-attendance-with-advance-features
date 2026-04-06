@@ -102,7 +102,7 @@ const LeavesPage = () => {
                 return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
         }
     };
-
+    
     return (
         <div className="flex flex-col gap-6 w-full max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out pb-10">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
