@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import {
   Calendar,
+  ScanFace,
   Clock,
   Settings,
   ChevronDown,
@@ -19,8 +20,7 @@ import {
   LogOut,
   Users,
   ClipboardCheck,
-  Banknote,
-  CalendarDays
+  Banknote
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
@@ -35,34 +35,16 @@ interface NavItem {
 
 const sidebarItems: NavItem[] = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/adminDashboard' },
-  { 
-    name: 'Employers', 
-    icon: Users, 
-    href: '/admin/employer',
-    hasSub: true,
-    subItems: [
-      { name: '- List', href: '/admin/employer' },
-      { name: '- Register', href: '/admin/employerRegistration' },
-    ]
-  },
+  { name: 'Employers', icon: Users, href: '/admin/employer' },
   { name: 'DTR', icon: ClipboardCheck, href: '/admin/dtr' },
-  { 
-    name: 'Payroll', 
-    icon: Banknote, 
-    href: '/admin/payroll',
-    hasSub: true,
-    subItems: [
-      { name: '- Run Payroll', href: '/admin/payroll' },
-      { name: '- Deductions', href: '/admin/deduction' },
-      { name: '- Leaves', href: '/admin/leaves' },
-    ]
-  },
+  { name: 'Payroll', icon: Banknote, href: '/admin/payroll' },
   { name: 'Calendar', icon: Calendar, href: '/admin/adminCalendar' },
   {
     name: 'Activities',
     icon: Clock,
     href: '/admin/activities',
   },
+  { name: 'Register', icon: ScanFace, href: '/admin/employerRegistration' },
 ];
 
 const bottomItems = [
@@ -81,7 +63,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
   const router = useRouter();
   const pathname = usePathname();
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  const [openMenus, setOpenMenus] = useState<string[]>([]);
+  const [openMenus, setOpenMenus] = useState<string[]>(['Activities']);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const supabase = createClient();
@@ -142,7 +124,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
       )}>
         <div className={cn(
           "relative flex items-center justify-end px-4 pt-6 pb-4",
-          isCollapsed && "px-2"
+          isCollapsed && "px-2 justify-center"
         )}>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
@@ -195,17 +177,14 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                     href={item.href}
                     prefetch={true}
                     className={cn(
-                      "w-full flex items-center p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer outline-none",
+                      "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer outline-none",
                       isActive
                         ? "bg-secondary text-white shadow-lg shadow-secondary/20 scale-[1.02]"
                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white",
-                      isCollapsed ? "justify-center px-0" : "justify-between"
+                      isCollapsed ? "justify-center px-0" : "justify-between" 
                     )}
                   >
-                    <div className={cn(
-                      "flex items-center gap-2.5",
-                      isCollapsed && "justify-center"
-                    )}>
+                    <div className="flex items-center gap-2.5">
                       <item.icon className={cn("w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110", isActive ? "text-white" : "text-gray-500 dark:text-gray-400")} />
                       {!isCollapsed && <span className={cn("font-bold tracking-tight text-xs", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>}
                     </div>
@@ -218,17 +197,13 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                   <button
                     onClick={() => handleNavClick(item)}
                     className={cn(
-                      "w-full flex items-center p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer outline-none",
+                      "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer outline-none",
                       isActive
                         ? "bg-secondary text-white shadow-lg shadow-secondary/20"
-                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white",
-                      isCollapsed ? "justify-center px-0" : "justify-between"
+                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
                     )}
                   >
-                    <div className={cn(
-                      "flex items-center gap-2.5",
-                      isCollapsed && "justify-center"
-                    )}>
+                    <div className="flex items-center gap-2.5">
                       <item.icon className={cn("w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110", isActive ? "text-white" : "text-gray-500 dark:text-gray-400")} />
                       {!isCollapsed && <span className={cn("font-bold tracking-tight text-xs", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>}
                     </div>
