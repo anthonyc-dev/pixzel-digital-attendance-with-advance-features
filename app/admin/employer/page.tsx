@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Users, MoreHorizontal, CheckCircle2, ScanFace, Pencil, Trash2, X, AlertCircle, Calendar, Mail, MapPin, Phone, Briefcase, PhilippinePeso, Hash, User, ScanLine } from 'lucide-react';
+import { Users, MoreHorizontal, CheckCircle2, ScanFace, Pencil, Trash2, X, AlertCircle, Calendar, Mail, MapPin, Phone, Briefcase, PhilippinePeso, User, ScanLine } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ENV } from '@/lib/api';

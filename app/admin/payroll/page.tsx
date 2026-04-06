@@ -14,7 +14,6 @@ import {
     Pencil,
     Trash2,
     Calendar,
-    AlertCircle,
     Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -79,11 +78,6 @@ const PayrollPage = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 
-    const formatDate = (dateStr: string) => {
-        const [year, month, day] = dateStr.split('-');
-        return `${month}-${day}-${year}`;
-    };
-
     const formatPeriod = (period: string) => {
         const oldFormatMatch = period.match(/(\d{2})-(\d{2})-(\d{4}) to (\d{2})-(\d{2})-(\d{4})/);
         if (oldFormatMatch) {
@@ -121,23 +115,6 @@ const PayrollPage = () => {
     const getCurrentPayrollPeriod = () => {
         const today = new Date();
         return getPayrollPeriod(today);
-    };
-
-    const getPastPayrollPeriods = (count: number = 3) => {
-        const periods = [];
-        const today = new Date();
-
-        for (let i = 0; i < count; i++) {
-            const date = new Date(today.getFullYear(), today.getMonth() - i, 15);
-            periods.push(getPayrollPeriod(date));
-
-            if (date.getDate() > 15) {
-                const firstPeriod = getPayrollPeriod(new Date(date.getFullYear(), date.getMonth(), 1));
-                periods.push(firstPeriod);
-            }
-        }
-
-        return periods;
     };
 
     const fetchData = async () => {
@@ -409,7 +386,7 @@ const PayrollPage = () => {
         };
     }, []);
 
-    const handleUpdateStatus = async (id: string, newStatus: 'pending' | 'processed' | 'paid') => {
+    const handleMarkAsPaid = async (id: string) => {
         const record = payrollRecords.find(p => p.id === id);
         if (!record) return;
 
@@ -417,19 +394,16 @@ const PayrollPage = () => {
             const res = await fetch(`${ENV.API_URL}/payroll/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...record,
-                    status: newStatus
-                })
+                body: JSON.stringify({ ...record, status: 'paid' })
             });
 
             if (res.ok) {
                 setPayrollRecords(prev => prev.map(p =>
-                    p.id === id ? { ...p, status: newStatus } : p
+                    p.id === id ? { ...p, status: 'paid' } : p
                 ));
             }
         } catch (e) {
-            console.error('Failed to update status:', e);
+            console.error('Failed to mark as paid:', e);
         }
     };
 
@@ -531,7 +505,6 @@ const PayrollPage = () => {
     };
 
     const currentPeriod = getCurrentPayrollPeriod();
-    const currentPeriodRecords = payrollRecords.filter(p => p.period === currentPeriod.periodStr);
 
     return (
         <div className="flex flex-col gap-6 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out pb-10">
@@ -660,7 +633,6 @@ const PayrollPage = () => {
                                 </tr>
                             ) : (
                                 filteredRecords.map((record) => {
-                                    const employer = employers.find(e => e.id === record.employer_registration_id);
                                     return (
                                         <tr key={record.id} className="group hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
                                             <td className="p-5 text-left">
@@ -713,26 +685,15 @@ const PayrollPage = () => {
                                                     <button
                                                         type="button"
                                                         onClick={() => setOpenActionMenu(openActionMenu === record.id ? null : record.id)}
-                                                        className="action-menu-button p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                                                        className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                                                     >
-                                                        <MoreHorizontal className="w-4 h-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+                                                        <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
                                                     </button>
                                                     {openActionMenu === record.id && (
-                                                        <div className="action-menu-dropdown absolute right-[calc(100%+12px)] top-1/2 -translate-y-[68%] z-50 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 min-w-[140px] animate-in fade-in slide-in-from-right-4 duration-200">
+                                                        <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-[#0A0A0A] rounded-xl shadow-xl border border-gray-100 dark:border-white/10 py-1 z-10">
                                                             <button
                                                                 onClick={() => {
-                                                                    handleUpdateStatus(record.id, 'processed');
-                                                                    setOpenActionMenu(null);
-                                                                }}
-                                                                disabled={record.status !== 'pending'}
-                                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-emerald-600 hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                            >
-                                                                <CheckCircle className="w-4 h-4" />
-                                                                Process
-                                                            </button>
-                                                            <button
-                                                                onClick={() => {
-                                                                    handleUpdateStatus(record.id, 'paid');
+                                                                    handleMarkAsPaid(record.id);
                                                                     setOpenActionMenu(null);
                                                                 }}
                                                                 disabled={record.status !== 'processed'}

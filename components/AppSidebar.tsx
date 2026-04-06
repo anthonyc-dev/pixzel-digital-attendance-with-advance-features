@@ -19,8 +19,7 @@ import {
   LogOut,
   Users,
   ClipboardCheck,
-  Banknote,
-  CalendarDays
+  Banknote
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
@@ -35,34 +34,18 @@ interface NavItem {
 
 const sidebarItems: NavItem[] = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/adminDashboard' },
-  { 
-    name: 'Employers', 
-    icon: Users, 
-    href: '/admin/employer',
-    hasSub: true,
-    subItems: [
-      { name: 'List', href: '/admin/employer' },
-      { name: 'Register', href: '/admin/employerRegistration' },
-    ]
-  },
+  { name: 'Employers', icon: Users, href: '/admin/employer', hasSub: true, subItems: [
+    { name: 'Employer', href: '/admin/employer' },
+    { name: 'Register', href: '/admin/employerRegistration' },
+  ]},
   { name: 'DTR', icon: ClipboardCheck, href: '/admin/dtr' },
-  { 
-    name: 'Payroll', 
-    icon: Banknote, 
-    href: '/admin/payroll',
-    hasSub: true,
-    subItems: [
-      { name: 'Run Payroll', href: '/admin/payroll' },
-      { name: 'Deductions', href: '/admin/deduction' },
-      { name: 'Leaves', href: '/admin/leaves' },
-    ]
-  },
+  { name: 'Payroll', icon: Banknote, href: '/admin/payroll', hasSub: true, subItems: [
+    { name: 'Payroll', href: '/admin/payroll' },
+    { name: 'Leave Request', href: '/admin/leaves' },
+    { name: 'Deduction', href: '/admin/deduction' },
+  ]},
   { name: 'Calendar', icon: Calendar, href: '/admin/adminCalendar' },
-  {
-    name: 'Activities',
-    icon: Clock,
-    href: '/admin/activities',
-  },
+  { name: 'Activities', icon: Clock, href: '/admin/activities' },
 ];
 
 const bottomItems = [
@@ -81,7 +64,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
   const router = useRouter();
   const pathname = usePathname();
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  const [openMenus, setOpenMenus] = useState<string[]>(['Employers', 'Payroll']);
+  const [openMenus, setOpenMenus] = useState<string[]>([]);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const supabase = createClient();
@@ -142,7 +125,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
       )}>
         <div className={cn(
           "relative flex items-center justify-end px-4 pt-6 pb-4",
-          isCollapsed && "px-2"
+          isCollapsed && "px-2 justify-center"
         )}>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
@@ -195,17 +178,14 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                     href={item.href}
                     prefetch={true}
                     className={cn(
-                      "w-full flex items-center p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer outline-none",
+                      "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer outline-none",
                       isActive
                         ? "bg-secondary text-white shadow-lg shadow-secondary/20 scale-[1.02]"
                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white",
-                      isCollapsed ? "justify-center px-0" : "justify-between"
+                      isCollapsed ? "justify-center px-0" : "justify-between" 
                     )}
                   >
-                    <div className={cn(
-                      "flex items-center gap-2.5",
-                      isCollapsed && "justify-center"
-                    )}>
+                    <div className="flex items-center gap-2.5">
                       <item.icon className={cn("w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110", isActive ? "text-white" : "text-gray-500 dark:text-gray-400")} />
                       {!isCollapsed && <span className={cn("font-bold tracking-tight text-xs", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>}
                     </div>
@@ -218,17 +198,13 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                   <button
                     onClick={() => handleNavClick(item)}
                     className={cn(
-                      "w-full flex items-center p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer outline-none",
+                      "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer outline-none",
                       isActive
                         ? "bg-secondary text-white shadow-lg shadow-secondary/20"
-                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white",
-                      isCollapsed ? "justify-center px-0" : "justify-between"
+                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
                     )}
                   >
-                    <div className={cn(
-                      "flex items-center gap-2.5",
-                      isCollapsed && "justify-center"
-                    )}>
+                    <div className="flex items-center gap-2.5">
                       <item.icon className={cn("w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110", isActive ? "text-white" : "text-gray-500 dark:text-gray-400")} />
                       {!isCollapsed && <span className={cn("font-bold tracking-tight text-xs", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>}
                     </div>
@@ -240,25 +216,43 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                 )}
 
                 {!isCollapsed && item.subItems && isMenuOpen && (
-                  <div className="ml-5 space-y-0.5 mt-0.5 border-l border-gray-200 dark:border-white/5 pl-3 py-0.5 animate-in slide-in-from-top-2 duration-300">
-                    {item.subItems.map((sub) => (
-                      <Link
-                        key={sub.name}
-                        href={sub.href}
-                        prefetch={true}
-                        className={cn(
-                          "flex items-center justify-between py-1.5 text-[10px] font-bold uppercase tracking-widest transition-colors duration-150 cursor-pointer hover:translate-x-0.5 transition-transform",
-                          pathname === sub.href ? "text-secondary" : "text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white"
-                        )}
-                      >
-                        <span>{sub.name}</span>
-                        {sub.badge && (
-                          <span className="px-1.5 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-[8px] font-bold">
-                            {sub.badge}
-                          </span>
-                        )}
-                      </Link>
-                    ))}
+                  <div className="relative ml-3 mt-1 pl-2 py-1 animate-in slide-in-from-top-2 duration-300">
+                    {item.subItems.map((sub, index) => {
+                      const isSubActive = pathname === sub.href;
+                      return (
+                        <Link
+                          key={sub.name}
+                          href={sub.href}
+                          prefetch={true}
+                          className={cn(
+                            "relative flex items-center gap-2 py-1.5 text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer group",
+                            isSubActive ? "text-secondary" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                          )}
+                        >
+                          {/* Vertical connection line */}
+                          <div className={cn(
+                            "absolute -left-2 w-[2px] bg-gray-300 dark:bg-gray-600",
+                            index === 0 ? "-top-1" : "top-0",
+                            index === item.subItems!.length - 1 ? "bottom-1/2" : "bottom-0"
+                          )} />
+                          {/* Horizontal connection line that stretches on hover */}
+                          <div className="absolute -left-2 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-2 group-hover:w-[12px]" />
+                          
+                          <span className={cn(
+                            "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10 group-hover:translate-x-1",
+                            isSubActive
+                              ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
+                              : "border border-gray-400 dark:border-gray-500 bg-transparent"
+                          )} />
+                          <span className="flex-1 transition-transform duration-150 group-hover:translate-x-1">{sub.name}</span>
+                          {sub.badge && (
+                            <span className="px-1.5 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-[8px] font-bold transition-transform duration-150 group-hover:translate-x-1">
+                              {sub.badge}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -405,26 +399,44 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                 )}
 
                 {item.subItems && isMenuOpen && (
-                  <div className="ml-5 space-y-0.5 mt-0.5 border-l border-gray-200 dark:border-white/5 pl-3 py-0.5">
-                    {item.subItems.map((sub) => (
-                      <Link
-                        key={sub.name}
-                        href={sub.href}
-                        prefetch={true}
-                        onClick={() => setIsMobileOpen?.(false)}
-                        className={cn(
-                          "flex items-center justify-between py-1.5 text-[10px] font-bold uppercase tracking-widest transition-colors duration-200 cursor-pointer",
-                          pathname === sub.href ? "text-secondary" : "text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white"
-                        )}
-                      >
-                        <span>{sub.name}</span>
-                        {sub.badge && (
-                          <span className="px-1.5 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-[8px] font-bold">
-                            {sub.badge}
-                          </span>
-                        )}
-                      </Link>
-                    ))}
+                  <div className="relative ml-3 mt-1 pl-2 py-1">
+                    {item.subItems.map((sub, index) => {
+                      const isSubActive = pathname === sub.href;
+                      return (
+                        <Link
+                          key={sub.name}
+                          href={sub.href}
+                          prefetch={true}
+                          onClick={() => setIsMobileOpen?.(false)}
+                          className={cn(
+                            "relative flex items-center gap-2 py-1.5 text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer group",
+                            isSubActive ? "text-secondary" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                          )}
+                        >
+                          {/* Vertical connection line */}
+                          <div className={cn(
+                            "absolute -left-2 w-[2px] bg-gray-300 dark:bg-gray-600",
+                            index === 0 ? "-top-1" : "top-0",
+                            index === item.subItems!.length - 1 ? "bottom-1/2" : "bottom-0"
+                          )} />
+                          {/* Horizontal connection line that stretches on hover */}
+                          <div className="absolute -left-2 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-2 group-hover:w-[12px]" />
+
+                          <span className={cn(
+                            "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10 group-hover:translate-x-1",
+                            isSubActive
+                              ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
+                              : "border border-gray-400 dark:border-gray-500 bg-transparent"
+                          )} />
+                          <span className="flex-1 transition-transform duration-150 group-hover:translate-x-1">{sub.name}</span>
+                          {sub.badge && (
+                            <span className="px-1.5 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-[8px] font-bold transition-transform duration-150 group-hover:translate-x-1">
+                              {sub.badge}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
               </div>

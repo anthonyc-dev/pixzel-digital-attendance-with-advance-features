@@ -36,14 +36,19 @@ export async function POST(req: Request) {
     } = body;
 
     if (
-      !employer_registration_id ||
+      employer_registration_id === undefined ||
+      employer_registration_id === null ||
       !full_name ||
-      !base_salary ||
-      !gross_pay ||
-      !net_pay
+      base_salary === undefined ||
+      base_salary === null ||
+      gross_pay === undefined ||
+      gross_pay === null ||
+      net_pay === undefined ||
+      net_pay === null
     ) {
+      console.log('Missing required fields:', { employer_registration_id, full_name, base_salary, gross_pay, net_pay });
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Missing required fields", received: { employer_registration_id, full_name, base_salary, gross_pay, net_pay } },
         { status: 400 },
       );
     }
