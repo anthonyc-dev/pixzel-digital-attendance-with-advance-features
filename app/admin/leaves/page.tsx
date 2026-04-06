@@ -141,13 +141,7 @@ const LeavesPage = () => {
             setSubmitting(false);
         }
     };
-
-    const filteredLeaves = leaves.filter((leave) => {
-        const matchesSearch = leave.employee_name.toLowerCase().includes(search.toLowerCase()) ||
-            leave.leave_type.toLowerCase().includes(search.toLowerCase());
-        return matchesSearch;
-    });
-
+    
     return (
         <>
             <div className="flex flex-col gap-4 sm:gap-6 lg:gap-8 w-full mx-auto max-w-7xl animate-in fade-in duration-200 ease-out pb-4 sm:pb-6 lg:pb-10">
