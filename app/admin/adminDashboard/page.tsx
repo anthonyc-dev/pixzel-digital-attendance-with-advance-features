@@ -9,9 +9,7 @@ import {
     TrendingUp, 
     Calendar,
     ChevronRight,
-    Activity,
-    Target,
-    RefreshCw
+    Activity
 } from 'lucide-react';
 import { 
     BarChart, 
@@ -25,12 +23,11 @@ import {
     Area,
     PieChart,
     Pie,
-    Cell,
-    Legend
+    Cell
 } from 'recharts';
 import { cn } from '@/lib/utils';
 import { ENV } from '@/lib/api';
-import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
+import { format, subDays, startOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
 
 interface Employee {
     id: string;
@@ -53,34 +50,28 @@ interface AttendanceRecord {
 const AdminDashboard = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const [empRes, attRes] = await Promise.all([
-                fetch(`${ENV.API_URL}/registration`),
-                fetch(`${ENV.API_URL}/attendance`)
-            ]);
-            
-            if (empRes.ok) {
-                const empData = await empRes.json();
-                setEmployees(Array.isArray(empData) ? empData : (empData.data || []));
-            }
-            
-            if (attRes.ok) {
-                const attData = await attRes.json();
-                setAttendance(Array.isArray(attData) ? attData : []);
-            }
-        } catch (e) {
-            console.error('Failed to fetch dashboard data:', e);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     useEffect(() => {
-        fetchData();
+        (async () => {
+            try {
+                const [empRes, attRes] = await Promise.all([
+                    fetch(`${ENV.API_URL}/registration`),
+                    fetch(`${ENV.API_URL}/attendance`)
+                ]);
+                
+                if (empRes.ok) {
+                    const empData = await empRes.json();
+                    setEmployees(Array.isArray(empData) ? empData : (empData.data || []));
+                }
+                
+                if (attRes.ok) {
+                    const attData = await attRes.json();
+                    setAttendance(Array.isArray(attData) ? attData : []);
+                }
+            } catch (e) {
+                console.error('Failed to fetch dashboard data:', e);
+            }
+        })();
     }, []);
 
     const getDynamicWeeklyData = () => {
