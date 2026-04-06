@@ -65,6 +65,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [openMenus, setOpenMenus] = useState<string[]>(['Activities']);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -75,9 +76,11 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
     } else {
       document.documentElement.classList.add('dark');
     }
+    setIsImageLoaded(true);
   }, []);
 
   const toggleTheme = (newTheme: 'light' | 'dark') => {
+    setIsImageLoaded(false);
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
@@ -140,7 +143,24 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
 
           {!isCollapsed && (
             <div className="absolute left-4 top-6 flex items-center">
-              <Image src="/Pixzel-Digital-Logo-Light-Land.png" alt="Pixzel Digital" className="h-8 w-auto" width={120} height={32} />
+              <div className="relative w-[100px] h-[28px]">
+                {!isImageLoaded && (
+                  <div className="absolute inset-0 flex items-center gap-2 animate-pulse">
+                    <div className="w-[28px] h-[28px] rounded-full bg-muted" />
+                    <div className="flex flex-col gap-1">
+                      <div className="w-[60px] h-[8px] bg-muted rounded" />
+                      <div className="w-[40px] h-[6px] bg-muted rounded" />
+                    </div>
+                  </div>
+                )}
+                <Image
+                  src={theme === 'dark' ? "/Pixzel-Digital-Logo-Light-Land.png" : "/pixzel-logo.png"}
+                  alt="Pixzel Digital"
+                  fill
+                  className={cn("object-contain transition-all duration-300", isImageLoaded ? "opacity-100" : "opacity-0")}
+                  onLoad={() => setIsImageLoaded(true)}
+                />
+              </div>
             </div>
           )}
         </div>
@@ -220,8 +240,37 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
           })}
         </nav>
 
-        <div className={cn("mt-auto shrink-0 space-y-3 p-2 pt-3 border-t border-gray-100 dark:border-white/5 bg-white dark:bg-black", isCollapsed && "px-0 items-center")}>
-          <div className="space-y-0.5">
+        <div className={cn("mt-auto shrink-0 space-y-3 p-2 pt-3 border-t border-gray-100 dark:border-white/5 bg-white dark:bg-black", isCollapsed && "px-0 flex flex-col items-center")}>
+          <div className={cn(
+            "w-full flex items-center transition-all duration-300 py-1",
+            isCollapsed ? "justify-center px-0" : "justify-start px-2.5"
+          )}>
+            <button
+              onClick={() => toggleTheme(theme === 'light' ? 'dark' : 'light')}
+              className={cn(
+                "relative inline-flex h-7 w-14 items-center rounded-full transition-all duration-500 ease-in-out cursor-pointer outline-none border-2 border-transparent shadow-inner group",
+                theme === 'light' ? "bg-[#FFF4CC]" : "bg-[#0F172A]"
+              )}
+              aria-label="Toggle Theme"
+            >
+              <div
+                className={cn(
+                  "flex h-5 w-5 items-center justify-center rounded-full transition-all duration-500 ease-in-out shadow-md transform",
+                  theme === 'light' 
+                    ? "translate-x-1 bg-amber-400" 
+                    : "translate-x-7 bg-sky-500"
+                )}
+              >
+                {theme === 'light' ? (
+                  <Sun className="h-3.5 w-3.5 text-white fill-white" />
+                ) : (
+                  <Moon className="h-3.5 w-3.5 text-white fill-white" />
+                )}
+              </div>
+            </button>
+          </div>
+
+          <div className={cn("w-full space-y-0.5", isCollapsed && "flex flex-col items-center")}>
             {bottomItems.map((item) => (
               <Link
                 key={item.name}
@@ -248,34 +297,6 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
               </Link>
             ))}
           </div>
-
-          <div className={cn(
-            "p-1 bg-gray-50 dark:bg-white/5 rounded-lg flex items-center shadow-inner border border-gray-100 dark:border-white/5 transition-all overflow-hidden",
-            isCollapsed ? "flex-col gap-0.5 w-fit mx-auto" : "flex-row"
-          )}>
-            <button
-              onClick={() => toggleTheme('light')}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-bold transition-all rounded-md cursor-pointer",
-                theme === 'light' ? "bg-secondary text-white shadow-sm ring-1 ring-secondary/20" : "text-gray-400 hover:text-gray-900"
-              )}
-              title="Light Mode"
-            >
-              <Sun className="w-3 h-3" />
-              {!isCollapsed && <span>Light</span>}
-            </button>
-            <button
-              onClick={() => toggleTheme('dark')}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-bold transition-all rounded-md cursor-pointer",
-                theme === 'dark' ? "bg-black dark:bg-white/10 text-white shadow-sm ring-1 ring-white/10" : "text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              )}
-              title="Dark Mode"
-            >
-              <Moon className="w-3 h-3" />
-              {!isCollapsed && <span>Dark</span>}
-            </button>
-          </div>
         </div>
       </aside>
 
@@ -291,8 +312,23 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
           >
             <X className="w-5 h-5" />
           </button>
-          <div className="flex items-center">
-            <Image src="/Pixzel-Digital-Logo-Light-Land.png" alt="Pixzel Digital" className="h-7 w-auto" width={100} height={28} />
+          <div className="relative w-[90px] h-[24px]">
+            {!isImageLoaded && (
+              <div className="absolute inset-0 flex items-center gap-2 animate-pulse">
+                <div className="w-[24px] h-[24px] rounded-full bg-muted" />
+                <div className="flex flex-col gap-1">
+                  <div className="w-[50px] h-[6px] bg-muted rounded" />
+                  <div className="w-[35px] h-[5px] bg-muted rounded" />
+                </div>
+              </div>
+            )}
+            <Image
+              src={theme === 'dark' ? "/Pixzel-Digital-Logo-Light-Land.png" : "/pixzel-logo.png"}
+              alt="Pixzel Digital"
+              fill
+              className={cn("object-contain transition-all duration-300", isImageLoaded ? "opacity-100" : "opacity-0")}
+              onLoad={() => setIsImageLoaded(true)}
+            />
           </div>
           <div className="w-8" />
         </div>
@@ -371,6 +407,32 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
         </nav>
 
         <div className="shrink-0 space-y-3 p-2 pt-3 border-t border-gray-100 dark:border-white/5 bg-white dark:bg-black">
+          <div className="flex items-center justify-start w-full py-1 px-2.5">
+            <button
+              onClick={() => toggleTheme(theme === 'light' ? 'dark' : 'light')}
+              className={cn(
+                "relative inline-flex h-8 w-16 items-center rounded-full transition-all duration-500 ease-in-out cursor-pointer outline-none border-2 border-transparent shadow-inner",
+                theme === 'light' ? "bg-[#FFF4CC]" : "bg-[#0F172A]"
+              )}
+              aria-label="Toggle Theme"
+            >
+              <div
+                className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded-full transition-all duration-500 ease-in-out shadow-md transform",
+                  theme === 'light' 
+                    ? "translate-x-1 bg-amber-400" 
+                    : "translate-x-8 bg-sky-500"
+                )}
+              >
+                {theme === 'light' ? (
+                  <Sun className="h-4 w-4 text-white fill-white" />
+                ) : (
+                  <Moon className="h-4 w-4 text-white fill-white" />
+                )}
+              </div>
+            </button>
+          </div>
+
           <div className="space-y-0.5">
             {bottomItems.map((item) => (
               <Link
@@ -395,29 +457,6 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                 <span>{item.name}</span>
               </Link>
             ))}
-          </div>
-
-          <div className="p-1 bg-gray-50 dark:bg-white/5 rounded-lg flex items-center shadow-inner border border-gray-100 dark:border-white/5">
-            <button
-              onClick={() => toggleTheme('light')}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-bold transition-all rounded-md cursor-pointer",
-                theme === 'light' ? "bg-secondary text-white shadow-sm ring-1 ring-secondary/20" : "text-gray-400 hover:text-gray-900"
-              )}
-            >
-              <Sun className="w-3 h-3" />
-              <span>Light</span>
-            </button>
-            <button
-              onClick={() => toggleTheme('dark')}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-bold transition-all rounded-md cursor-pointer",
-                theme === 'dark' ? "bg-black dark:bg-white/10 text-white shadow-sm ring-1 ring-white/10" : "text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              )}
-            >
-              <Moon className="w-3 h-3" />
-              <span>Dark</span>
-            </button>
           </div>
         </div>
       </aside>
