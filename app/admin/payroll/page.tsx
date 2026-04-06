@@ -53,6 +53,16 @@ interface DTRRecord {
     date: string;
     status: string;
     is_late: boolean;
+    time_in?: string | null;
+    time_out?: string | null;
+    excuse?: string | null;
+}
+
+interface CalendarEvent {
+    id: string;
+    start_date: string;
+    end_date: string;
+    type: string;
 }
 
 interface DeductionSetting {
@@ -187,7 +197,64 @@ const PayrollPage = () => {
         return [];
     };
 
-    const computePayroll = useCallback(async (employer: Employer, startDate: string, endDate: string, periodStr: string) => {
+    const fetchEvents = async () => {
+        try {
+            const res = await fetch(`${ENV.API_URL}/events`);
+            if (res.ok) {
+                const data = await res.json();
+                return Array.isArray(data) ? data : [];
+            }
+        } catch (e) {
+            console.error('Failed to fetch events:', e);
+        }
+        return [];
+    };
+
+    const toDateKey = (value: Date) => {
+        const year = value.getFullYear();
+        const month = String(value.getMonth() + 1).padStart(2, '0');
+        const day = String(value.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const parseDateKey = (dateKey: string) => {
+        const [y, m, d] = dateKey.split('-').map(Number);
+        return new Date(y, (m || 1) - 1, d || 1);
+    };
+
+    const buildHolidayDateSet = (events: CalendarEvent[], startDate: string, endDate: string) => {
+        const holidays = new Set<string>();
+        const rangeStart = parseDateKey(startDate).getTime();
+        const rangeEnd = parseDateKey(endDate).getTime();
+
+        events.forEach((event) => {
+            if (String(event.type).toLowerCase() !== 'holiday') return;
+            if (!event.start_date || !event.end_date) return;
+
+            const eventStart = parseDateKey(event.start_date).getTime();
+            const eventEnd = parseDateKey(event.end_date).getTime();
+            const start = Math.max(rangeStart, eventStart);
+            const end = Math.min(rangeEnd, eventEnd);
+            if (Number.isNaN(start) || Number.isNaN(end) || start > end) return;
+
+            let cursor = new Date(start);
+            const endDateObj = new Date(end);
+            while (cursor <= endDateObj) {
+                holidays.add(toDateKey(cursor));
+                cursor.setDate(cursor.getDate() + 1);
+            }
+        });
+
+        return holidays;
+    };
+
+    const computePayroll = useCallback(async (
+        employer: Employer,
+        startDate: string,
+        endDate: string,
+        periodStr: string,
+        holidayDates: Set<string>
+    ) => {
         console.log('Computing payroll for:', employer.employer_name, 'employer_id:', employer.employer_id, 'base_salary:', employer.base_salary);
         
         const dtrRecords: DTRRecord[] = await fetchDTRData(employer.employer_id, startDate, endDate);
@@ -195,16 +262,54 @@ const PayrollPage = () => {
 
         let lateCount = 0;
         let absentCount = 0;
+        const recordsByDate = new Map<string, DTRRecord[]>();
 
         dtrRecords.forEach((record: DTRRecord) => {
-            const status = record.status?.toLowerCase();
-            console.log('DTR record:', record.date, 'status:', status, 'is_late:', record.is_late);
-            if (status === 'absent') {
+            const key = record.date;
+            if (!key) return;
+            const existing = recordsByDate.get(key) || [];
+            existing.push(record);
+            recordsByDate.set(key, existing);
+            console.log('DTR record:', record.date, 'status:', record.status?.toLowerCase(), 'is_late:', record.is_late);
+        });
+
+        const start = parseDateKey(startDate);
+        const end = parseDateKey(endDate);
+        const cursor = new Date(start);
+
+        while (cursor <= end) {
+            const dateKey = toDateKey(cursor);
+            const dayOfWeek = cursor.getDay();
+            const isWeekday = dayOfWeek !== 0 && dayOfWeek !== 6;
+
+            if (!isWeekday || holidayDates.has(dateKey)) {
+                cursor.setDate(cursor.getDate() + 1);
+                continue;
+            }
+
+            const dayRecords = recordsByDate.get(dateKey) || [];
+            const statuses = dayRecords.map(r => String(r.status || '').toLowerCase());
+            const hasLeave = statuses.some(s => s.includes('leave')) ||
+                dayRecords.some(r => String(r.excuse || '').toLowerCase().includes('leave'));
+
+            if (hasLeave) {
+                cursor.setDate(cursor.getDate() + 1);
+                continue;
+            }
+
+            const hasExplicitAbsent = statuses.includes('absent');
+            const hasTimeIn = dayRecords.some(r => Boolean(r.time_in));
+            const hasLate = dayRecords.some(r => r.is_late === true || String(r.status || '').toLowerCase() === 'late');
+            const hasPresentLikeStatus = statuses.some(s => s === 'present' || s === 'on_time' || s === 'active' || s === 'late');
+
+            if (hasExplicitAbsent || (!hasTimeIn && !hasPresentLikeStatus)) {
                 absentCount++;
-            } else if (record.is_late === true) {
+            } else if (hasLate) {
                 lateCount++;
             }
-        });
+
+            cursor.setDate(cursor.getDate() + 1);
+        }
 
         console.log('Late count:', lateCount, 'Absent count:', absentCount);
 
@@ -248,6 +353,8 @@ const PayrollPage = () => {
         let skippedCount = 0;
 
         try {
+            const events = await fetchEvents();
+            const holidayDates = buildHolidayDateSet(events, period.startDate, period.endDate);
             console.log('Generating payroll for period:', period.periodStr);
             console.log('Total employers:', employers.length);
 
@@ -267,7 +374,7 @@ const PayrollPage = () => {
                     continue;
                 }
 
-                const computed = await computePayroll(employer, period.startDate, period.endDate, period.periodStr);
+                const computed = await computePayroll(employer, period.startDate, period.endDate, period.periodStr, holidayDates);
 
                 if (existingRecord) {
                     console.log('Updating existing record for:', employer.employer_name);
@@ -365,7 +472,9 @@ const PayrollPage = () => {
                 const startDate = `${startYear}-${startParts[0]}-${startParts[1]}`;
                 const endDate = `${endYear}-${endParts[0]}-${endParts[1]}`;
 
-                const computed = await computePayroll(employer, startDate, endDate, record.period);
+                const events = await fetchEvents();
+                const holidayDates = buildHolidayDateSet(events, startDate, endDate);
+                const computed = await computePayroll(employer, startDate, endDate, record.period, holidayDates);
 
                 await fetch(`${ENV.API_URL}/payroll/${record.id}`, {
                     method: 'PUT',
