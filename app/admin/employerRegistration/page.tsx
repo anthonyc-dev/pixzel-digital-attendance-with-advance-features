@@ -274,49 +274,38 @@ const RegistrationContent = () => {
         if (ctx) {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-          // Draw face boxes
+          // Draw face markers
           detections.forEach((detection) => {
             const box = detection.box;
+            const centerX = box.x + box.width / 2;
+            const centerY = box.y + box.height / 2;
+            const radiusX = box.width / 2;
+            const radiusY = box.height * 0.6; // Slightly taller for face shape
 
-            // Draw face box with glow
+            // Draw oval face marker with glow
             ctx.shadowColor = '#C01148';
-            ctx.shadowBlur = 20;
+            ctx.shadowBlur = 15;
             ctx.strokeStyle = '#C01148';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]); // Dashed line for high-tech look
+            
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset line dash
+
+            // Draw scanner corners relative to the detection
+            const cornerSize = radiusX * 0.4;
             ctx.lineWidth = 3;
-            ctx.strokeRect(box.x, box.y, box.width, box.height);
-
-            // Draw corner accents
-            const cornerSize = Math.max(15, Math.min(box.width, box.height) * 0.1);
             ctx.shadowBlur = 0;
-            ctx.lineWidth = 4;
 
-            // Top-left corner
+            // Top-left
             ctx.beginPath();
-            ctx.moveTo(box.x, box.y + cornerSize);
-            ctx.lineTo(box.x, box.y);
-            ctx.lineTo(box.x + cornerSize, box.y);
+            ctx.moveTo(centerX - radiusX * 0.8, centerY - radiusY * 0.6);
+            ctx.lineTo(centerX - radiusX, centerY - radiusY * 0.8);
             ctx.stroke();
 
-            // Top-right corner
-            ctx.beginPath();
-            ctx.moveTo(box.x + box.width - cornerSize, box.y);
-            ctx.lineTo(box.x + box.width, box.y);
-            ctx.lineTo(box.x + box.width, box.y + cornerSize);
-            ctx.stroke();
-
-            // Bottom-left corner
-            ctx.beginPath();
-            ctx.moveTo(box.x, box.y + box.height - cornerSize);
-            ctx.lineTo(box.x, box.y + box.height);
-            ctx.lineTo(box.x + cornerSize, box.y + box.height);
-            ctx.stroke();
-
-            // Bottom-right corner
-            ctx.beginPath();
-            ctx.moveTo(box.x + box.width - cornerSize, box.y + box.height);
-            ctx.lineTo(box.x + box.width, box.y + box.height);
-            ctx.lineTo(box.x + box.width, box.y + box.height - cornerSize);
-            ctx.stroke();
+            // Additional tech markers could go here
           });
         }
       } catch (error) {
@@ -733,20 +722,73 @@ const RegistrationContent = () => {
                         </div>
                       </div>
 
-                      {/* Scanning Overlay Viewfinder */}
-                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                        <div className={cn(
-                          "relative w-48 sm:w-64 md:w-80 h-48 sm:h-64 md:h-80 border-y-2 border-secondary/50 bg-secondary/10",
-                          detectedFaces === 0 && isCameraOpen && "animate-pulse-subtle"
-                        )}>
-                          <div className="absolute top-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-l-4 border-secondary rounded-tl-lg sm:rounded-tl-xl -mt-0.5 -ml-0.5" />
-                          <div className="absolute top-0 right-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-r-4 border-secondary rounded-tr-lg sm:rounded-tr-xl -mt-0.5 -mr-0.5" />
-                          <div className="absolute bottom-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-b-4 border-l-4 border-secondary rounded-bl-lg sm:rounded-bl-xl -mb-0.5 -ml-0.5" />
-                          <div className="absolute bottom-0 right-0 w-10 sm:w-12 h-10 sm:h-12 border-b-4 border-r-4 border-secondary rounded-br-lg sm:rounded-br-xl -mb-0.5 -mr-0.5" />
+                      {/* Facial Silhouette Viewfinder */}
+                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-20">
+                        <div className="relative w-[80%] h-[80%] flex items-center justify-center">
+                          <svg
+                            viewBox="0 0 200 240"
+                            className={cn(
+                              "w-64 sm:w-80 h-auto overflow-visible transition-all duration-700",
+                              detectedFaces > 0 ? "text-green-500" : "text-secondary",
+                              isScanning && "scale-110 opacity-40 blur-[2px]"
+                            )}
+                            fill="none"
+                          >
+                            <defs>
+                              <filter id="face-glow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="4" result="blur" />
+                                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                              </filter>
+                            </defs>
+
+                            {/* Corner Accents */}
+                            <g className="opacity-60">
+                              <path d="M20 40V20H40" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                              <path d="M160 20H180V40" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                              <path d="M20 200V220H40" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                              <path d="M160 220H180V200" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                            </g>
+
+                            {/* Main Face Outline */}
+                            <path
+                              d="M100 20C145 20 175 55 175 100C175 150 155 200 120 225C105 235 100 240 100 240C100 240 95 235 80 225C45 200 25 150 25 100C25 55 55 20 100 20Z"
+                              stroke="currentColor"
+                              strokeWidth={detectedFaces > 0 ? "4" : "2"}
+                              filter="url(#face-glow)"
+                              strokeDasharray={detectedFaces > 0 ? "none" : "200 400"}
+                              className={cn(detectedFaces === 0 && "animate-scan-path")}
+                            />
+
+                            {/* Inner Silhouette Layer */}
+                            <path
+                              d="M100 35C135 35 160 65 160 100C160 140 145 185 115 210C105 220 100 225 100 225C100 225 95 220 85 210C55 185 40 140 40 100C40 65 65 35 100 35Z"
+                              stroke="currentColor"
+                              strokeWidth="1"
+                              strokeOpacity="0.4"
+                              fill="currentColor"
+                              fillOpacity="0.05"
+                            />
+
+                            {/* Wireframe Detail Lines */}
+                            <g className="opacity-20 translate-y-[-10px]">
+                              <path d="M100 35V225" stroke="currentColor" strokeWidth="0.5" />
+                              <path d="M50 100H150" stroke="currentColor" strokeWidth="0.5" />
+                              <path d="M60 150H140" stroke="currentColor" strokeWidth="0.5" />
+                              <path d="M70 180H130" stroke="currentColor" strokeWidth="0.5" />
+                              
+                              <path d="M100 35L160 100" stroke="currentColor" strokeWidth="0.5" />
+                              <path d="M100 35L40 100" stroke="currentColor" strokeWidth="0.5" />
+                              <path d="M100 225L160 100" stroke="currentColor" strokeWidth="0.5" />
+                              <path d="M100 225L40 100" stroke="currentColor" strokeWidth="0.5" />
+                            </g>
+                            
+                            {/* Scanning horizontal line */}
+                            <g className="animate-face-scan">
+                              <line x1="30" y1="100" x2="170" y2="100" stroke="currentColor" strokeWidth="2" filter="url(#face-glow)" />
+                              <rect x="25" y="98" width="150" height="4" fill="currentColor" fillOpacity="0.1" />
+                            </g>
+                          </svg>
                         </div>
-                        {isScanning && (
-                          <div className="absolute left-0 right-0 h-0.5 sm:h-1 bg-secondary shadow-[0_0_20px_4px_rgba(192,17,72,0.6)] animate-scan top-1/2" />
-                        )}
                       </div>
 
                       {/* Register Button Overlay */}
@@ -769,7 +811,12 @@ const RegistrationContent = () => {
                           <button
                             disabled={isScanning || detectedFaces === 0}
                             onClick={captureAndRegister}
-                            className="px-6 sm:px-10 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl bg-secondary hover:opacity-90 text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-widest shadow-lg shadow-secondary/30 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-1.5 sm:gap-2 cursor-pointer"
+                            className={cn(
+                              "px-6 sm:px-10 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-widest active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-1.5 sm:gap-2 cursor-pointer",
+                              detectedFaces > 0 
+                                ? "bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/30" 
+                                : "bg-secondary hover:opacity-90 shadow-lg shadow-secondary/30"
+                            )}
                           >
                             <ScanFace className="w-3 sm:w-4 h-3 sm:h-4" />
                             {isScanning ? 'Generating Descriptor...' : detectedFaces === 0 ? 'Position Face in Frame' : 'Register Face'}
@@ -951,11 +998,26 @@ const RegistrationContent = () => {
           animation: scan 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
         }
         @keyframes pulse-subtle {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.7; transform: scale(0.98); }
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 0.6; }
         }
         .animate-pulse-subtle {
           animation: pulse-subtle 2s ease-in-out infinite;
+        }
+        @keyframes scan-path {
+          0% { stroke-dashoffset: 1000; }
+          100% { stroke-dashoffset: 0; }
+        }
+        .animate-scan-path {
+          animation: scan-path 3s linear infinite;
+        }
+        @keyframes scan-line {
+          0%, 100% { transform: translateY(-120px) scaleX(0.8); opacity: 0; }
+          10%, 90% { opacity: 1; }
+          50% { transform: translateY(120px) scaleX(1); opacity: 1; }
+        }
+        .animate-face-scan {
+          animation: scan-line 4s ease-in-out infinite;
         }
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
