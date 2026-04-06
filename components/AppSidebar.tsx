@@ -35,16 +35,18 @@ interface NavItem {
 
 const sidebarItems: NavItem[] = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/adminDashboard' },
-  { name: 'Employers', icon: Users, href: '/admin/employer' },
+  { name: 'Employers', icon: Users, href: '/admin/employer', hasSub: true, subItems: [
+    { name: 'Employer', href: '/admin/employer' },
+    { name: 'Register', href: '/admin/employerRegistration' },
+  ]},
   { name: 'DTR', icon: ClipboardCheck, href: '/admin/dtr' },
-  { name: 'Payroll', icon: Banknote, href: '/admin/payroll' },
+  { name: 'Payroll', icon: Banknote, href: '/admin/payroll', hasSub: true, subItems: [
+    { name: 'Payroll', href: '/admin/payroll' },
+    { name: 'Leave Request', href: '/admin/leaves' },
+    { name: 'Deduction', href: '/admin/deduction' },
+  ]},
   { name: 'Calendar', icon: Calendar, href: '/admin/adminCalendar' },
-  {
-    name: 'Activities',
-    icon: Clock,
-    href: '/admin/activities',
-  },
-  { name: 'Register', icon: ScanFace, href: '/admin/employerRegistration' },
+  { name: 'Activities', icon: Clock, href: '/admin/activities' },
 ];
 
 const bottomItems = [
@@ -63,7 +65,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
   const router = useRouter();
   const pathname = usePathname();
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  const [openMenus, setOpenMenus] = useState<string[]>(['Activities']);
+  const [openMenus, setOpenMenus] = useState<string[]>([]);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const supabase = createClient();
@@ -215,25 +217,43 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                 )}
 
                 {!isCollapsed && item.subItems && isMenuOpen && (
-                  <div className="ml-3 mt-1 border-l-2 border-gray-300 dark:border-gray-600 pl-2 py-1 animate-in slide-in-from-top-2 duration-300">
-                    {item.subItems.map((sub) => (
-                      <Link
-                        key={sub.name}
-                        href={sub.href}
-                        prefetch={true}
-                        className={cn(
-                          "flex items-center justify-between py-1.5 text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer hover:translate-x-1",
-                          pathname === sub.href ? "text-secondary" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                        )}
-                      >
-                        <span>{sub.name}</span>
-                        {sub.badge && (
-                          <span className="px-1.5 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-[8px] font-bold">
-                            {sub.badge}
-                          </span>
-                        )}
-                      </Link>
-                    ))}
+                  <div className="relative ml-3 mt-1 pl-2 py-1 animate-in slide-in-from-top-2 duration-300">
+                    {item.subItems.map((sub, index) => {
+                      const isSubActive = pathname === sub.href;
+                      return (
+                        <Link
+                          key={sub.name}
+                          href={sub.href}
+                          prefetch={true}
+                          className={cn(
+                            "relative flex items-center gap-2 py-1.5 text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer group",
+                            isSubActive ? "text-secondary" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                          )}
+                        >
+                          {/* Vertical connection line */}
+                          <div className={cn(
+                            "absolute -left-2 w-[2px] bg-gray-300 dark:bg-gray-600",
+                            index === 0 ? "-top-1" : "top-0",
+                            index === item.subItems!.length - 1 ? "bottom-1/2" : "bottom-0"
+                          )} />
+                          {/* Horizontal connection line that stretches on hover */}
+                          <div className="absolute -left-2 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-2 group-hover:w-[12px]" />
+                          
+                          <span className={cn(
+                            "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10 group-hover:translate-x-1",
+                            isSubActive
+                              ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
+                              : "border border-gray-400 dark:border-gray-500 bg-transparent"
+                          )} />
+                          <span className="flex-1 transition-transform duration-150 group-hover:translate-x-1">{sub.name}</span>
+                          {sub.badge && (
+                            <span className="px-1.5 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-[8px] font-bold transition-transform duration-150 group-hover:translate-x-1">
+                              {sub.badge}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -380,26 +400,44 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                 )}
 
                 {item.subItems && isMenuOpen && (
-                  <div className="ml-3 mt-1 border-l-2 border-gray-300 dark:border-gray-600 pl-2 py-1">
-                    {item.subItems.map((sub) => (
-                      <Link
-                        key={sub.name}
-                        href={sub.href}
-                        prefetch={true}
-                        onClick={() => setIsMobileOpen?.(false)}
-                        className={cn(
-                          "flex items-center justify-between py-2 text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer",
-                          pathname === sub.href ? "text-secondary" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                        )}
-                      >
-                        <span>{sub.name}</span>
-                        {sub.badge && (
-                          <span className="px-1.5 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-[8px] font-bold">
-                            {sub.badge}
-                          </span>
-                        )}
-                      </Link>
-                    ))}
+                  <div className="relative ml-3 mt-1 pl-2 py-1">
+                    {item.subItems.map((sub, index) => {
+                      const isSubActive = pathname === sub.href;
+                      return (
+                        <Link
+                          key={sub.name}
+                          href={sub.href}
+                          prefetch={true}
+                          onClick={() => setIsMobileOpen?.(false)}
+                          className={cn(
+                            "relative flex items-center gap-2 py-1.5 text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer group",
+                            isSubActive ? "text-secondary" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                          )}
+                        >
+                          {/* Vertical connection line */}
+                          <div className={cn(
+                            "absolute -left-2 w-[2px] bg-gray-300 dark:bg-gray-600",
+                            index === 0 ? "-top-1" : "top-0",
+                            index === item.subItems!.length - 1 ? "bottom-1/2" : "bottom-0"
+                          )} />
+                          {/* Horizontal connection line that stretches on hover */}
+                          <div className="absolute -left-2 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-2 group-hover:w-[12px]" />
+
+                          <span className={cn(
+                            "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10 group-hover:translate-x-1",
+                            isSubActive
+                              ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
+                              : "border border-gray-400 dark:border-gray-500 bg-transparent"
+                          )} />
+                          <span className="flex-1 transition-transform duration-150 group-hover:translate-x-1">{sub.name}</span>
+                          {sub.badge && (
+                            <span className="px-1.5 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-[8px] font-bold transition-transform duration-150 group-hover:translate-x-1">
+                              {sub.badge}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
               </div>
