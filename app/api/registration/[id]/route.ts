@@ -11,6 +11,13 @@ export async function PUT(
 
   const body = await req.json();
 
+  if (body.descriptor === undefined) {
+    return NextResponse.json(
+      { error: "Face descriptor is required for registration" },
+      { status: 400 }
+    );
+  }
+
   const { data, error } = await supabase
     .from("employer_registration")
     .update({
@@ -20,6 +27,7 @@ export async function PUT(
       face_detected: body.face_detected,
       status: body.status,
       image: body.image,
+      descriptor: body.descriptor,
     })
     .eq("id", id)
     .select();

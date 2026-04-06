@@ -1,30 +1,32 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppSidebar from './AppSidebar';
-import { Search, Menu, X } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usePathname } from 'next/navigation';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const mainRef = useRef<HTMLDivElement>(null);
-  const pathname = usePathname();
-  const hideQuickSearch = pathname === '/employee/attendance' || pathname === '/admin/employerRegistration' || pathname === '/admin/employer';
+  const mainRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (mainRef.current) {
-        setIsScrolled(mainRef.current.scrollTop > 10);
-      }
-    };
+    const saved = localStorage.getItem('sidebar-collapsed');
+    if (saved !== null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsCollapsed(saved === 'true');
+    }
+  }, []);
 
+  const handleSetIsCollapsed = (val: boolean) => {
+    setIsCollapsed(val);
+    localStorage.setItem('sidebar-collapsed', val.toString());
+  };
+
+  useEffect(() => {
     const mainElement = mainRef.current;
     if (mainElement) {
-      mainElement.addEventListener('scroll', handleScroll, { passive: true });
-      return () => mainElement.removeEventListener('scroll', handleScroll);
+      mainElement.addEventListener('scroll', () => {}, { passive: true });
     }
   }, []);
 
@@ -40,7 +42,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       
       <AppSidebar 
         isCollapsed={isCollapsed} 
-        setIsCollapsed={setIsCollapsed}
+        setIsCollapsed={handleSetIsCollapsed}
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
       />
@@ -48,7 +50,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <main 
         ref={mainRef}
         className={cn(
-          "flex-1 flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto relative transition-all duration-500 min-h-0",
+          "flex-1 flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto relative transition-all duration-300 min-h-0 bg-gray-50/50 dark:bg-[#0a0a0a]",
         )}
       >
         {/* Mobile Header */}
@@ -64,29 +66,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         {/* Decorative Background Elements */}
         <div className="fixed top-0 right-0 w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-secondary/5 rounded-full blur-[100px] md:blur-[120px] pointer-events-none" />
         
-        {/* Top Navbar - Sticky with blur on scroll */}
-        {!hideQuickSearch && (
-          <header className={cn(
-            "hidden md:flex items-center justify-between mb-6 lg:mb-10 w-full z-30 py-2 px-4 rounded-2xl border transition-all duration-300",
-            isScrolled 
-              ? "sticky top-2 bg-white/90 dark:bg-black/90 backdrop-blur-xl shadow-lg border-gray-100 dark:border-white/10" 
-              : "relative bg-white/70 dark:bg-black/50 border-transparent"
-          )}>
-            <div className="flex-1 max-w-lg relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-hover:text-primary dark:group-hover:text-white transition-colors" />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-gray-400 dark:text-gray-600 border border-gray-200 dark:border-white/10 rounded px-1.5 py-0.5 flex gap-1 items-center bg-gray-50 dark:bg-white/5 uppercase">
-                <span>⌘</span>
-                <span>K</span>
-              </div>
-              <input 
-                type="text" 
-                placeholder="Quick Search..." 
-                className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-3.5 pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 placeholder:uppercase placeholder:tracking-widest placeholder:text-[10px]" 
-              />
-            </div>
-          </header>
-        )}
-
         {/* Content Area Rendering */}
         <div className="relative z-0 h-full">
           {children}

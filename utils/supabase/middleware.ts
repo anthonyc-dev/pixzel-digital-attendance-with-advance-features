@@ -4,6 +4,8 @@ import { type NextRequest, NextResponse } from "next/server";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+const isConfigured = supabaseUrl && supabaseKey;
+
 /**
  * Refreshes the Supabase auth session and forwards updated cookies on the response.
  * Call this from root middleware on every matched request.
@@ -14,6 +16,10 @@ export async function updateSession(request: NextRequest) {
       headers: request.headers,
     },
   });
+
+  if (!isConfigured) {
+    return supabaseResponse;
+  }
 
   const supabase = createServerClient(supabaseUrl!, supabaseKey!, {
     cookies: {
@@ -34,7 +40,31 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { pathname } = request.nextUrl;
+
+  const isProtectedPath = 
+    pathname.startsWith('/admin') || 
+    pathname.startsWith('/employee') ||
+    pathname.startsWith('/api/employers') ||
+    (pathname.startsWith('/api/registration') && request.method !== 'GET');
+
+  const isAuthPath = pathname.startsWith('/auth/login');
+
+  if (isProtectedPath && !user) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/auth/login';
+    return NextResponse.redirect(url);
+  }
+
+  if (isAuthPath && user) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/admin/adminDashboard';
+    return NextResponse.redirect(url);
+  }
 
   return supabaseResponse;
 }

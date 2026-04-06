@@ -14,7 +14,7 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json(data);
+  return NextResponse.json({ data });
 }
 
 // CREATE
@@ -22,6 +22,13 @@ export async function POST(req: Request) {
   const supabase = await createSupabaseServer();
 
   const body = await req.json();
+
+  if (!body.descriptor) {
+    return NextResponse.json(
+      { error: "Face descriptor is required for registration" },
+      { status: 400 }
+    );
+  }
 
   const { data, error } = await supabase
     .from("employer_registration")
@@ -32,6 +39,7 @@ export async function POST(req: Request) {
       face_detected: body.face_detected,
       status: body.status,
       image: body.image,
+      descriptor: body.descriptor,
     })
     .select();
 

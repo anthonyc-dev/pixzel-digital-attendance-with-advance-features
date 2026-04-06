@@ -1,186 +1,508 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Camera, 
-  CameraOff, 
-  User, 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
+import {
+  User,
+  CheckCircle2,
+  XCircle,
+  Clock,
   RefreshCw,
   Shield,
   AlertCircle,
-  Play,
-  Square
+  Square,
+  Loader2,
+  ScanFace,
+  LogIn,
+  LogOut
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
+import { toast } from 'sonner';
+import { ENV } from '@/lib/api';
+import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 
-const attendanceLogs = [
-  { id: 1, name: 'John Doe', time: '09:00 AM', status: 'present', method: 'Face Recognition', image: 'JD' },
-  { id: 2, name: 'Sarah Smith', time: '09:05 AM', status: 'present', method: 'Face Recognition', image: 'SS' },
-  { id: 3, name: 'Mike Johnson', time: '09:12 AM', status: 'present', method: 'Face Recognition', image: 'MJ' },
-  { id: 4, name: 'Emily Brown', time: '09:30 AM', status: 'late', method: 'Face Recognition', image: 'EB' },
-  { id: 5, name: 'David Wilson', time: '--:--', status: 'absent', method: '--', image: 'DW' },
-];
+let faceapi: typeof import('@vladmandic/face-api') | null = null;
+
+type AttendanceLog = {
+  id: string;
+  employer_name: string;
+  timestamp: string;
+  status: 'present' | 'late' | 'absent' | 'on_time';
+  type: 'time_in' | 'time_out';
+  image?: string;
+  created_at?: string;
+  employer_registration_id?: string;
+  employer_position?: string;
+  employer_registration?: {
+    employer_name?: string;
+    employer_position?: string;
+    image?: string;
+  };
+};
 
 const AttendancePage = () => {
   const [isScanning, setIsScanning] = useState(false);
+  const [isModelLoading, setIsModelLoading] = useState(true);
   const [scanResult, setScanResult] = useState<'success' | 'error' | 'scanning' | null>(null);
-  const [lastAttendance, setLastAttendance] = useState<{name: string, time: string} | null>(null);
+  const [lastAttendance, setLastAttendance] = useState<{ name: string, time: string, type: string } | null>(null);
+  const [logs, setLogs] = useState<AttendanceLog[]>([]);
+  const [detectedFaces, setDetectedFaces] = useState(0);
+  const [attendanceType, setAttendanceType] = useState<'time_in' | 'time_out' | null>(null);
+  const [stats, setStats] = useState({ present: 0, late: 0, absent: 0 });
+  const [holidayToday, setHolidayToday] = useState<{ title: string; type: string } | null>(null);
+  const [isLoadingHoliday, setIsLoadingHoliday] = useState(true);
+
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isMatchingRef = useRef(false);
 
-  const startCamera = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'user', width: 640, height: 480 } 
-      });
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        setStream(mediaStream);
-      }
-    } catch (err) {
-      console.error('Error accessing camera:', err);
+  const speak = (text: string) => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.1;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
     }
   };
 
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-  };
-
+  // Load face-api.js models
   useEffect(() => {
+    const loadModels = async () => {
+      try {
+        setIsModelLoading(true);
+        faceapi = await import('@vladmandic/face-api');
+        const MODEL_URL = '/models';
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+          faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+        ]);
+        setIsModelLoading(false);
+      } catch (error) {
+        console.error('Failed to load face-api models:', error);
+        toast.error('Face detection models failed to load. Basic camera will be used.');
+        setIsModelLoading(false);
+      }
+    };
+    loadModels();
+    fetchLogs();
+    checkHoliday();
+
     return () => {
       stopCamera();
     };
   }, []);
 
-  const toggleScanning = () => {
-    if (!isScanning) {
+  const checkHoliday = async () => {
+    try {
+      setIsLoadingHoliday(true);
+      const response = await fetch(`${ENV.API_URL}/events`);
+      if (response.ok) {
+        const events = await response.json();
+        const today = new Date();
+        const todayStr = format(today, 'yyyy-MM-dd');
+ 
+        const activeEvent = events.find((event: { start_date?: string; end_date?: string; date?: string; title?: string; type?: string }) => {
+          try {
+            const startStr = event.start_date || event.date;
+            const endStr = event.end_date || event.date;
+            if (!startStr || !endStr) return false;
+            
+            if (startStr === todayStr || endStr === todayStr) return true;
+            
+            const start = startOfDay(parseISO(startStr));
+            const end = endOfDay(parseISO(endStr));
+            return isWithinInterval(today, { start, end });
+          } catch {
+            return false;
+          }
+        });
+ 
+        if (activeEvent) {
+          setHolidayToday({
+            title: activeEvent.title,
+            type: activeEvent.type
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Failed to check holiday:', e);
+    } finally {
+      setIsLoadingHoliday(false);
+    }
+  };
+
+  const fetchLogs = async () => {
+    try {
+      // 1. Fetch Logs
+      const logResponse = await fetch(`${ENV.API_URL}/attendance`);
+      const data = await logResponse.json();
+
+      // 2. Fetch Total Employees for accurate stats
+      const empResponse = await fetch(`${ENV.API_URL}/registration`);
+      const empData = await empResponse.json();
+      const totalEmployees = Array.isArray(empData.data) ? empData.data.length : 0;
+
+      if (logResponse.ok) {
+        setLogs(data);
+
+        // Basic stats calculation for today
+        const today = new Date().toISOString().split('T')[0];
+        const todayLogs = data.filter((l: AttendanceLog) => (l.created_at || l.timestamp)?.startsWith(today));
+
+        const presentIds = new Set(todayLogs.map((l: AttendanceLog) => l.employer_registration_id));
+        const present = presentIds.size;
+
+        const late = todayLogs.filter((l: AttendanceLog) => l.status === 'late').length;
+
+        setStats({
+          present,
+          late,
+          absent: Math.max(0, totalEmployees - present)
+        });
+      }
+    } catch (e) {
+      console.error('Failed to fetch logs:', e);
+    }
+  };
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: 640, height: 480 }
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play();
+          startDetection();
+        };
+      }
+    } catch (err) {
+      console.error('Error accessing camera:', err);
+      toast.error('Could not access camera');
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (detectionIntervalRef.current) {
+      clearInterval(detectionIntervalRef.current);
+      detectionIntervalRef.current = null;
+    }
+    setDetectedFaces(0);
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  };
+
+  const startDetection = () => {
+    if (detectionIntervalRef.current) clearInterval(detectionIntervalRef.current);
+
+    detectionIntervalRef.current = setInterval(async () => {
+      if (!videoRef.current || !canvasRef.current || !isScanning) return;
+
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+
+      if (video.readyState < 2) return;
+
+      try {
+        if (!faceapi) return;
+        const detections = await faceapi.detectAllFaces(
+          video,
+          new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.4 })
+        );
+
+        setDetectedFaces(detections.length);
+
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+
+          detections.forEach((detection) => {
+            const { x, y, width, height } = detection.box;
+            ctx.shadowColor = '#0089C0';
+            ctx.shadowBlur = 15;
+            ctx.strokeStyle = '#0089C0';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x, y, width, height);
+          });
+        }
+
+        // If a face is detected and scanning, trigger the recognition logic
+        if (detections.length === 1 && isScanning && scanResult !== 'success') {
+          // Add a small delay to ensure stable detection before capturing
+          handleFaceMatch();
+        }
+      } catch (error) {
+        console.error('Detection error:', error);
+      }
+    }, 500);
+  };
+
+  const handleFaceMatch = async () => {
+    if (isMatchingRef.current || !videoRef.current || !isScanning) return;
+ 
+    if (holidayToday) {
+      toast.error(`Scanning restricted for ${holidayToday.title}`);
+      toggleScanning(null);
+      return;
+    }
+
+    isMatchingRef.current = true;
+    setScanResult('scanning');
+
+    try {
+      if (!faceapi) return;
+      const detection = await faceapi
+        .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+
+      if (detection) {
+        const response = await fetch(`${ENV.API_URL}/attendance`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            descriptor: Array.from(detection.descriptor),
+            type: attendanceType
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          setLogs(prev => [result.data, ...prev]);
+          setScanResult('success');
+          
+          // Announce result
+          speak(result.data.type === 'time_in' ? 'Time in' : 'Time out');
+
+          setLastAttendance({
+            name: result.data.employer_name,
+            time: new Date().toLocaleTimeString(),
+            type: result.data.type
+          });
+          toast.success(`${result.data.employer_name} - ${result.data.type.replace('_', ' ')} recorded!`);
+          fetchLogs();
+
+          // Stop scanning after success
+          setTimeout(() => {
+            toggleScanning(null);
+            setScanResult(null);
+          }, 3000);
+        } else {
+          setScanResult('error');
+          toast.error(result.message || 'Face not recognized');
+          setTimeout(() => setScanResult('scanning'), 2000); // Back to scanning after error message
+        }
+      }
+    } catch (error) {
+      console.error('Match error:', error);
+      setScanResult('error');
+    } finally {
+      isMatchingRef.current = false;
+    }
+  };
+
+  const toggleScanning = (type: 'time_in' | 'time_out' | null) => {
+    if (type) {
+      setAttendanceType(type);
+      setIsScanning(true);
       startCamera();
-      setScanResult('scanning');
     } else {
+      setIsScanning(false);
+      setAttendanceType(null);
       stopCamera();
       setScanResult(null);
     }
-    setIsScanning(!isScanning);
-  };
-
-  const simulateAttendance = () => {
-    setScanResult('scanning');
-    setTimeout(() => {
-      setScanResult('success');
-      setLastAttendance({ name: 'John Doe', time: new Date().toLocaleTimeString() });
-    }, 2000);
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Attendance</h1>
-          <p className="text-muted-foreground mt-1">Face Recognition Attendance System</p>
+          <h1 className="text-3xl font-bold text-foreground">Attendance Terminal</h1>
+          <p className="text-muted-foreground mt-1">Real-time Facial Recognition Scanning</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded-xl border border-border">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-sm font-medium text-foreground">System Active</span>
+          <div className={cn(
+            "flex items-center gap-2 px-4 py-2 bg-muted rounded-lg border border-border transition-colors",
+            isScanning ? "border-emerald-500/50 bg-emerald-500/5" : ""
+          )}>
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              isScanning ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/30"
+            )} />
+            <span className="text-sm font-medium text-foreground">
+              {isScanning ? `${attendanceType?.replace('_', ' ').toUpperCase()} ACTIVE` : 'SYSTEM STANDBY'}
+            </span>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 border-0 shadow-md dark:shadow-none dark:bg-card/50">
+        <Card className="lg:col-span-2 border-0 shadow-md dark:shadow-none dark:bg-card/50 overflow-hidden">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg font-bold text-foreground flex items-center gap-2">
-              <Camera className="w-5 h-5 text-secondary" />
-              Face Recognition Scanner
+              <div className="p-2 rounded-lg bg-secondary/10">
+                <ScanFace className="w-5 h-5 text-secondary" />
+              </div>
+              Scanning Area
+              {isScanning && (
+                <span className="ml-2 text-xs font-normal text-muted-foreground animate-pulse">
+                  (Point face at camera)
+                </span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="relative aspect-video max-w-lg mx-auto rounded-2xl overflow-hidden bg-muted border-2 border-dashed border-border">
-              {isScanning && videoRef.current ? (
-                <video 
-                  ref={videoRef} 
-                  autoPlay 
-                  playsInline 
-                  muted 
-                  className="w-full h-full object-cover"
-                />
+            <div className="relative aspect-video max-w-2xl mx-auto rounded-2xl overflow-hidden bg-[#0A0A0A] border border-border shadow-2xl">
+              {isScanning ? (
+                <>
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className={cn(
+                      "w-full h-full object-cover transition-opacity duration-500",
+                      scanResult === 'success' ? "opacity-50 blur-sm" : "opacity-100"
+                    )}
+                  />
+                  <canvas
+                    ref={canvasRef}
+                    className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                  />
+
+                  {/* Viewfinder Overlay */}
+                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <div className={cn(
+                      "relative w-48 h-48 sm:w-64 sm:h-64 border border-secondary/20 bg-secondary/5 rounded-3xl transition-all duration-500",
+                      detectedFaces > 0 ? "scale-110 border-emerald-500/40 bg-emerald-500/5" : "scale-100"
+                    )}>
+                      {/* Corners */}
+                      <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-secondary rounded-tl-xl" />
+                      <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-secondary rounded-tr-xl" />
+                      <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-secondary rounded-bl-xl" />
+                      <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-secondary rounded-br-xl" />
+
+                      {/* Scan Line */}
+                      {isScanning && !scanResult && (
+                        <div className="absolute w-full h-0.5 bg-secondary/50 shadow-[0_0_15px_rgba(0,137,192,0.8)] animate-scan top-0" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Status Overlay */}
+                  <div className="absolute top-4 right-4 z-20">
+                    <div className={cn(
+                      "px-3 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2",
+                      detectedFaces > 0 ? "bg-emerald-500 text-white" : "bg-black/60 text-white/70 backdrop-blur-md border border-white/10"
+                    )}>
+                      <div className={cn("w-1.5 h-1.5 rounded-full bg-white", detectedFaces > 0 ? "animate-pulse" : "opacity-50")} />
+                      {detectedFaces > 0 ? 'Face Locked' : 'Searching for Face'}
+                    </div>
+                  </div>
+                </>
               ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <div className="p-6 rounded-full bg-muted">
-                    <User className="w-16 h-16 text-muted-foreground" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center space-y-6">
+                  <div className="relative">
+                    <div className="absolute -inset-4 bg-secondary/20 rounded-full blur-2xl animate-pulse" />
+                    <div className="relative p-8 rounded-full bg-muted border border-border">
+                      <User className="w-16 h-16 text-muted-foreground" />
+                    </div>
                   </div>
-                  <p className="mt-4 text-muted-foreground font-medium">Camera not active</p>
-                  <p className="text-sm text-muted-foreground/70">Click Start to begin scanning</p>
+                  <div className="text-center px-6">
+                    <p className="text-xl font-bold text-foreground">Terminal Ready</p>
+                    {holidayToday ? (
+                      <div className="mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 max-w-xs mx-auto animate-in fade-in zoom-in duration-500">
+                        <div className="flex items-center gap-2 text-red-500 justify-center mb-1">
+                          <AlertCircle className="w-4 h-4" />
+                          <span className="text-xs font-black uppercase tracking-widest">{holidayToday.title}</span>
+                        </div>
+                        <p className="text-[10px] text-red-600/80 font-bold uppercase tracking-tight leading-relaxed">
+                          Attendance system is restricted today due to this {holidayToday.type}.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground mt-2 max-w-xs">
+                        Please select the attendance type below to activate the facial recognition scanner.
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
 
-              {isScanning && (
-                <div className="absolute inset-0 pointer-events-none">
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full border-4 border-secondary/50 animate-pulse" />
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full border-4 border-transparent border-t-secondary" />
-                </div>
-              )}
-
+              {/* Success Notification */}
               {scanResult === 'success' && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                  <div className="text-center animate-in zoom-in duration-300">
-                    <div className="w-20 h-20 rounded-full bg-emerald-500 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/30">
-                      <CheckCircle2 className="w-10 h-10 text-white" />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md animate-in zoom-in duration-300">
+                  <div className="text-center px-8 py-10 rounded-3xl border border-white/10 bg-white/5 shadow-2xl">
+                    <div className="w-24 h-24 rounded-full bg-emerald-500 flex items-center justify-center mx-auto shadow-[0_0_40px_rgba(16,185,129,0.4)]">
+                      <CheckCircle2 className="w-12 h-12 text-white" />
                     </div>
-                    <p className="mt-4 text-xl font-bold text-white">Attendance Recorded!</p>
-                    <p className="text-white/80">John Doe</p>
+                    <h3 className="mt-6 text-2xl font-bold text-white tracking-tight">Success!</h3>
+                    <p className="text-lg font-bold text-white/90 mt-1">{lastAttendance?.name}</p>
+                    <p className="text-sm font-bold text-emerald-400 uppercase tracking-widest mt-2">{lastAttendance?.type.replace('_', ' ')} Recorded</p>
                   </div>
                 </div>
               )}
 
+              {/* Matching Status */}
               {scanResult === 'scanning' && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-                  <div className="text-center">
-                    <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mx-auto animate-pulse">
-                      <Shield className="w-8 h-8 text-white" />
-                    </div>
-                    <p className="mt-4 text-lg font-semibold text-white">Scanning...</p>
+                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30">
+                  <div className="flex items-center gap-3 px-6 py-3 rounded-2xl bg-secondary text-white font-bold uppercase tracking-widest text-xs shadow-xl animate-bounce">
+                    <Shield className="w-4 h-4" />
+                    Analyzing Bio-Data...
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="flex justify-center gap-4 mt-6">
-              <button
-                onClick={toggleScanning}
-                className={cn(
-                  "flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all",
-                  isScanning 
-                    ? "bg-red-500 hover:bg-red-600 text-white" 
-                    : "bg-secondary hover:bg-secondary/90 text-secondary-foreground"
-                )}
-              >
-                {isScanning ? (
-                  <>
-                    <Square className="w-5 h-5" />
-                    Stop Scanning
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-5 h-5" />
-                    Start Scanning
-                  </>
-                )}
-              </button>
-              {isScanning && (
+            {/* Controls */}
+            <div className="flex flex-col items-center gap-6 mt-8">
+              {!isScanning ? (
+                <div className="flex flex-wrap justify-center gap-4 w-full max-w-md">
+                  <button
+                    onClick={() => toggleScanning('time_in')}
+                    disabled={isModelLoading || isLoadingHoliday || !!holidayToday}
+                    className={cn(
+                      "flex-1 min-w-[140px] flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-secondary hover:bg-secondary/90 text-white font-bold transition-all shadow-lg shadow-secondary/20 active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed",
+                      isLoadingHoliday && "animate-pulse"
+                    )}
+                  >
+                    {isModelLoading || isLoadingHoliday ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}
+                    Time In
+                  </button>
+                  <button
+                    onClick={() => toggleScanning('time_out')}
+                    disabled={isModelLoading || isLoadingHoliday || !!holidayToday}
+                    className={cn(
+                      "flex-1 min-w-[140px] flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-muted hover:bg-muted/80 text-foreground font-bold border border-border transition-all active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed",
+                      isLoadingHoliday && "animate-pulse"
+                    )}
+                  >
+                    {isModelLoading || isLoadingHoliday ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogOut className="w-5 h-5" />}
+                    Time Out
+                  </button>
+                </div>
+              ) : (
                 <button
-                  onClick={simulateAttendance}
-                  className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold bg-emerald-500 hover:bg-emerald-600 text-white transition-all"
+                  onClick={() => toggleScanning(null)}
+                  className="flex items-center gap-3 px-8 py-4 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-bold transition-all shadow-lg shadow-red-500/20 active:scale-[0.98]"
                 >
-                  <RefreshCw className="w-5 h-5" />
-                  Simulate
+                  <Square className="w-5 h-5" />
+                  Cancel Scanning
                 </button>
               )}
             </div>
@@ -190,62 +512,69 @@ const AttendancePage = () => {
         <div className="space-y-6">
           <Card className="border-0 shadow-md dark:shadow-none dark:bg-card/50">
             <CardHeader className="pb-4">
-              <CardTitle className="text-lg font-bold text-foreground">Today&apos;s Stats</CardTitle>
+              <CardTitle className="text-lg font-bold text-foreground">Terminal Stats</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 group hover:bg-emerald-500/15 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-emerald-500">
-                      <CheckCircle2 className="w-5 h-5 text-white" />
+                    <div className="p-2 rounded-xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/20">
+                      <CheckCircle2 className="w-4 h-4" />
                     </div>
-                    <span className="font-semibold text-foreground">Present</span>
+                    <span className="font-bold text-foreground text-sm">Present</span>
                   </div>
-                  <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">198</span>
+                  <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.present}</span>
                 </div>
 
-                <div className="flex items-center justify-between p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 group hover:bg-amber-500/15 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-amber-500">
-                      <Clock className="w-5 h-5 text-white" />
+                    <div className="p-2 rounded-xl bg-amber-500 text-white shadow-lg shadow-amber-500/20">
+                      <Clock className="w-4 h-4" />
                     </div>
-                    <span className="font-semibold text-foreground">Late</span>
+                    <span className="font-bold text-foreground text-sm">Late</span>
                   </div>
-                  <span className="text-2xl font-black text-amber-600 dark:text-amber-400">12</span>
+                  <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">{stats.late}</span>
                 </div>
 
-                <div className="flex items-center justify-between p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-red-500/10 border border-red-500/20 group hover:bg-red-500/15 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-red-500">
-                      <XCircle className="w-5 h-5 text-white" />
+                    <div className="p-2 rounded-xl bg-red-500 text-white shadow-lg shadow-red-500/20">
+                      <XCircle className="w-4 h-4" />
                     </div>
-                    <span className="font-semibold text-foreground">Absent</span>
+                    <span className="font-bold text-foreground text-sm">Absent</span>
                   </div>
-                  <span className="text-2xl font-black text-red-600 dark:text-red-400">38</span>
+                  <span className="text-2xl font-bold text-red-600 dark:text-red-400 text-muted-foreground/30">{stats.absent}</span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-md dark:shadow-none dark:bg-card/50">
+          <Card className="border-0 shadow-md dark:shadow-none dark:bg-card/50 overflow-hidden">
             <CardHeader className="pb-4">
-              <CardTitle className="text-lg font-bold text-foreground">Last Attendance</CardTitle>
+              <CardTitle className="text-lg font-bold text-foreground">Last Verified</CardTitle>
             </CardHeader>
             <CardContent>
               {lastAttendance ? (
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-muted">
-                  <div className="w-12 h-12 rounded-full bg-secondary/20 flex items-center justify-center">
-                    <User className="w-6 h-6 text-secondary" />
+                <div className="flex items-center gap-4 p-4 rounded-2xl bg-secondary/5 border border-secondary/10 group">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-secondary/20 rounded-full blur-md group-hover:blur-lg transition-all" />
+                    <div className="relative w-12 h-12 rounded-full bg-secondary/20 flex items-center justify-center border border-secondary/20">
+                      <User className="w-6 h-6 text-secondary" />
+                    </div>
                   </div>
                   <div>
-                    <p className="font-semibold text-foreground">{lastAttendance.name}</p>
-                    <p className="text-sm text-muted-foreground">{lastAttendance.time}</p>
+                    <p className="font-bold text-foreground">{lastAttendance.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{lastAttendance.time}</span>
+                      <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-secondary">{lastAttendance.type.replace('_', ' ')}</span>
+                    </div>
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-3 p-4 rounded-xl bg-muted/50">
-                  <AlertCircle className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">No recent attendance</span>
+                <div className="flex flex-col items-center justify-center gap-3 p-8 rounded-2xl bg-muted/30 border border-dashed border-border opacity-60">
+                  <AlertCircle className="w-8 h-8 text-muted-foreground/40" />
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">No recent Activity</span>
                 </div>
               )}
             </CardContent>
@@ -253,49 +582,77 @@ const AttendancePage = () => {
         </div>
       </div>
 
-      <Card className="border-0 shadow-md dark:shadow-none dark:bg-card/50">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg font-bold text-foreground">Attendance Logs</CardTitle>
+      <Card className="border-0 shadow-md dark:shadow-none dark:bg-card/50 overflow-hidden">
+        <CardHeader className="pb-0 pt-6 px-6">
+          <CardTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+            <RefreshCw className="w-5 h-5 text-secondary" />
+            Recent Logs
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">Employee</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">Time</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">Method</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">Status</th>
+                <tr className="border-b border-border/50">
+                  <th className="text-left py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Employee</th>
+                  <th className="text-left py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Time</th>
+                  <th className="text-left py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Type</th>
+                  <th className="text-left py-4 px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</th>
                 </tr>
               </thead>
-              <tbody>
-                {attendanceLogs.map((log) => (
-                  <tr key={log.id} className="border-b border-border/50 hover:bg-muted/50 transition-colors">
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center text-secondary font-bold">
-                          {log.image}
+              <tbody className="divide-y divide-border/30">
+                {logs.length > 0 ? logs.slice(0, 10).map((log) => (
+                  <tr key={log.id} className="hover:bg-muted/30 transition-colors group">
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center font-bold text-secondary text-xs border border-secondary/5 overflow-hidden">
+                          {log.employer_registration?.image ? (
+                            <Image src={log.employer_registration.image} alt="" className="w-full h-full object-cover" width={40} height={40} />
+                          ) : (
+                            log.employer_name?.substring(0, 2).toUpperCase()
+                          )}
                         </div>
-                        <span className="font-medium text-foreground">{log.name}</span>
+                        <div>
+                          <p className="font-bold text-foreground group-hover:text-secondary transition-colors">{log.employer_name || log.employer_registration?.employer_name}</p>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{log.employer_position || log.employer_registration?.employer_position}</p>
+                        </div>
                       </div>
                     </td>
-                    <td className="py-4 px-4 text-muted-foreground">{log.time}</td>
-                    <td className="py-4 px-4 text-muted-foreground">{log.method}</td>
-                    <td className="py-4 px-4">
+                    <td className="py-4 px-6">
+                      <span className="text-sm font-medium text-foreground">
+                        {new Date(log.created_at || log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6">
                       <span className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold",
-                        log.status === 'present' && "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",
-                        log.status === 'late' && "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
-                        log.status === 'absent' && "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest",
+                        log.type === 'time_in' ? "bg-secondary/10 text-secondary" : "bg-muted text-muted-foreground"
                       )}>
-                        {log.status === 'present' && <CheckCircle2 className="w-3 h-3" />}
+                        {log.type === 'time_in' ? <LogIn className="w-3 h-3" /> : <LogOut className="w-3 h-3" />}
+                        {log.type?.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className={cn(
+                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest",
+                        (log.status === 'present' || log.status === 'on_time') && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+                        log.status === 'late' && "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                        log.status === 'absent' && "bg-red-500/10 text-red-600 dark:text-red-400"
+                      )}>
+                        {(log.status === 'present' || log.status === 'on_time') && <CheckCircle2 className="w-3 h-3" />}
                         {log.status === 'late' && <Clock className="w-3 h-3" />}
                         {log.status === 'absent' && <XCircle className="w-3 h-3" />}
-                        {log.status.charAt(0).toUpperCase() + log.status.slice(1)}
+                        {log.status === 'on_time' ? 'present' : log.status?.replace('_', ' ')}
                       </span>
                     </td>
                   </tr>
-                ))}
+                )) : (
+                  <tr>
+                    <td colSpan={4} className="py-20 text-center">
+                      <p className="text-sm font-bold text-muted-foreground uppercase tracking-[0.2em]">No attendance logs found</p>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
