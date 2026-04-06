@@ -107,7 +107,6 @@ const RegistrationContent = () => {
   const [history, setHistory] = useState<RegistrationHistory[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
-  // Fetch history from API
   const fetchHistory = useCallback(async () => {
     try {
       setIsLoadingHistory(true);
