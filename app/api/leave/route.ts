@@ -8,7 +8,6 @@ interface LeaveRequest {
   reason: string;
   start_date: string;
   end_date: string;
-  status: string;
   created_at: string;
   employer_registration?: {
     id: string;
@@ -22,7 +21,6 @@ interface LeaveRequest {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const employer_id = searchParams.get("employer_id");
-  const status = searchParams.get("status");
 
   const supabase = await createSupabaseServer();
 
@@ -52,10 +50,6 @@ export async function GET(request: Request) {
     }
   }
 
-  if (status) {
-    query = query.eq("status", status);
-  }
-
   const { data, error } = await query;
 
   if (error) {
@@ -70,7 +64,6 @@ export async function GET(request: Request) {
     reason: leave.reason,
     start_date: leave.start_date,
     end_date: leave.end_date,
-    status: leave.status,
     created_at: leave.created_at,
     image: leave.employer_registration?.image,
   })) || [];
@@ -113,7 +106,6 @@ export async function POST(req: Request) {
         reason,
         start_date,
         end_date,
-        status: "pending",
       })
       .select()
       .single();
