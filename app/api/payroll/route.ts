@@ -30,6 +30,8 @@ export async function POST(req: Request) {
       net_pay,
       period,
       total_deduction,
+      late_count,
+      absent_count,
       status,
     } = body;
 
@@ -57,6 +59,8 @@ export async function POST(req: Request) {
         net_pay,
         period,
         total_deduction,
+        late_count: late_count || 0,
+        absent_count: absent_count || 0,
         status: status || "pending",
         processed_at: status === "processed" ? new Date().toISOString() : null,
       })
@@ -64,11 +68,14 @@ export async function POST(req: Request) {
       .single();
 
     if (error) {
+      console.error("Supabase insert error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    console.log("Created payroll record:", data);
     return NextResponse.json(data, { status: 201 });
   } catch (err: unknown) {
+    console.error("Payroll POST error:", err);
     if (err instanceof Error) {
       return NextResponse.json({ error: err.message }, { status: 500 });
     }
