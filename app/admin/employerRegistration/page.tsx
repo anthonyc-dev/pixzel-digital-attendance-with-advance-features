@@ -44,7 +44,7 @@ const RegistrationContent = () => {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<'success' | 'error' | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'personal' | 'work'>('personal');
   const [isModelLoading, setIsModelLoading] = useState(true);
   const [modelError, setModelError] = useState<string | null>(null);
@@ -307,7 +307,7 @@ const RegistrationContent = () => {
             ctx.strokeStyle = '#C01148';
             ctx.lineWidth = 2;
             ctx.setLineDash([5, 5]); // Dashed line for high-tech look
-            
+
             ctx.beginPath();
             ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
             ctx.stroke();
@@ -391,17 +391,17 @@ const RegistrationContent = () => {
     const video = videoRef.current;
 
     // Create canvas from video
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        // Mirror the capture to match the mirrored UI
-        ctx.save();
-        ctx.scale(-1, 1);
-        ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
-        ctx.restore();
-        const imageSrc = canvas.toDataURL('image/jpeg');
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      // Mirror the capture to match the mirrored UI
+      ctx.save();
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+      ctx.restore();
+      const imageSrc = canvas.toDataURL('image/jpeg');
 
       let faceDescriptor = null;
       try {
@@ -730,8 +730,8 @@ const RegistrationContent = () => {
                     <div className="p-4 rounded-xl bg-secondary/5 border border-secondary/10 flex items-start gap-3">
                       <AlertCircle className="w-4 h-4 text-secondary mt-0.5 shrink-0" />
                       <p className="text-[10px] font-bold uppercase tracking-widest text-secondary/70 leading-relaxed">
-                        {!formData.employerId || !formData.employerName || !formData.employerPosition 
-                          ? "Required fields missing. Switch to Personal tab to check Name." 
+                        {!formData.employerId || !formData.employerName || !formData.employerPosition
+                          ? "Required fields missing. Switch to Personal tab to check Name."
                           : "All essential fields captured. You can now initialize scanner."}
                       </p>
                     </div>
@@ -760,7 +760,7 @@ const RegistrationContent = () => {
         </div>
       )}
 
-      <div className="flex flex-col gap-4 sm:gap-6 lg:gap-8 w-full max-w-7xl animate-in fade-in duration-500 ease-out pb-4 sm:pb-6 lg:pb-10">
+      <div className="flex flex-col gap-4 sm:gap-6 lg:gap-8 w-full mx-auto max-w-7xl animate-in fade-in duration-500 ease-out pb-4 sm:pb-6 lg:pb-10">
         <header className="flex items-center justify-between gap-4 sm:gap-6">
           <div className="space-y-1 sm:space-y-2">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground">Employer Registration</h1>
@@ -941,13 +941,13 @@ const RegistrationContent = () => {
                               <path d="M50 100H150" stroke="currentColor" strokeWidth="0.5" />
                               <path d="M60 150H140" stroke="currentColor" strokeWidth="0.5" />
                               <path d="M70 180H130" stroke="currentColor" strokeWidth="0.5" />
-                              
+
                               <path d="M100 35L160 100" stroke="currentColor" strokeWidth="0.5" />
                               <path d="M100 35L40 100" stroke="currentColor" strokeWidth="0.5" />
                               <path d="M100 225L160 100" stroke="currentColor" strokeWidth="0.5" />
                               <path d="M100 225L40 100" stroke="currentColor" strokeWidth="0.5" />
                             </g>
-                            
+
                             {/* Scanning horizontal line */}
                             <g className="animate-face-scan">
                               <line x1="30" y1="100" x2="170" y2="100" stroke="currentColor" strokeWidth="2" filter="url(#face-glow)" />
@@ -979,8 +979,8 @@ const RegistrationContent = () => {
                             onClick={captureAndRegister}
                             className={cn(
                               "px-6 sm:px-10 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-widest active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-1.5 sm:gap-2 cursor-pointer",
-                              detectedFaces > 0 
-                                ? "bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/30" 
+                              detectedFaces > 0
+                                ? "bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/30"
                                 : "bg-secondary hover:opacity-90 shadow-lg shadow-secondary/30"
                             )}
                           >

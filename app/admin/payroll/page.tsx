@@ -5,17 +5,17 @@ import {
     Banknote,
     Search,
     Download,
-    TrendingUp,
     Wallet,
     CreditCard,
-    Plus,
-    X,
     RefreshCw,
     CheckCircle,
     Clock,
     MoreHorizontal,
     Pencil,
-    Trash2
+    Trash2,
+    Calendar,
+    AlertCircle,
+    Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ENV } from '@/lib/api';
@@ -30,56 +30,123 @@ interface PayrollRecord {
     net_pay: number;
     period: string;
     total_deduction: number;
+    late_count: number;
+    absent_count: number;
     status: 'pending' | 'processed' | 'paid';
     created_at: string;
     processed_at: string | null;
 }
 
-interface Employee {
-    id: string;
+interface Employer {
+    id: string | number;
     employer_id: string;
     employer_name: string;
     employer_position: string;
+    base_salary: number;
     status: string;
     image: string | null;
     created_at: string;
 }
 
+interface DTRRecord {
+    id: string;
+    date: string;
+    status: string;
+    is_late: boolean;
+}
+
+interface DeductionSetting {
+    id: number;
+    late_deduction: number;
+    absent_deduction: number;
+    label: string;
+}
+
 const PayrollPage = () => {
     const [payrollRecords, setPayrollRecords] = useState<PayrollRecord[]>([]);
-    const [employees, setEmployees] = useState<Map<string, Employee>>(new Map());
+    const [employers, setEmployers] = useState<Employer[]>([]);
+    const [deductionSettings, setDeductionSettings] = useState<DeductionSetting | null>(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<string>('all');
-    const [showSalaryModal, setShowSalaryModal] = useState(false);
-    const [selectedEmployer, setSelectedEmployer] = useState('');
-    const [salaryAmount, setSalaryAmount] = useState('');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const [lateCount, setLateCount] = useState(0);
-    const [absentCount, setAbsentCount] = useState(0);
-    const [processing, setProcessing] = useState(false);
     const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingRecord, setEditingRecord] = useState<PayrollRecord | null>(null);
-    const [editSalaryAmount, setEditSalaryAmount] = useState('');
     const [editDeductions, setEditDeductions] = useState('');
     const [editStatus, setEditStatus] = useState<'pending' | 'processed' | 'paid'>('pending');
     const [isEditing, setIsEditing] = useState(false);
+    const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 
     const formatDate = (dateStr: string) => {
         const [year, month, day] = dateStr.split('-');
         return `${month}-${day}-${year}`;
     };
 
+    const formatPeriod = (period: string) => {
+        const oldFormatMatch = period.match(/(\d{2})-(\d{2})-(\d{4}) to (\d{2})-(\d{2})-(\d{4})/);
+        if (oldFormatMatch) {
+            return `${oldFormatMatch[1]}/${oldFormatMatch[2]}/${String(oldFormatMatch[3]).slice(-2)} to ${oldFormatMatch[4]}/${oldFormatMatch[5]}/${String(oldFormatMatch[6]).slice(-2)}`;
+        }
+        const newFormatMatch = period.match(/(\d{2})\/(\d{2})\/(\d{2}) to (\d{2})\/(\d{2})\/(\d{2})/);
+        if (newFormatMatch) {
+            return `${newFormatMatch[1]}/${newFormatMatch[2]}/${newFormatMatch[3]} to ${newFormatMatch[4]}/${newFormatMatch[5]}/${newFormatMatch[6]}`;
+        }
+        return period;
+    };
+
+    const getPayrollPeriod = (date: Date) => {
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        const shortYear = String(year).slice(-2);
+        
+        if (day <= 15) {
+            return {
+                startDate: `${year}-${String(month).padStart(2, '0')}-01`,
+                endDate: `${year}-${String(month).padStart(2, '0')}-15`,
+                periodStr: `${String(month).padStart(2, '0')}/01/${shortYear} to ${String(month).padStart(2, '0')}/15/${shortYear}`
+            };
+        } else {
+            const lastDay = new Date(year, month, 0).getDate();
+            return {
+                startDate: `${year}-${String(month).padStart(2, '0')}-16`,
+                endDate: `${year}-${String(month).padStart(2, '0')}-${lastDay}`,
+                periodStr: `${String(month).padStart(2, '0')}/16/${shortYear} to ${String(month).padStart(2, '0')}/${lastDay}/${shortYear}`
+            };
+        }
+    };
+
+    const getCurrentPayrollPeriod = () => {
+        const today = new Date();
+        return getPayrollPeriod(today);
+    };
+
+    const getPastPayrollPeriods = (count: number = 3) => {
+        const periods = [];
+        const today = new Date();
+
+        for (let i = 0; i < count; i++) {
+            const date = new Date(today.getFullYear(), today.getMonth() - i, 15);
+            periods.push(getPayrollPeriod(date));
+
+            if (date.getDate() > 15) {
+                const firstPeriod = getPayrollPeriod(new Date(date.getFullYear(), date.getMonth(), 1));
+                periods.push(firstPeriod);
+            }
+        }
+
+        return periods;
+    };
+
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [payrollRes, empRes] = await Promise.all([
+            const [payrollRes, empRes, deductionRes] = await Promise.all([
                 fetch(`${ENV.API_URL}/payroll`),
-                fetch(`${ENV.API_URL}/registration`)
+                fetch(`${ENV.API_URL}/registration`),
+                fetch(`${ENV.API_URL}/deduction-settings`)
             ]);
 
             if (payrollRes.ok) {
@@ -89,59 +156,243 @@ const PayrollPage = () => {
 
             if (empRes.ok) {
                 const empData = await empRes.json();
-                const empMap = new Map<string, Employee>();
+                console.log('Employer API response:', empData);
                 const empList = Array.isArray(empData) ? empData : (empData.data || []);
-                empList.forEach((emp: Employee) => {
-                    empMap.set(String(emp.id), emp);
-                });
-                setEmployees(empMap);
+                console.log('Employers loaded:', empList.length, empList);
+                setEmployers(empList);
+            }
+
+            if (deductionRes.ok) {
+                const deductionData = await deductionRes.json();
+                setDeductionSettings(deductionData);
+                console.log('Deduction settings loaded:', deductionData);
             }
         } catch (e) {
-            console.error('Failed to fetch payroll data:', e);
+            console.error('Failed to fetch data:', e);
         } finally {
             setLoading(false);
         }
     };
 
-    const fetchAttendanceData = useCallback(async () => {
-        if (!selectedEmployer || !startDate || !endDate) return;
-
-        const employee = employees.get(selectedEmployer);
-        if (!employee) return;
-
+    const fetchDTRData = async (employerId: string, startDate: string, endDate: string) => {
         try {
-            const res = await fetch(`${ENV.API_URL}/dtr?employer_id=${employee.employer_id}&start_date=${startDate}&end_date=${endDate}`);
+            const res = await fetch(`${ENV.API_URL}/dtr?employer_id=${employerId}&start_date=${startDate}&end_date=${endDate}`);
             if (res.ok) {
                 const data = await res.json();
-                const records = Array.isArray(data) ? data : (data.data || []);
-
-                let late = 0;
-                let absent = 0;
-
-                records.forEach((record: { date?: string; status?: string; is_late?: boolean }) => {
-                    const status = record.status?.toLowerCase();
-                    if (status === 'absent') {
-                        absent++;
-                    } else if (record.is_late === true) {
-                        late++;
-                    }
-                });
-
-                setLateCount(late);
-                setAbsentCount(absent);
+                return Array.isArray(data) ? data : (data.data || []);
             }
         } catch (e) {
             console.error('Failed to fetch DTR:', e);
         }
-    }, [selectedEmployer, startDate, endDate, employees]);
+        return [];
+    };
+
+    const computePayroll = useCallback(async (employer: Employer, startDate: string, endDate: string, periodStr: string) => {
+        console.log('Computing payroll for:', employer.employer_name, 'employer_id:', employer.employer_id, 'base_salary:', employer.base_salary);
+        
+        const dtrRecords: DTRRecord[] = await fetchDTRData(employer.employer_id, startDate, endDate);
+        console.log('DTR Records found:', dtrRecords.length, dtrRecords);
+
+        let lateCount = 0;
+        let absentCount = 0;
+
+        dtrRecords.forEach((record: DTRRecord) => {
+            const status = record.status?.toLowerCase();
+            console.log('DTR record:', record.date, 'status:', status, 'is_late:', record.is_late);
+            if (status === 'absent') {
+                absentCount++;
+            } else if (record.is_late === true) {
+                lateCount++;
+            }
+        });
+
+        console.log('Late count:', lateCount, 'Absent count:', absentCount);
+
+        const monthlySalary = parseFloat(String(employer.base_salary)) || 0;
+        console.log('Monthly salary:', monthlySalary);
+
+        // Use configurable rates; fall back to defaults if not loaded yet
+        const lateRate = deductionSettings?.late_deduction ?? 50;
+        const absentRate = deductionSettings?.absent_deduction ?? 100;
+
+        const halfMonthSalary = monthlySalary / 2;
+        const lateDeduction = lateCount * lateRate;
+        const absentDeduction = absentCount * absentRate;
+        const totalDeduction = lateDeduction + absentDeduction;
+        const netPay = halfMonthSalary - totalDeduction;
+        
+        console.log('Half month salary:', halfMonthSalary, 'Rates: late=', lateRate, 'absent=', absentRate, 'Deductions:', totalDeduction, 'Net pay:', netPay);
+
+        return {
+            employer_registration_id: employer.id,
+            full_name: employer.employer_name,
+            position: employer.employer_position,
+            base_salary: halfMonthSalary,
+            gross_pay: halfMonthSalary,
+            net_pay: netPay > 0 ? netPay : 0,
+            period: periodStr,
+            total_deduction: totalDeduction,
+            late_count: lateCount,
+            absent_count: absentCount,
+            status: 'pending' as const,
+            processed_at: null
+        };
+    }, [deductionSettings]);
+
+    const handleGeneratePayroll = async () => {
+        const period = getCurrentPayrollPeriod();
+        setRegeneratingId('all');
+
+        const newRecords: PayrollRecord[] = [];
+        const updatedRecords: PayrollRecord[] = [];
+        let skippedCount = 0;
+
+        try {
+            console.log('Generating payroll for period:', period.periodStr);
+            console.log('Total employers:', employers.length);
+
+            for (const employer of employers) {
+                console.log('Processing employer:', employer.employer_name, 'base_salary:', employer.base_salary);
+
+                const existingRecord = payrollRecords.find(
+                    p => p.employer_registration_id === employer.id &&
+                        p.period === period.periodStr
+                );
+
+                const baseSalary = parseFloat(String(employer.base_salary)) || 0;
+                
+                if (baseSalary <= 0) {
+                    skippedCount++;
+                    console.log('Skipping - no base salary:', employer.employer_name);
+                    continue;
+                }
+
+                const computed = await computePayroll(employer, period.startDate, period.endDate, period.periodStr);
+
+                if (existingRecord) {
+                    console.log('Updating existing record for:', employer.employer_name);
+                    const res = await fetch(`${ENV.API_URL}/payroll/${existingRecord.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            ...existingRecord,
+                            base_salary: computed.base_salary,
+                            gross_pay: computed.gross_pay,
+                            net_pay: computed.net_pay,
+                            total_deduction: computed.total_deduction,
+                            late_count: computed.late_count,
+                            absent_count: computed.absent_count
+                        })
+                    });
+                    if (res.ok) {
+                        const updated = await res.json();
+                        updatedRecords.push(updated);
+                    }
+                } else {
+                    console.log('Creating new record for:', employer.employer_name, 'ID:', employer.id);
+                    const res = await fetch(`${ENV.API_URL}/payroll`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            employer_registration_id: Number(employer.id),
+                            full_name: employer.employer_name,
+                            position: employer.employer_position,
+                            base_salary: computed.base_salary,
+                            gross_pay: computed.gross_pay,
+                            net_pay: computed.net_pay,
+                            period: computed.period,
+                            total_deduction: computed.total_deduction,
+                            late_count: computed.late_count,
+                            absent_count: computed.absent_count,
+                            status: 'pending'
+                        })
+                    });
+                    
+                    if (!res.ok) {
+                        const error = await res.text();
+                        console.error('Failed to create payroll:', error);
+                    } else {
+                        const created = await res.json();
+                        console.log('Created payroll record:', created);
+                        newRecords.push(created);
+                    }
+                }
+            }
+
+            console.log('New records created:', newRecords.length);
+            console.log('Records updated:', updatedRecords.length);
+            console.log('Skipped (no salary):', skippedCount);
+
+            setPayrollRecords(prev => {
+                let updated = [...prev];
+                updatedRecords.forEach(upd => {
+                    updated = updated.map(p => p.id === upd.id ? upd : p);
+                });
+                newRecords.forEach(newRecord => {
+                    if (newRecord.id && !updated.some(p => p.id === newRecord.id)) {
+                        updated.push(newRecord);
+                    }
+                });
+                return updated;
+            });
+
+            if (newRecords.length === 0 && skippedCount > 0) {
+                alert(`No payroll generated. ${skippedCount} employer(s) have no base salary set. Please set base salary in employer registration.`);
+            }
+        } catch (e) {
+            console.error('Failed to generate payroll:', e);
+            alert('Failed to generate payroll. Check console for details.');
+        } finally {
+            setRegeneratingId(null);
+        }
+    };
+
+    const handleRegenerateSingle = async (record: PayrollRecord) => {
+        const employer = employers.find(e => e.id === record.employer_registration_id);
+        if (!employer || !employer.base_salary) return;
+
+        setRegeneratingId(record.id);
+
+        try {
+            const parts = record.period.match(/(\d{2})\/(\d{2})\/(\d{2})/g);
+            if (parts && parts.length === 2) {
+                const startParts = parts[0].split('/');
+                const endParts = parts[1].split('/');
+
+                const startYear = '20' + startParts[2];
+                const endYear = '20' + endParts[2];
+                
+                const startDate = `${startYear}-${startParts[0]}-${startParts[1]}`;
+                const endDate = `${endYear}-${endParts[0]}-${endParts[1]}`;
+
+                const computed = await computePayroll(employer, startDate, endDate, record.period);
+
+                await fetch(`${ENV.API_URL}/payroll/${record.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...record,
+                        base_salary: computed.base_salary,
+                        gross_pay: computed.gross_pay,
+                        net_pay: computed.net_pay,
+                        total_deduction: computed.total_deduction,
+                        late_count: computed.late_count,
+                        absent_count: computed.absent_count
+                    })
+                });
+
+                await fetchData();
+            }
+        } catch (e) {
+            console.error('Failed to regenerate payroll:', e);
+        } finally {
+            setRegeneratingId(null);
+        }
+    };
 
     useEffect(() => {
         fetchData();
     }, []);
-
-    useEffect(() => {
-        fetchAttendanceData();
-    }, [fetchAttendanceData]);
 
     useEffect(() => {
         const handleClickOutside = (e: Event) => {
@@ -157,74 +408,6 @@ const PayrollPage = () => {
             document.removeEventListener('touchstart', handleClickOutside);
         };
     }, []);
-
-    const handleAddSalary = async () => {
-        if (!selectedEmployer || !salaryAmount || !startDate || !endDate) {
-            alert('Please select an employee, enter a salary amount, and select date range');
-            return;
-        }
-
-        const employee = employees.get(selectedEmployer);
-        if (!employee) {
-            alert('Employee not found. Please refresh and try again.');
-            return;
-        }
-
-        setProcessing(true);
-        try {
-            const baseSalary = parseFloat(salaryAmount);
-            const grossPay = baseSalary;
-
-            const lateDeduction = lateCount * 50;
-            const absentDeduction = absentCount * 100;
-            const totalDeduction = lateDeduction + absentDeduction;
-
-            const netPay = grossPay - totalDeduction;
-
-            const period = `${formatDate(startDate)} - ${formatDate(endDate)}`;
-
-            const res = await fetch(`${ENV.API_URL}/payroll`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    employer_registration_id: selectedEmployer,
-                    full_name: employee.employer_name,
-                    position: employee.employer_position,
-                    base_salary: baseSalary,
-                    gross_pay: grossPay,
-                    net_pay: netPay,
-                    period,
-                    total_deduction: totalDeduction,
-                    status: 'pending'
-                })
-            });
-
-            if (!res.ok) {
-                const errorText = await res.text();
-                try {
-                    const error = JSON.parse(errorText);
-                    alert(error.error || 'Failed to create payroll');
-                } catch {
-                    alert('Failed to create payroll');
-                }
-                return;
-            }
-
-            await fetchData();
-            setShowSalaryModal(false);
-            setSelectedEmployer('');
-            setSalaryAmount('');
-            setStartDate('');
-            setEndDate('');
-            setLateCount(0);
-            setAbsentCount(0);
-        } catch (e) {
-            console.error('Failed to add salary:', e);
-            alert('Failed to create payroll');
-        } finally {
-            setProcessing(false);
-        }
-    };
 
     const handleUpdateStatus = async (id: string, newStatus: 'pending' | 'processed' | 'paid') => {
         const record = payrollRecords.find(p => p.id === id);
@@ -258,7 +441,7 @@ const PayrollPage = () => {
             const res = await fetch(`${ENV.API_URL}/payroll/${showDeleteConfirm}`, {
                 method: 'DELETE'
             });
-            
+
             if (res.ok) {
                 setPayrollRecords(prev => prev.filter(p => p.id !== showDeleteConfirm));
             }
@@ -273,7 +456,6 @@ const PayrollPage = () => {
 
     const handleEditClick = (record: PayrollRecord) => {
         setEditingRecord(record);
-        setEditSalaryAmount(record.base_salary.toString());
         setEditDeductions(record.total_deduction.toString());
         setEditStatus(record.status as 'pending' | 'processed' | 'paid');
         setShowEditModal(true);
@@ -281,11 +463,11 @@ const PayrollPage = () => {
     };
 
     const handleUpdatePayroll = async () => {
-        if (!editingRecord || !editSalaryAmount) return;
+        if (!editingRecord || !editDeductions) return;
 
         setIsEditing(true);
         try {
-            const baseSalary = parseFloat(editSalaryAmount);
+            const baseSalary = parseFloat(String(editingRecord.base_salary));
             const totalDeduction = parseFloat(editDeductions) || 0;
             const netPay = baseSalary - totalDeduction;
 
@@ -294,7 +476,6 @@ const PayrollPage = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     ...editingRecord,
-                    base_salary: baseSalary,
                     total_deduction: totalDeduction,
                     net_pay: netPay,
                     status: editStatus
@@ -304,7 +485,7 @@ const PayrollPage = () => {
             if (res.ok) {
                 setPayrollRecords(prev => prev.map(p =>
                     p.id === editingRecord.id
-                        ? { ...p, base_salary: baseSalary, total_deduction: totalDeduction, net_pay: netPay, status: editStatus }
+                        ? { ...p, total_deduction: totalDeduction, net_pay: netPay, status: editStatus }
                         : p
                 ));
                 setShowEditModal(false);
@@ -318,26 +499,26 @@ const PayrollPage = () => {
     };
 
     const filteredRecords = payrollRecords.filter(record => {
-        const employee = employees.get(record.employer_registration_id);
+        const employer = employers.find(e => e.id === record.employer_registration_id);
         const nameMatch = record.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (employee?.employer_name.toLowerCase().includes(searchTerm.toLowerCase()));
+            (employer?.employer_name.toLowerCase().includes(searchTerm.toLowerCase()));
         const statusMatch = filterStatus === 'all' || record.status === filterStatus;
         return nameMatch && statusMatch;
     });
 
-    const totalPayroll = payrollRecords.reduce((sum, p) => sum + p.net_pay, 0);
+    const totalPayroll = payrollRecords.reduce((sum, p) => sum + (p.net_pay || 0), 0);
     const avgNetPay = payrollRecords.length > 0
         ? totalPayroll / payrollRecords.length
         : 0;
     const totalDeductions = payrollRecords.reduce((sum, p) =>
-        sum + p.total_deduction, 0);
+        sum + (p.total_deduction || 0), 0);
     const processedCount = payrollRecords.filter(p => p.status === 'processed' || p.status === 'paid').length;
 
     const stats = [
         { title: 'Total Payroll', value: `₱ ${totalPayroll.toLocaleString('en-PH', { minimumFractionDigits: 0 })}`, sub: 'This Period', icon: Wallet, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
         { title: 'Avg Net Pay', value: `₱ ${avgNetPay.toLocaleString('en-PH', { minimumFractionDigits: 0 })}`, sub: 'Per Employee', icon: Banknote, color: 'text-blue-500', bg: 'bg-blue-500/10' },
         { title: 'Total Deductions', value: `₱ ${totalDeductions.toLocaleString('en-PH', { minimumFractionDigits: 0 })}`, sub: 'All Employees', icon: CreditCard, color: 'text-rose-500', bg: 'bg-rose-500/10' },
-        { title: 'Processed', value: processedCount.toString().padStart(2, '0'), sub: 'Employees', icon: CreditCard, color: 'text-secondary', bg: 'bg-secondary/10' },
+        { title: 'Processed', value: processedCount.toString().padStart(2, '0'), sub: 'Employees', icon: CheckCircle, color: 'text-secondary', bg: 'bg-secondary/10' },
     ];
 
     const getStatusIcon = (status: string) => {
@@ -349,36 +530,60 @@ const PayrollPage = () => {
         }
     };
 
+    const currentPeriod = getCurrentPayrollPeriod();
+    const currentPeriodRecords = payrollRecords.filter(p => p.period === currentPeriod.periodStr);
+
     return (
-        <div className="flex flex-col gap-6 w-full max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out pb-10">
+        <div className="flex flex-col gap-6 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out pb-10">
 
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div className="space-y-2">
                     <div className="flex items-center gap-3">
                         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Employee Payroll</h1>
-                        <button
-                            onClick={fetchData}
-                            className="p-2 hover:bg-muted rounded-lg transition-colors"
-                            disabled={loading}
-                        >
-                            <RefreshCw className={cn("w-4 h-4 text-muted-foreground", loading && "animate-spin")} />
-                        </button>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span className="font-bold uppercase tracking-widest">Current Period:</span>
+                        <span className="font-bold">{currentPeriod.periodStr}</span>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                     <button
-                        onClick={() => setShowSalaryModal(true)}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-all cursor-pointer">
-                        <Plus className="w-3.5 h-3.5 text-secondary" />
-                        <span>Add Payroll</span>
+                        onClick={handleGeneratePayroll}
+                        disabled={regeneratingId !== null}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-secondary text-white rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all disabled:opacity-50 cursor-pointer">
+                        {regeneratingId === 'all' ? (
+                            <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                <span>Computing...</span>
+                            </>
+                        ) : (
+                            <>
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                <span>Generate Payroll</span>
+                            </>
+                        )}
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2.5 bg-secondary text-white rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all">
-                        <Download className="w-3.5 h-3.5" />
+                    <button className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-all">
+                        <Download className="w-3.5 h-3.5 text-secondary" />
                         <span>Export CSV</span>
                     </button>
                 </div>
             </header>
+
+            {/* <div className="p-4 bg-secondary/5 border border-secondary/20 rounded-xl">
+                <div className="flex items-start gap-3">
+                    <AlertCircle className="w-4 h-4 text-secondary mt-0.5 shrink-0" />
+                    <div className="text-xs">
+                        <p className="font-bold text-secondary uppercase tracking-widest mb-1">Auto-Computed Payroll</p>
+                        <p className="text-muted-foreground">
+                            Payroll is automatically calculated based on the employer&apos;s base salary (monthly / 2 = 15-day salary). 
+                            Deductions are applied for late arrivals (₱50 each) and absences (₱100 each).
+                        </p>
+                    </div>
+                </div>
+            </div> */}
 
             <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.map((stat, i) => (
@@ -418,7 +623,7 @@ const PayrollPage = () => {
                         <select
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
-                            className="flex items-center gap-1.5 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[9px] font-bold uppercase tracking-widest text-black dark:text-white hover:bg-gray-50 transition-all shadow-sm"
+                            className="flex items-center gap-1 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[9px] font-bold uppercase tracking-widest text-black dark:text-white hover:bg-gray-50 transition-all shadow-sm"
                         >
                             <option value="all" className="text-black">All Status</option>
                             <option value="pending" className="text-black">Pending</option>
@@ -429,11 +634,12 @@ const PayrollPage = () => {
                 </div>
 
                 <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl overflow-hidden shadow-xl overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[900px]">
+                    <table className="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
                             <tr className="bg-gray-50 dark:bg-white/10 border-b border-gray-100 dark:border-white/5 text-center">
                                 <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Employee</th>
-                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Base Salary</th>
+                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">15-Day Salary</th>
+                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Late/Absent</th>
                                 <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Deductions</th>
                                 <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Net Pay</th>
                                 <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Period</th>
@@ -445,16 +651,16 @@ const PayrollPage = () => {
                             {loading ? (
                                 [...Array(3)].map((_, i) => (
                                     <tr key={i}>
-                                        <td colSpan={7} className="p-5"><div className="h-12 bg-gray-100 dark:bg-white/10 rounded-xl animate-pulse" /></td>
+                                        <td colSpan={8} className="p-5"><div className="h-12 bg-gray-100 dark:bg-white/10 rounded-xl animate-pulse" /></td>
                                     </tr>
                                 ))
                             ) : filteredRecords.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="p-10 text-center text-muted-foreground font-bold uppercase tracking-widest text-[10px]">No Payroll Records Found</td>
+                                    <td colSpan={8} className="p-10 text-center text-muted-foreground font-bold uppercase tracking-widest text-[10px]">No Payroll Records Found</td>
                                 </tr>
                             ) : (
                                 filteredRecords.map((record) => {
-                                    const employee = employees.get(record.employer_registration_id);
+                                    const employer = employers.find(e => e.id === record.employer_registration_id);
                                     return (
                                         <tr key={record.id} className="group hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
                                             <td className="p-5 text-left">
@@ -468,25 +674,26 @@ const PayrollPage = () => {
                                             <td className="p-5 font-bold text-foreground/80 tabular-nums text-xs">
                                                 ₱ {record.base_salary.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                                             </td>
-                                            <td className="p-5 text-rose-500 font-bold tabular-nums text-xs">
-                                                -₱ {record.total_deduction.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
-                                            </td>
-                                            <td className="p-5">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <span className="font-bold text-sm text-foreground tracking-tight">
-                                                        ₱ {record.net_pay.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                                            <td className="p-5 text-xs">
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className={cn("font-bold", (record.late_count || 0) > 0 ? "text-amber-500" : "text-gray-400")}>
+                                                        Late: {record.late_count || 0}
                                                     </span>
-                                                    <TrendingUp className="w-3 h-3 text-emerald-500" />
+                                                    <span className={cn("font-bold", (record.absent_count || 0) > 0 ? "text-rose-500" : "text-gray-400")}>
+                                                        Absent: {record.absent_count || 0}
+                                                    </span>
                                                 </div>
                                             </td>
+                                            <td className="p-5 text-rose-500 font-bold tabular-nums text-xs">
+                                                -₱ {(record.total_deduction || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                                            </td>
+                                            <td className="p-5">
+                                                <span className="font-bold text-sm text-foreground tracking-tight">
+                                                    ₱ {(record.net_pay || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                                                </span>
+                                            </td>
                                             <td className="p-5 text-xs font-bold text-foreground/70">
-                                                {(() => {
-                                                    const parts = record.period.split(/ to | - /);
-                                                    if (parts.length === 2) {
-                                                        return `${formatDate(parts[0])} - ${formatDate(parts[1])}`;
-                                                    }
-                                                    return record.period;
-                                                })()}
+                                                {formatPeriod(record.period)}
                                             </td>
                                             <td className="p-5">
                                                 <div className="flex flex-col items-center gap-1.5">
@@ -535,11 +742,19 @@ const PayrollPage = () => {
                                                                 Mark Paid
                                                             </button>
                                                             <button
+                                                                onClick={() => handleRegenerateSingle(record)}
+                                                                disabled={regeneratingId === record.id}
+                                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-secondary hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            >
+                                                                <RefreshCw className={cn("w-4 h-4", regeneratingId === record.id && "animate-spin")} />
+                                                                Recalculate
+                                                            </button>
+                                                            <button
                                                                 onClick={() => handleEditClick(record)}
                                                                 className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
                                                             >
                                                                 <Pencil className="w-4 h-4 text-secondary" />
-                                                                Edit Payroll
+                                                                Edit Deductions
                                                             </button>
                                                             <button
                                                                 onClick={() => {
@@ -563,98 +778,6 @@ const PayrollPage = () => {
                     </table>
                 </div>
             </div>
-
-            {showSalaryModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-foreground">Add Payroll Record</h3>
-                            <button
-                                onClick={() => {
-                                    setShowSalaryModal(false);
-                                    setSelectedEmployer('');
-                                    setSalaryAmount('');
-                                    setStartDate('');
-                                    setEndDate('');
-                                    setLateCount(0);
-                                    setAbsentCount(0);
-                                }}
-                                className="p-1 hover:bg-muted rounded-lg"
-                            >
-                                <X className="w-5 h-5 text-foreground cursor-pointer" />
-                            </button>
-                        </div>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-foreground mb-2">Select Employee</label>
-                                <select
-                                    value={selectedEmployer}
-                                    onChange={(e) => setSelectedEmployer(e.target.value)}
-                                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
-                                >
-                                    <option value="" className="text-foreground">Choose an employee...</option>
-                                    {Array.from(employees.values()).map(emp => (
-                                        <option key={emp.id} value={emp.id} className="text-foreground">{emp.employer_name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-foreground mb-2">Start Date</label>
-                                    <input
-                                        type="date"
-                                        value={startDate}
-                                        onChange={(e) => setStartDate(e.target.value)}
-                                        className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-foreground mb-2">End Date</label>
-                                    <input
-                                        type="date"
-                                        value={endDate}
-                                        onChange={(e) => setEndDate(e.target.value)}
-                                        className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-foreground mb-2">Base Salary (PHP)</label>
-                                <input
-                                    type="number"
-                                    value={salaryAmount}
-                                    onChange={(e) => setSalaryAmount(e.target.value)}
-                                    placeholder="Enter amount"
-                                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
-                                />
-                            </div>
-                            {(lateCount > 0 || absentCount > 0) && (
-                                <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-lg space-y-2">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-foreground">Late Count:</span>
-                                        <span className="font-bold text-rose-500">{lateCount} x ₱50 = ₱{lateCount * 50}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-foreground">Absent Count:</span>
-                                        <span className="font-bold text-rose-500">{absentCount} x ₱100 = ₱{absentCount * 100}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm pt-2 border-t border-rose-500/20">
-                                        <span className="text-foreground font-bold">Total Deductions:</span>
-                                        <span className="font-bold text-rose-500">₱{(lateCount * 50) + (absentCount * 100)}</span>
-                                    </div>
-                                </div>
-                            )}
-                            <button
-                                onClick={handleAddSalary}
-                                disabled={!selectedEmployer || !salaryAmount || !startDate || !endDate || processing}
-                                className="w-full py-3 bg-secondary text-white rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                            >
-                                {processing ? 'Creating...' : 'Create Payroll'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Delete Confirmation Modal */}
             {showDeleteConfirm && (
@@ -698,7 +821,7 @@ const PayrollPage = () => {
                     <div className="bg-white dark:bg-[#0A0A0A] rounded-xl p-5 w-full max-w-sm shadow-2xl border border-gray-100 dark:border-white/10 animate-in zoom-in-95 duration-200">
                         <div className="flex flex-col gap-4">
                             <div className="flex justify-between items-center">
-                                <h3 className="text-base font-bold tracking-tight text-foreground">Edit Payroll</h3>
+                                <h3 className="text-base font-bold tracking-tight text-foreground">Edit Payroll Deductions</h3>
                                 <button
                                     onClick={() => {
                                         setShowEditModal(false);
@@ -706,7 +829,7 @@ const PayrollPage = () => {
                                     }}
                                     className="p-1 hover:bg-muted rounded-lg transition-colors"
                                 >
-                                    <X className="w-4 h-4 text-foreground cursor-pointer" />
+                                    <Trash2 className="w-4 h-4 text-foreground cursor-pointer" />
                                 </button>
                             </div>
 
@@ -716,15 +839,16 @@ const PayrollPage = () => {
                                     <div className="text-sm font-bold text-foreground">{editingRecord.full_name}</div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Base Salary (PHP)</label>
-                                    <input
-                                        type="number"
-                                        value={editSalaryAmount}
-                                        onChange={(e) => setEditSalaryAmount(e.target.value)}
-                                        className="w-full px-3 py-2.5 bg-muted border border-gray-200 dark:border-white/10 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary transition-all text-sm"
-                                        placeholder="Enter amount"
-                                    />
+                                <div className="p-3 bg-muted rounded-lg">
+                                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Period</div>
+                                    <div className="text-sm font-bold text-foreground">{editingRecord.period}</div>
+                                </div>
+
+                                <div className="p-3 bg-muted rounded-lg">
+                                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">15-Day Salary</div>
+                                    <div className="text-sm font-bold text-foreground">
+                                        ₱ {editingRecord.base_salary.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                                    </div>
                                 </div>
 
                                 <div>
@@ -754,7 +878,7 @@ const PayrollPage = () => {
                                 <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
                                     <div className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">New Net Pay</div>
                                     <div className="text-base font-bold text-foreground">
-                                        ₱ {((parseFloat(editSalaryAmount) || 0) - (parseFloat(editDeductions) || 0)).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                                        ₱ {(editingRecord.base_salary - (parseFloat(editDeductions) || 0)).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                                     </div>
                                 </div>
                             </div>
@@ -771,7 +895,7 @@ const PayrollPage = () => {
                                 </button>
                                 <button
                                     onClick={handleUpdatePayroll}
-                                    disabled={!editSalaryAmount || isEditing}
+                                    disabled={!editDeductions || isEditing}
                                     className="flex-1 py-2.5 rounded-lg bg-secondary text-white text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-secondary/20 hover:opacity-90 transition-all disabled:opacity-50"
                                 >
                                     {isEditing ? 'Saving...' : 'Save Changes'}
