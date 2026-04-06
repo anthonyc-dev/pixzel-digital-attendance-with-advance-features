@@ -1,23 +1,32 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/utils/supabase/server";
 
-export async function GET() {
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
   const supabase = await createSupabaseServer();
 
   const { data, error } = await supabase
     .from("payroll_records")
     .select("*")
-    .order("created_at", { ascending: false });
+    .eq("id", id)
+    .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 404 });
   }
 
   return NextResponse.json(data);
 }
 
-export async function POST(req: Request) {
+export async function PUT(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
+    const { id } = await params;
     const supabase = await createSupabaseServer();
     const body = await req.json();
 
@@ -48,7 +57,7 @@ export async function POST(req: Request) {
 
     const { data, error } = await supabase
       .from("payroll_records")
-      .insert({
+      .update({
         employer_registration_id,
         full_name,
         position,
@@ -58,8 +67,14 @@ export async function POST(req: Request) {
         period,
         total_deduction,
         status: status || "pending",
-        processed_at: status === "processed" ? new Date().toISOString() : null,
+        processed_at:
+          status === "processed"
+            ? new Date().toISOString()
+            : status === "paid"
+              ? new Date().toISOString()
+              : null,
       })
+      .eq("id", id)
       .select()
       .single();
 
@@ -67,7 +82,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json(data);
   } catch (err: unknown) {
     if (err instanceof Error) {
       return NextResponse.json({ error: err.message }, { status: 500 });
@@ -77,4 +92,23 @@ export async function POST(req: Request) {
       { status: 500 },
     );
   }
+}
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const supabase = await createSupabaseServer();
+
+  const { error } = await supabase
+    .from("payroll_records")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ message: "Payroll record deleted successfully" });
 }

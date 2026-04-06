@@ -1,3 +1,5 @@
+"use client"
+
 import React from 'react';
 import Layout from '@/components/Layout';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, UserPlus } from 'lucide-react';
@@ -97,7 +99,7 @@ const EmployeeHome = () => {
 
           {/* Grid Rows Data */}
           <div className="flex-1 flex flex-col pt-4">
-            {weeks.map((week, idx) => (
+            {weeks.map((week) => (
               <div key={week.id} className="grid grid-cols-[160px_1fr] flex-1 border-b border-white/5 group min-h-[180px] hover:bg-white/[0.01] transition-all">
                 <div className="flex flex-col justify-center gap-2 border-r border-white/5 py-8 pr-8">
                   <span className="text-lg font-black text-white/40 group-hover:text-white leading-none uppercase tracking-tighter transition-all">Week {week.id}</span>

@@ -1,25 +1,39 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import Layout from '@/components/Layout';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     Banknote,
     Search,
     Download,
-    ChevronRight,
     TrendingUp,
     Wallet,
     CreditCard,
-    History,
-    DollarSign,
-    PieChart,
-    ArrowUpRight,
-    Printer,
-    ChevronDown,
-    Info
+    Plus,
+    X,
+    RefreshCw,
+    CheckCircle,
+    Clock,
+    MoreHorizontal,
+    Pencil,
+    Trash2
 } from 'lucide-react';
-import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { ENV } from '@/lib/api';
+
+interface PayrollRecord {
+    id: string;
+    employer_registration_id: string;
+    full_name: string;
+    position: string;
+    base_salary: number;
+    gross_pay: number;
+    net_pay: number;
+    period: string;
+    total_deduction: number;
+    status: 'pending' | 'processed' | 'paid';
+    created_at: string;
+    processed_at: string | null;
+}
 
 interface Employee {
     id: string;
@@ -31,252 +45,556 @@ interface Employee {
     created_at: string;
 }
 
-// Static JSON for API Development Reference - Highly Detailed Payroll Mock
-const MOCK_PAYROLL_DATA = {
-    status: "success",
-    message: "Payroll records fetched successfully",
-    data: [
-        {
-            id: "pay-mock-001",
-            employee_id: "EMP-PIXZ-001",
-            full_name: "Jesper Ian",
-            position: "Lead UI Developer",
-            base_salary: 45000,
-            gross_pay: 48500,
-            net_pay: 42300,
-            allowances: 3500,
-            overtime_pay: 1500,
-            deductions: {
-                tax: 4200,
-                sss: 1200,
-                philhealth: 500,
-                pagibig: 300,
-                total: 6200
-            },
-            status: "processed",
-            period: "August 1 - August 31, 2026",
-            payment_method: "Bank Transfer",
-            processed_at: new Date().toISOString()
-        },
-        {
-            id: "pay-mock-002",
-            employee_id: "EMP-PIXZ-002",
-            full_name: "Anthony C.",
-            position: "Senior Designer",
-            base_salary: 38000,
-            gross_pay: 38000,
-            net_pay: 33500,
-            allowances: 0,
-            overtime_pay: 0,
-            deductions: {
-                tax: 3200,
-                sss: 800,
-                philhealth: 300,
-                pagibig: 200,
-                total: 4500
-            },
-            status: "pending",
-            period: "August 1 - August 31, 2026",
-            payment_method: "G-Cash",
-            processed_at: null
-        }
-    ],
-    summary: {
-        total_gross: 86500,
-        total_net: 75800,
-        total_deductions: 10700,
-        currency: "PHP"
-    }
-};
-
 const PayrollPage = () => {
-    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [payrollRecords, setPayrollRecords] = useState<PayrollRecord[]>([]);
+    const [employees, setEmployees] = useState<Map<string, Employee>>(new Map());
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterStatus, setFilterStatus] = useState<string>('all');
+    const [showSalaryModal, setShowSalaryModal] = useState(false);
+    const [selectedEmployer, setSelectedEmployer] = useState('');
+    const [salaryAmount, setSalaryAmount] = useState('');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const [lateCount, setLateCount] = useState(0);
+    const [absentCount, setAbsentCount] = useState(0);
+    const [processing, setProcessing] = useState(false);
+    const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
+
+    const formatDate = (dateStr: string) => {
+        const [year, month, day] = dateStr.split('-');
+        return `${month}-${day}-${year}`;
+    };
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [payrollRes, empRes] = await Promise.all([
+                fetch(`${ENV.API_URL}/payroll`),
+                fetch(`${ENV.API_URL}/registration`)
+            ]);
+
+            if (payrollRes.ok) {
+                const payrollData = await payrollRes.json();
+                setPayrollRecords(Array.isArray(payrollData) ? payrollData : (payrollData.data || []));
+            }
+
+            if (empRes.ok) {
+                const empData = await empRes.json();
+                const empMap = new Map<string, Employee>();
+                const empList = Array.isArray(empData) ? empData : (empData.data || []);
+                empList.forEach((emp: Employee) => {
+                    empMap.set(String(emp.id), emp);
+                });
+                setEmployees(empMap);
+            }
+        } catch (e) {
+            console.error('Failed to fetch payroll data:', e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchAttendanceData = useCallback(async () => {
+        if (!selectedEmployer || !startDate || !endDate) return;
+
+        const employee = employees.get(selectedEmployer);
+        if (!employee) return;
+
+        try {
+            const res = await fetch(`${ENV.API_URL}/dtr?employer_id=${employee.employer_id}&start_date=${startDate}&end_date=${endDate}`);
+            if (res.ok) {
+                const data = await res.json();
+                const records = Array.isArray(data) ? data : (data.data || []);
+
+                let late = 0;
+                let absent = 0;
+
+                records.forEach((record: { date?: string; status?: string; is_late?: boolean }) => {
+                    const status = record.status?.toLowerCase();
+                    if (status === 'absent') {
+                        absent++;
+                    } else if (record.is_late === true) {
+                        late++;
+                    }
+                });
+
+                setLateCount(late);
+                setAbsentCount(absent);
+            }
+        } catch (e) {
+            console.error('Failed to fetch DTR:', e);
+        }
+    }, [selectedEmployer, startDate, endDate, employees]);
 
     useEffect(() => {
-        // Log the static JSON for API structure reference
-        console.log("💰 PAYROLL API MOCK DATA STRUCTURE:", MOCK_PAYROLL_DATA);
+        fetchData();
     }, []);
 
     useEffect(() => {
-        const fetchEmployees = async () => {
-            try {
-                const response = await fetch('/api/registration');
-                if (response.ok) {
-                    const result = await response.json();
-                    setEmployees(result.data || []);
-                }
-            } catch (e) {
-                console.error('Failed to fetch employers:', e);
-            } finally {
-                setLoading(false);
+        fetchAttendanceData();
+    }, [fetchAttendanceData]);
+
+    useEffect(() => {
+        const handleClickOutside = (e: Event) => {
+            const target = e.target as HTMLElement;
+            if (target && !target.closest('.action-menu-button') && !target.closest('.action-menu-dropdown')) {
+                setOpenActionMenu(null);
             }
         };
-        fetchEmployees();
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
     }, []);
 
+    const handleAddSalary = async () => {
+        if (!selectedEmployer || !salaryAmount || !startDate || !endDate) {
+            alert('Please select an employee, enter a salary amount, and select date range');
+            return;
+        }
+
+        const employee = employees.get(selectedEmployer);
+        if (!employee) {
+            alert('Employee not found. Please refresh and try again.');
+            return;
+        }
+
+        setProcessing(true);
+        try {
+            const baseSalary = parseFloat(salaryAmount);
+            const grossPay = baseSalary;
+
+            const lateDeduction = lateCount * 50;
+            const absentDeduction = absentCount * 100;
+            const totalDeduction = lateDeduction + absentDeduction;
+
+            const netPay = grossPay - totalDeduction;
+
+            const period = `${formatDate(startDate)} - ${formatDate(endDate)}`;
+
+            const res = await fetch(`${ENV.API_URL}/payroll`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    employer_registration_id: selectedEmployer,
+                    full_name: employee.employer_name,
+                    position: employee.employer_position,
+                    base_salary: baseSalary,
+                    gross_pay: grossPay,
+                    net_pay: netPay,
+                    period,
+                    total_deduction: totalDeduction,
+                    status: 'pending'
+                })
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                try {
+                    const error = JSON.parse(errorText);
+                    alert(error.error || 'Failed to create payroll');
+                } catch {
+                    alert('Failed to create payroll');
+                }
+                return;
+            }
+
+            await fetchData();
+            setShowSalaryModal(false);
+            setSelectedEmployer('');
+            setSalaryAmount('');
+            setStartDate('');
+            setEndDate('');
+            setLateCount(0);
+            setAbsentCount(0);
+        } catch (e) {
+            console.error('Failed to add salary:', e);
+            alert('Failed to create payroll');
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const handleUpdateStatus = async (id: string, newStatus: 'pending' | 'processed' | 'paid') => {
+        const record = payrollRecords.find(p => p.id === id);
+        if (!record) return;
+
+        try {
+            const res = await fetch(`${ENV.API_URL}/payroll/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...record,
+                    status: newStatus
+                })
+            });
+
+            if (res.ok) {
+                setPayrollRecords(prev => prev.map(p =>
+                    p.id === id ? { ...p, status: newStatus } : p
+                ));
+            }
+        } catch (e) {
+            console.error('Failed to update status:', e);
+        }
+    };
+
+    const handleDeletePayroll = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this payroll record?')) return;
+        
+        try {
+            const res = await fetch(`${ENV.API_URL}/payroll/${id}`, {
+                method: 'DELETE'
+            });
+            
+            if (res.ok) {
+                setPayrollRecords(prev => prev.filter(p => p.id !== id));
+                setOpenActionMenu(null);
+            }
+        } catch (e) {
+            console.error('Failed to delete payroll:', e);
+        }
+    };
+
+    const filteredRecords = payrollRecords.filter(record => {
+        const employee = employees.get(record.employer_registration_id);
+        const nameMatch = record.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (employee?.employer_name.toLowerCase().includes(searchTerm.toLowerCase()));
+        const statusMatch = filterStatus === 'all' || record.status === filterStatus;
+        return nameMatch && statusMatch;
+    });
+
+    const totalPayroll = payrollRecords.reduce((sum, p) => sum + p.net_pay, 0);
+    const avgNetPay = payrollRecords.length > 0
+        ? totalPayroll / payrollRecords.length
+        : 0;
+    const totalDeductions = payrollRecords.reduce((sum, p) =>
+        sum + p.total_deduction, 0);
+    const processedCount = payrollRecords.filter(p => p.status === 'processed' || p.status === 'paid').length;
+
     const stats = [
-        { title: 'Total Payroll', value: '₱ 245K', sub: '+12%', icon: Wallet, color: 'text-green-500', bg: 'bg-green-500/10' },
-        { title: 'Avg Salary', value: '₱ 24.5K', sub: 'Per Emp', icon: Banknote, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-        { title: 'Deductions', value: '₱ 12.4K', sub: 'Tax/Ins', icon: PieChart, color: 'text-red-500', bg: 'bg-red-500/10' },
-        { title: 'Paid Today', value: '08', sub: 'People', icon: CreditCard, color: 'text-secondary', bg: 'bg-secondary/10' },
+        { title: 'Total Payroll', value: `₱ ${totalPayroll.toLocaleString('en-PH', { minimumFractionDigits: 0 })}`, sub: 'This Period', icon: Wallet, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+        { title: 'Avg Net Pay', value: `₱ ${avgNetPay.toLocaleString('en-PH', { minimumFractionDigits: 0 })}`, sub: 'Per Employee', icon: Banknote, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+        { title: 'Total Deductions', value: `₱ ${totalDeductions.toLocaleString('en-PH', { minimumFractionDigits: 0 })}`, sub: 'All Employees', icon: CreditCard, color: 'text-rose-500', bg: 'bg-rose-500/10' },
+        { title: 'Processed', value: processedCount.toString().padStart(2, '0'), sub: 'Employees', icon: CreditCard, color: 'text-secondary', bg: 'bg-secondary/10' },
     ];
 
-    const filteredEmployees = employees.filter(emp =>
-        emp.employer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.employer_position.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const getStatusIcon = (status: string) => {
+        switch (status) {
+            case 'processed': return <CheckCircle className="w-3.5 h-3.5" />;
+            case 'paid': return <CheckCircle className="w-3.5 h-3.5" />;
+            case 'pending': return <Clock className="w-3.5 h-3.5" />;
+            default: return <Clock className="w-3.5 h-3.5" />;
+        }
+    };
 
     return (
         <div className="flex flex-col gap-6 w-full max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out pb-10">
 
-                {/* Page Header */}
-                <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                    <div className="space-y-2">
-                        <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-secondary/10 text-secondary rounded-full border border-secondary/20">
-                            <History className="w-3 h-3" />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Aug 1 - Aug 31</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-foreground">Employee Payroll</h1>
-                            <div className="px-2 py-0.5 rounded-full bg-secondary/10 border border-secondary/20 text-secondary text-[8px] font-black uppercase tracking-widest animate-pulse">
-                                API Ready
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Employee Payroll</h1>
+                        <button
+                            onClick={fetchData}
+                            className="p-2 hover:bg-muted rounded-lg transition-colors"
+                            disabled={loading}
+                        >
+                            <RefreshCw className={cn("w-4 h-4 text-muted-foreground", loading && "animate-spin")} />
+                        </button>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setShowSalaryModal(true)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-all cursor-pointer">
+                        <Plus className="w-3.5 h-3.5 text-secondary" />
+                        <span>Add Payroll</span>
+                    </button>
+                    <button className="flex items-center gap-2 px-4 py-2.5 bg-secondary text-white rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all">
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Export CSV</span>
+                    </button>
+                </div>
+            </header>
+
+            <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {stats.map((stat, i) => (
+                    <div key={i} className="p-5 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm group hover:scale-[1.01] transition-all relative overflow-hidden">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className={cn("p-2.5 rounded-xl", stat.bg)}>
+                                <stat.icon className={cn("w-4 h-4", stat.color)} />
+                            </div>
+                            <div className="flex flex-col">
+                                <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-1">{stat.title}</div>
+                                <div className="text-[8px] font-bold text-gray-400 flex items-center gap-1">
+                                    {stat.sub}
+                                </div>
                             </div>
                         </div>
+                        <div className="text-2xl font-bold text-foreground tabular-nums tracking-tight flex items-center gap-1">
+                            {stat.value}
+                        </div>
+                    </div>
+                ))}
+            </section>
+
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="relative group max-w-sm w-full">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-secondary transition-colors" />
+                        <input
+                            type="text"
+                            placeholder="Search Employee for Payroll..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-secondary/10 focus:border-secondary transition-all shadow-sm"
+                        />
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <button className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl font-black uppercase tracking-widest text-[9px] shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-all">
-                            <Printer className="w-3.5 h-3.5 text-secondary" />
-                            <span>Print</span>
-                        </button>
-                        <button className="flex items-center gap-2 px-4 py-2.5 bg-secondary text-white rounded-xl font-black uppercase tracking-widest text-[9px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all">
-                            <Download className="w-3.5 h-3.5" />
-                            <span>Export</span>
-                        </button>
+                        <select
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                            className="flex items-center gap-1.5 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[9px] font-bold uppercase tracking-widest text-black dark:text-white hover:bg-gray-50 transition-all shadow-sm"
+                        >
+                            <option value="all" className="text-black">All Status</option>
+                            <option value="pending" className="text-black">Pending</option>
+                            <option value="processed" className="text-black">Processed</option>
+                            <option value="paid" className="text-black">Paid</option>
+                        </select>
                     </div>
-                </header>
+                </div>
 
-                {/* Stats Section */}
-                <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    {stats.map((stat, i) => (
-                        <div key={i} className="p-5 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm group hover:scale-[1.01] transition-all relative overflow-hidden">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className={cn("p-2.5 rounded-xl", stat.bg)}>
-                                    <stat.icon className={cn("w-4 h-4", stat.color)} />
-                                </div>
-                                <div className="flex flex-col">
-                                    <div className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">{stat.title}</div>
-                                    <div className="text-[8px] font-bold text-green-500 flex items-center gap-1">
-                                        <TrendingUp className="w-2 h-2" />
-                                        {stat.sub}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="text-2xl font-black text-foreground tabular-nums tracking-tighter flex items-center gap-1">
-                                {stat.value}
-                                <ArrowUpRight className="w-3.5 h-3.5 text-gray-300 dark:text-gray-700" />
-                            </div>
-                        </div>
-                    ))}
-                </section>
-
-                {/* Filters and List */}
-                <div className="flex flex-col gap-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="relative group max-w-sm w-full">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-secondary transition-colors" />
-                            <input
-                                type="text"
-                                placeholder="Search Employee..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-secondary/10 focus:border-secondary transition-all shadow-sm"
-                            />
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                            <button className="flex items-center gap-1.5 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-foreground/70 hover:bg-gray-50 transition-all shadow-sm">
-                                <span>Status</span>
-                                <ChevronDown className="w-3.5 h-3.5 text-secondary" />
-                            </button>
-                            <button className="flex items-center gap-1.5 px-4 py-2.5 bg-secondary text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-md shadow-secondary/10">
-                                <DollarSign className="w-3.5 h-3.5" />
-                                <span>Process</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* List Wrapper */}
-                    <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl overflow-hidden shadow-xl overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[800px]">
-                            <thead>
-                                <tr className="bg-gray-50 dark:bg-white/10 border-b border-gray-100 dark:border-white/5">
-                                    <th className="p-5 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Employee</th>
-                                    <th className="p-5 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Basic</th>
-                                    <th className="p-5 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Hours</th>
-                                    <th className="p-5 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Deductions</th>
-                                    <th className="p-5 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Net Pay</th>
-                                    <th className="p-5 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 text-center">Status</th>
+                <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl overflow-hidden shadow-xl overflow-x-auto">
+                    <table className="w-full text-left border-collapse min-w-[900px]">
+                        <thead>
+                            <tr className="bg-gray-50 dark:bg-white/10 border-b border-gray-100 dark:border-white/5 text-center">
+                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Employee</th>
+                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Base Salary</th>
+                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Deductions</th>
+                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Net Pay</th>
+                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Period</th>
+                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Status</th>
+                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-white/5 text-center">
+                            {loading ? (
+                                [...Array(3)].map((_, i) => (
+                                    <tr key={i}>
+                                        <td colSpan={7} className="p-5"><div className="h-12 bg-gray-100 dark:bg-white/10 rounded-xl animate-pulse" /></td>
+                                    </tr>
+                                ))
+                            ) : filteredRecords.length === 0 ? (
+                                <tr>
+                                    <td colSpan={7} className="p-10 text-center text-muted-foreground font-bold uppercase tracking-widest text-[10px]">No Payroll Records Found</td>
                                 </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                                {loading ? (
-                                    [...Array(3)].map((_, i) => (
-                                        <tr key={i}>
-                                            <td colSpan={6} className="p-5"><div className="h-12 bg-gray-100 dark:bg-white/10 rounded-xl animate-pulse" /></td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    filteredEmployees.map((emp) => (
-                                        <tr key={emp.id} className="group hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
-                                            <td className="p-5">
+                            ) : (
+                                filteredRecords.map((record) => {
+                                    const employee = employees.get(record.employer_registration_id);
+                                    return (
+                                        <tr key={record.id} className="group hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
+                                            <td className="p-5 text-left">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="relative">
-                                                        {emp.image ? (
-                                                            <Image src={emp.image} alt={emp.employer_name} width={40} height={40} className="w-10 h-10 rounded-xl object-cover border border-white dark:border-white/10 shadow-md transition-all" />
-                                                        ) : (
-                                                            <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-lg font-black text-secondary">
-                                                                {emp.employer_name.charAt(0)}
-                                                            </div>
-                                                        )}
-                                                    </div>
                                                     <div className="flex flex-col">
-                                                        <span className="font-black text-sm tracking-tight group-hover:text-secondary transition-colors">{emp.employer_name}</span>
-                                                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">{emp.employer_position}</span>
+                                                        <span className="font-bold text-sm tracking-tight group-hover:text-secondary transition-colors">{record.full_name}</span>
+                                                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none">{record.position}</span>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="p-5 font-black text-foreground/80 tabular-nums text-xs">₱ 28,000</td>
+                                            <td className="p-5 font-bold text-foreground/80 tabular-nums text-xs">
+                                                ₱ {record.base_salary.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                                            </td>
+                                            <td className="p-5 text-rose-500 font-bold tabular-nums text-xs">
+                                                -₱ {record.total_deduction.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                                            </td>
                                             <td className="p-5">
-                                                <div className="flex flex-col leading-tight">
-                                                    <span className="font-black text-foreground text-xs">176h</span>
-                                                    <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">22 Days</span>
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <span className="font-bold text-sm text-foreground tracking-tight">
+                                                        ₱ {record.net_pay.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                                                    </span>
+                                                    <TrendingUp className="w-3 h-3 text-emerald-500" />
                                                 </div>
                                             </td>
-                                            <td className="p-5 text-red-500/80 font-black tabular-nums text-xs">-₱ 1,450</td>
-                                            <td className="p-5">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-black text-sm text-foreground tracking-tighter">₱ 26,550</span>
-                                                    <TrendingUp className="w-3 h-3 text-green-500" />
-                                                </div>
+                                            <td className="p-5 text-xs font-bold text-foreground/70">
+                                                {(() => {
+                                                    const parts = record.period.split(/ to | - /);
+                                                    if (parts.length === 2) {
+                                                        return `${formatDate(parts[0])} - ${formatDate(parts[1])}`;
+                                                    }
+                                                    return record.period;
+                                                })()}
                                             </td>
-                                            <td className="p-5 text-center">
+                                            <td className="p-5">
                                                 <div className="flex flex-col items-center gap-1.5">
-                                                    <span className="px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 text-[8px] font-black uppercase tracking-[0.1em] rounded-lg border border-green-600/20">
-                                                        Processed
+                                                    <span className={cn(
+                                                        "px-3 py-1 text-[8px] font-bold uppercase tracking-[0.1em] rounded-lg border flex items-center gap-1",
+                                                        record.status === 'pending' && "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+                                                        record.status === 'processed' && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+                                                        record.status === 'paid' && "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
+                                                    )}>
+                                                        {getStatusIcon(record.status)}
+                                                        {record.status}
                                                     </span>
                                                 </div>
                                             </td>
+                                            <td className="p-5">
+                                                <div className="relative inline-block">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setOpenActionMenu(openActionMenu === record.id ? null : record.id)}
+                                                        className="action-menu-button p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                                                    >
+                                                        <MoreHorizontal className="w-4 h-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+                                                    </button>
+                                                    {openActionMenu === record.id && (
+                                                        <div className="action-menu-dropdown absolute right-[calc(100%+12px)] top-1/2 -translate-y-[68%] z-50 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 min-w-[140px] animate-in fade-in slide-in-from-right-4 duration-200">
+                                                            <button
+                                                                onClick={() => {
+                                                                    handleUpdateStatus(record.id, 'processed');
+                                                                    setOpenActionMenu(null);
+                                                                }}
+                                                                disabled={record.status !== 'pending'}
+                                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-emerald-600 hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            >
+                                                                <CheckCircle className="w-4 h-4" />
+                                                                Process
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    handleUpdateStatus(record.id, 'paid');
+                                                                    setOpenActionMenu(null);
+                                                                }}
+                                                                disabled={record.status !== 'processed'}
+                                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-blue-600 hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            >
+                                                                <CheckCircle className="w-4 h-4" />
+                                                                Mark Paid
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setOpenActionMenu(null)}
+                                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                                                            >
+                                                                <Pencil className="w-4 h-4 text-secondary" />
+                                                                Edit Payroll
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeletePayroll(record.id)}
+                                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
+
+            {showSalaryModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-foreground">Add Payroll Record</h3>
+                            <button
+                                onClick={() => {
+                                    setShowSalaryModal(false);
+                                    setSelectedEmployer('');
+                                    setSalaryAmount('');
+                                    setStartDate('');
+                                    setEndDate('');
+                                    setLateCount(0);
+                                    setAbsentCount(0);
+                                }}
+                                className="p-1 hover:bg-muted rounded-lg"
+                            >
+                                <X className="w-5 h-5 text-foreground cursor-pointer" />
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-foreground mb-2">Select Employee</label>
+                                <select
+                                    value={selectedEmployer}
+                                    onChange={(e) => setSelectedEmployer(e.target.value)}
+                                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
+                                >
+                                    <option value="" className="text-foreground">Choose an employee...</option>
+                                    {Array.from(employees.values()).map(emp => (
+                                        <option key={emp.id} value={emp.id} className="text-foreground">{emp.employer_name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-foreground mb-2">Start Date</label>
+                                    <input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-foreground mb-2">End Date</label>
+                                    <input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-foreground mb-2">Base Salary (PHP)</label>
+                                <input
+                                    type="number"
+                                    value={salaryAmount}
+                                    onChange={(e) => setSalaryAmount(e.target.value)}
+                                    placeholder="Enter amount"
+                                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary"
+                                />
+                            </div>
+                            {(lateCount > 0 || absentCount > 0) && (
+                                <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-lg space-y-2">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-foreground">Late Count:</span>
+                                        <span className="font-bold text-rose-500">{lateCount} x ₱50 = ₱{lateCount * 50}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-foreground">Absent Count:</span>
+                                        <span className="font-bold text-rose-500">{absentCount} x ₱100 = ₱{absentCount * 100}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm pt-2 border-t border-rose-500/20">
+                                        <span className="text-foreground font-bold">Total Deductions:</span>
+                                        <span className="font-bold text-rose-500">₱{(lateCount * 50) + (absentCount * 100)}</span>
+                                    </div>
+                                </div>
+                            )}
+                            <button
+                                onClick={handleAddSalary}
+                                disabled={!selectedEmployer || !salaryAmount || !startDate || !endDate || processing}
+                                className="w-full py-3 bg-secondary text-white rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                            >
+                                {processing ? 'Creating...' : 'Create Payroll'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 };
 

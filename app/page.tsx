@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   LogIn,
   LogOut,
-  RotateCcw,
   CameraIcon,
   AlarmClockCheck,
   AlarmClockOff,
@@ -16,11 +15,15 @@ import {
   Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { AlertCircle } from 'lucide-react';
 
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 import Header from '@/components/mainPage/Header';
+import { ENV } from '@/lib/api';
 
 interface AttendanceRecord {
   id: number;
@@ -29,10 +32,28 @@ interface AttendanceRecord {
   type: 'in' | 'out';
   photo?: string;
   employer_id?: string;
+  match_percentage?: number;
+  date?: string;
 }
 
-// Type for faceapi module
+// Type for faceapi modules
 type FaceAPI = typeof import('@vladmandic/face-api');
+
+interface ApiLogEntry {
+  id: string;
+  employer_registration?: {
+    employer_name: string;
+    employer_id: string;
+    image: string;
+  };
+  employer_name?: string;
+  employer_id?: string;
+  timestamp: string;
+  type: string;
+  date?: string;
+}
+
+// ...
 
 const AttendancePage = () => {
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
@@ -47,19 +68,23 @@ const AttendancePage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(true);
   const [modelError, setModelError] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [scanStatus, setScanStatus] = useState<string>('Scanning...');
-  const [lastScanTime, setLastScanTime] = useState<number>(0);
   const [attendanceLog, setAttendanceLog] = useState<AttendanceRecord[]>([]);
   const [faceapi, setFaceapi] = useState<FaceAPI | null>(null);
+  const [currentMatchPercentage, setCurrentMatchPercentage] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCameraLoading, setIsCameraLoading] = useState<boolean>(true);
+  const [holidayToday, setHolidayToday] = useState<{ title: string; type: string } | null>(null);
+  const [isLoadingHoliday, setIsLoadingHoliday] = useState(true);
 
   useEffect(() => {
     const fetchInitialLogs = async () => {
+      setIsLoading(true);
       try {
-        const response = await fetch('/api/attendance');
+        const response = await fetch(`${ENV.API_URL}/attendance`);
         if (response.ok) {
           const data = await response.json();
-          const mappedLogs: AttendanceRecord[] = data.map((log: any) => ({
+          const mappedLogs: AttendanceRecord[] = data.map((log: ApiLogEntry) => ({
             id: log.id,
             name: log.employer_registration?.employer_name || log.employer_name || 'Unknown',
             time: new Date(log.timestamp).toLocaleTimeString('en-US', {
@@ -70,15 +95,60 @@ const AttendancePage = () => {
             type: log.type === 'time_in' ? 'in' : 'out',
             photo: log.employer_registration?.image || undefined,
             employer_id: log.employer_registration?.employer_id || log.employer_id,
+            date: new Date(log.timestamp).toLocaleDateString('en-CA', {
+              timeZone: 'Asia/Manila'
+            }),
           }));
           setAttendanceLog(mappedLogs);
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('Failed to fetch initial logs:', error);
+        setIsLoading(false);
       }
     };
     fetchInitialLogs();
+    checkHoliday();
   }, []);
+
+  const checkHoliday = async () => {
+    try {
+      setIsLoadingHoliday(true);
+      const response = await fetch(`${ENV.API_URL}/events`);
+      if (response.ok) {
+        const events = await response.json();
+        const today = new Date();
+        const todayStr = format(today, 'yyyy-MM-dd');
+
+        const activeEvent = events.find((event: { start_date?: string; end_date?: string; date?: string; title?: string; type?: string }) => {
+          try {
+            const startStr = event.start_date || event.date;
+            const endStr = event.end_date || event.date;
+            if (!startStr || !endStr) return false;
+
+            if (startStr === todayStr || endStr === todayStr) return true;
+
+            const start = startOfDay(parseISO(startStr));
+            const end = endOfDay(parseISO(endStr));
+            return isWithinInterval(today, { start, end });
+          } catch {
+            return false;
+          }
+        });
+
+        if (activeEvent) {
+          setHolidayToday({
+            title: activeEvent.title,
+            type: activeEvent.type
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Failed to check holiday:', e);
+    } finally {
+      setIsLoadingHoliday(false);
+    }
+  };
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -225,6 +295,15 @@ const AttendancePage = () => {
   const isProcessingRef = useRef(false);
   const lastScanTimeRef = useRef(0);
 
+  const speak = (text: string) => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.1;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
   const processAttendanceDescriptor = useCallback(async (descriptor: number[]) => {
     if (isProcessingRef.current || showSuccess) return;
 
@@ -232,9 +311,17 @@ const AttendancePage = () => {
     setIsProcessing(true);
     setScanStatus('Verifying face...');
 
+    if (holidayToday) {
+      toast.error(`Scanning restricted for ${holidayToday.title}`);
+      setIsScanning(false);
+      isProcessingRef.current = false;
+      setIsProcessing(false);
+      return;
+    }
+
     try {
       console.log('Sending descriptor to API...', { type: attendanceType });
-      const response = await fetch('/api/attendance', {
+      const response = await fetch(`${ENV.API_URL}/attendance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -267,22 +354,28 @@ const AttendancePage = () => {
           name: data.employer_name,
           time: timeStr,
           type: data.type === 'time_in' ? 'in' : 'out',
-          photo: currentPhoto || undefined,
+          photo: data.image || undefined,
           employer_id: data.employer_id,
+          match_percentage: data.match_percentage,
         };
 
         setAttendanceLog((prev) => [newRecord, ...prev]);
-        setCapturedPhoto(currentPhoto);
+        setCapturedPhoto(data.image || currentPhoto);
+        setCurrentMatchPercentage(data.match_percentage);
         setIsCaptured(true);
         setShowSuccess(true);
         setIsProcessing(false);
         setIsScanning(false); // Stop scanning after success
+
+        // Announce result
+        speak(data.type === 'time_in' ? 'Time in' : 'Time out');
 
         // Keep camera running and resume readiness after success
         setTimeout(() => {
           setShowSuccess(false);
           setIsCaptured(false);
           setCapturedPhoto(null);
+          setCurrentMatchPercentage(null);
           isProcessingRef.current = false;
           setIsProcessing(false);
         }, 3000);
@@ -292,12 +385,22 @@ const AttendancePage = () => {
           toast.error("Face not recognized. Please try again.");
           isProcessingRef.current = false;
           setIsProcessing(false);
-        } else if (result.message && result.message.includes("Already recorded")) {
+        } else if (result.message && (result.message.includes("Already recorded") || result.message.includes("already complete"))) {
+          const data = result.data;
+          if (data && data.image) {
+            setCapturedPhoto(data.image);
+            setIsCaptured(true);
+            setCurrentMatchPercentage(data.match_percentage);
+          }
           toast.info(result.message);
+          speak(attendanceType === 'in' ? 'You already timed in' : 'You already timed out');
           setIsProcessing(false);
-          setIsScanning(false); // Stop scanning if already recorded
+          setIsScanning(false);
 
           setTimeout(() => {
+            setIsCaptured(false);
+            setCapturedPhoto(null);
+            setCurrentMatchPercentage(null);
             isProcessingRef.current = false;
           }, 3000);
         } else {
@@ -316,7 +419,7 @@ const AttendancePage = () => {
       isProcessingRef.current = false;
       setIsProcessing(false);
     }
-  }, [attendanceType, showSuccess, stopCamera, captureCurrentFrame]);
+  }, [attendanceType, showSuccess, captureCurrentFrame, holidayToday]);
 
   // Auto-scan logic
   useEffect(() => {
@@ -370,17 +473,13 @@ const AttendancePage = () => {
     };
   }, [isScanning, showSuccess, isModelLoading, processAttendanceDescriptor, faceapi]);
 
-  const retakePhoto = useCallback(async () => {
-    setIsCaptured(false);
-    setCapturedPhoto(null);
-    await startCamera();
-  }, [startCamera]);
-
   const cancelAttendance = useCallback(() => {
     setIsScanning(false);
     setIsCaptured(false);
     setCapturedPhoto(null);
+    setCurrentMatchPercentage(null);
     setCameraError(null);
+    setIsProcessing(false);
   }, []);
 
   // Filter attendance records based on search
@@ -404,16 +503,7 @@ const AttendancePage = () => {
   };
 
   const handleRecordClick = (log: AttendanceRecord) => {
-    // Store the selected record data in localStorage
-    localStorage.setItem('selectedUser', JSON.stringify({
-      name: log.name,
-      employer_id: log.employer_id,
-      photo: log.photo,
-      // You can add more fields if available in the log object
-    }));
-
-    // Navigate to user record page
-    router.push('/mainPage/userRecord');
+    router.push(`/mainPage/userRecord/${log.employer_id}`);
   };
 
   return (
@@ -441,13 +531,84 @@ const AttendancePage = () => {
 
                     {/* Live Camera Preview */}
                     {!isCaptured && !cameraError && (
-                      <video
-                        ref={videoRefCallback}
-                        autoPlay
-                        playsInline
-                        muted
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
+                      <div className="absolute inset-0 w-full h-full">
+                        {/* Skeleton Loading State */}
+                        {isCameraLoading && (
+                          <div className="absolute inset-0 flex items-center justify-center z-10">
+                            <div className="flex flex-col items-center gap-4 animate-in fade-in duration-300">
+                              {/* Animated Camera Icon Skeleton */}
+                              <div className="relative">
+                                <div className="w-20 h-20 rounded-full bg-muted/50 border-2 border-secondary/30 flex items-center justify-center animate-pulse">
+                                  <svg
+                                    className="w-10 h-10 text-secondary/40"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={1.5}
+                                      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                                    />
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={1.5}
+                                      d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                                    />
+                                  </svg>
+                                </div>
+
+                                {/* Scanning line animation */}
+                                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-12 h-0.5 bg-secondary/40 rounded-full animate-pulse" />
+                              </div>
+
+                              {/* Loading Text with animated dots */}
+                              <div className="space-y-2 text-center">
+                                <p className="text-secondary font-medium">Starting camera</p>
+                                <div className="flex gap-1 justify-center">
+                                  <div
+                                    className="w-1.5 h-1.5 rounded-full bg-secondary/60 animate-bounce"
+                                    style={{ animationDelay: '0ms' }}
+                                  />
+                                  <div
+                                    className="w-1.5 h-1.5 rounded-full bg-secondary/60 animate-bounce"
+                                    style={{ animationDelay: '150ms' }}
+                                  />
+                                  <div
+                                    className="w-1.5 h-1.5 rounded-full bg-secondary/60 animate-bounce"
+                                    style={{ animationDelay: '300ms' }}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Progress bar */}
+                              <div className="w-48 h-1 bg-muted rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-secondary rounded-full animate-[loading_1.5s_ease-in-out_infinite]"
+                                  style={{ width: '100%' }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Video Element */}
+                        <video
+                          ref={videoRefCallback}
+                          autoPlay
+                          playsInline
+                          muted
+                          className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ${isCameraLoading ? 'scale-105 blur-sm opacity-50' : 'scale-100 blur-0 opacity-100'
+                            }`}
+                          onLoadedData={() => setIsCameraLoading(false)}
+                          onError={() => {
+                            setIsCameraLoading(false);
+                            setCameraError("Camera not found");
+                          }}
+                        />
+                      </div>
                     )}
 
                     {/* Captured Photo */}
@@ -481,15 +642,34 @@ const AttendancePage = () => {
                     </div>
                   )}
 
-                  {/* Camera Error */}
-                  {cameraError && (
+                  {/* Camera Error / Holiday Message */}
+                  {cameraError || holidayToday ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center bg-muted">
-                      <Camera className="w-12 h-12 text-destructive" />
-                      <p className="text-sm font-medium text-destructive">
-                        {cameraError}
-                      </p>
+                      {holidayToday ? (
+                        <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
+                          <div className="w-20 h-20 rounded-full bg-red-500/10 border-2 border-red-500/30 flex items-center justify-center shadow-xl shadow-red-500/10">
+                            <AlertCircle className="w-10 h-10 text-red-500" />
+                          </div>
+                          <div className="space-y-2">
+                            <h3 className="text-xl font-bold text-foreground tracking-tight">{holidayToday.title}</h3>
+                            <p className="text-sm font-bold text-red-600/60 uppercase tracking-[0.2em] max-w-xs mx-auto">
+                              Attendance is blocked due to this {holidayToday.type}
+                            </p>
+                          </div>
+                          <div className="mt-4 px-4 py-2 rounded-lg bg-red-500/5 border border-red-500/10 text-[10px] font-black text-red-500 uppercase tracking-widest">
+                            System Lock Active
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <Camera className="w-12 h-12 text-destructive" />
+                          <p className="text-sm font-medium text-destructive">
+                            {cameraError}
+                          </p>
+                        </>
+                      )}
                     </div>
-                  )}
+                  ) : null}
 
                   {/* Success Overlay */}
                   {showSuccess && (
@@ -506,6 +686,26 @@ const AttendancePage = () => {
                         <p className="text-muted-foreground mt-1 tabular-nums">
                           {formattedTime}
                         </p>
+                        {currentMatchPercentage !== null && (
+                          <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-secondary/20 rounded-full border border-secondary/30">
+                            <div className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+                            <span className="text-sm font-semibold text-secondary">
+                              {currentMatchPercentage}% Recognition Match
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Already Recorded Feedback Overlay */}
+                  {isCaptured && !showSuccess && !isProcessing && currentMatchPercentage !== null && (
+                    <div className="absolute inset-x-0 bottom-10 flex justify-center z-20">
+                      <div className="bg-background/80 backdrop-blur-md border border-border px-4 py-2 rounded-full shadow-lg flex items-center gap-3">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Identity Verified</span>
+                          <span className="text-sm font-semibold text-foreground">{currentMatchPercentage}% Recognition Match</span>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -533,17 +733,25 @@ const AttendancePage = () => {
                     <>
                       <Button
                         onClick={() => handleAttendance('in')}
-                        className="flex items-center gap-3 bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity h-10 px-5 font-bold"
+                        disabled={isLoadingHoliday || !!holidayToday || isModelLoading}
+                        className={cn(
+                          "flex items-center gap-3 bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity h-10 px-5 font-bold disabled:opacity-50 disabled:cursor-not-allowed",
+                          isLoadingHoliday && "animate-pulse"
+                        )}
                       >
-                        <AlarmClockCheck className="w-6 h-6" />
+                        {isLoadingHoliday ? <Loader2 className="w-5 h-5 animate-spin" /> : <AlarmClockCheck className="w-6 h-6" />}
                         Time In
                       </Button>
 
                       <Button
                         onClick={() => handleAttendance('out')}
-                        className="flex items-center gap-3 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity h-10 px-5 font-bold"
+                        disabled={isLoadingHoliday || !!holidayToday || isModelLoading}
+                        className={cn(
+                          "flex items-center gap-3 bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity h-10 px-5 font-bold disabled:opacity-50 disabled:cursor-not-allowed",
+                          isLoadingHoliday && "animate-pulse"
+                        )}
                       >
-                        <AlarmClockOff className="w-6 h-6" />
+                        {isLoadingHoliday ? <Loader2 className="w-5 h-5 animate-spin" /> : <AlarmClockOff className="w-6 h-6" />}
                         Time Out
                       </Button>
                     </>
@@ -599,7 +807,32 @@ const AttendancePage = () => {
                 )}
 
                 <div className="space-y-2">
-                  {displayedRecords.length === 0 ? (
+                  {isLoading ? (
+                    <>
+                      {[...Array(7)].map((_, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 rounded-xl bg-card border border-border animate-pulse"
+                        >
+                          <div className="flex items-center gap-4 flex-1 min-w-0">
+                            <div className="w-10 h-10 rounded-full bg-muted border border-border shrink-0" />
+
+                            <div className="flex-1 min-w-0 space-y-2">
+                              <div className="h-4 bg-muted rounded w-24" />
+                              <div className="h-3 bg-muted rounded w-16" />
+                            </div>
+                          </div>
+
+                          <div className="text-right ml-4 shrink-0 space-y-2">
+                            {/* Time Skeleton */}
+                            <div className="h-4 bg-muted rounded w-16" />
+                            {/* Match Percentage Skeleton */}
+                            <div className="h-3 bg-muted rounded w-20" />
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  ) : displayedRecords.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-border rounded-xl bg-muted/30">
                       <div className="p-4 rounded-full bg-muted border border-border mb-3">
                         <CameraIcon className="w-8 h-8 text-muted-foreground" />
@@ -654,19 +887,31 @@ const AttendancePage = () => {
                                 </p>
                               </div>
                             </div>
+                            <div className="flex justify-center gap-2 text-right ml-4 shrink-0">
+                              <div className='mt-0.5'>
+                                <p className="text-muted-foreground text-xs">
+                                  {log.date}
+                                </p>
+                              </div>
+                              <div className='mt-0.5'>
+                                <p className="text-muted-foreground text-xs">
+                                  |
+                                </p>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-foreground tabular-nums text-sm">
+                                  {log.time}
+                                </p>
+                                <p
+                                  className={`text-xs font-medium ${log.type === 'in'
+                                    ? 'text-secondary'
+                                    : 'text-destructive'
+                                    }`}
+                                >
+                                  Recorded {log.match_percentage ? `(${log.match_percentage}% match)` : ''}
+                                </p>
+                              </div>
 
-                            <div className="text-right ml-4 shrink-0">
-                              <p className="font-semibold text-foreground tabular-nums text-sm">
-                                {log.time}
-                              </p>
-                              <p
-                                className={`text-xs font-medium ${log.type === 'in'
-                                  ? 'text-secondary'
-                                  : 'text-destructive'
-                                  }`}
-                              >
-                                Recorded
-                              </p>
                             </div>
                           </div>
                         ))}

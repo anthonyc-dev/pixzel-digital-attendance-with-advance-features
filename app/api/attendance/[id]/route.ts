@@ -22,7 +22,20 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const mappedData = data?.map((log: any) => ({
+interface AttendanceLog {
+  id: string;
+  employer_registration?: {
+    employer_id: string;
+    employer_name: string;
+    employer_position: string;
+    image: string;
+  };
+  status: string;
+  type: string;
+  timestamp: string;
+}
+
+const mappedData = data?.map((log: AttendanceLog) => ({
     id: log.id,
     employer_id: log.employer_registration?.employer_id,
     employer_name: log.employer_registration?.employer_name,
@@ -97,14 +110,17 @@ export async function POST(req: Request) {
       type = "time_out";
     }
 
-    // 5. Determine status (basic logic)
+    // 5. Determine status (9:15 AM or later is late)
     const now = new Date();
-    const hour = now.getHours();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
 
     let status = "on_time";
 
-    if (type === "time_in" && hour >= 9) {
-      status = "late";
+    if (type === "time_in") {
+      if (hours > 9 || (hours === 9 && minutes >= 15)) {
+        status = "late";
+      }
     }
 
     // 6. Insert attendance

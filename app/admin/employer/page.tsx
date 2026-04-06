@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Layout from '@/components/Layout';
 import { cn } from '@/lib/utils';
 import { Users, MoreHorizontal, CheckCircle2, ScanFace, Pencil, Trash2, X, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { ENV } from '@/lib/api';
 
 interface Employer {
   id: string;
@@ -35,7 +36,7 @@ const EmployerPage = () => {
   useEffect(() => {
     const fetchEmployers = async () => {
       try {
-        const response = await fetch('/api/registration');
+        const response = await fetch(`${ENV.API_URL}/registration`);
         if (response.ok) {
           const result = await response.json();
           setEmployers(result.data || []);
@@ -70,7 +71,7 @@ const EmployerPage = () => {
     const id = showDeleteConfirm;
     setIsDeleting(id);
     try {
-      const response = await fetch(`/api/registration/${id}`, {
+      const response = await fetch(`${ENV.API_URL}/registration/${id}`, {
         method: 'DELETE',
       });
       if (response.ok) {
@@ -109,8 +110,8 @@ const EmployerPage = () => {
         <div className="flex flex-col gap-4 sm:gap-6 lg:gap-8 w-full max-w-7xl animate-in fade-in duration-200 ease-out pb-4 sm:pb-6 lg:pb-10">
           <header className="flex flex-wrap items-start sm:items-end justify-between gap-2 sm:gap-4">
             <div className="space-y-0.5 sm:space-y-1">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tighter text-foreground">Employers</h1>
-              <p className="text-muted-foreground text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em] leading-none opacity-80">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">Employers</h1>
+              <p className="text-muted-foreground text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.2em] leading-none opacity-80">
                 Manage registered employers
               </p>
             </div>
@@ -121,13 +122,13 @@ const EmployerPage = () => {
               <table className="w-full text-left border-collapse min-w-[600px]">
                 <thead>
                   <tr className="bg-gray-50 dark:bg-white/[0.03] border-b border-gray-100 dark:border-white/5">
-                    <th className="px-4 py-3 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 w-20 sm:w-24 text-center">Picture</th>
-                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 w-24">ID</th>
-                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5">Employer Name</th>
-                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5">Position</th>
-                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5">Status</th>
-                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5">Registered</th>
-                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 w-16">Actions</th>
+                    <th className="px-4 py-3 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 w-20 sm:w-24 text-center">Picture</th>
+                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 w-24">ID</th>
+                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5">Employer Name</th>
+                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5">Position</th>
+                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5">Status</th>
+                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5">Registered</th>
+                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 w-16">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-white/5">
@@ -177,24 +178,24 @@ const EmployerPage = () => {
                             className="w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-none border border-gray-100 dark:border-white/10 overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-white/5 hover:opacity-80 transition-opacity cursor-zoom-in"
                           >
                             {employer.image ? (
-                              <img src={employer.image} alt={employer.employer_name} className="w-full h-full object-cover" />
+                              <Image src={employer.image} alt={employer.employer_name} className="w-full h-full object-cover" width={64} height={64} />
                             ) : (
                               <ScanFace className="w-6 h-6 text-[#0089C0]" />
                             )}
                           </button>
                         </td>
                         <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 align-middle">
-                          <span className="text-[9px] sm:text-[10px] font-black text-gray-400 uppercase tracking-widest">{employer.employer_id}</span>
+                          <span className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest">{employer.employer_id}</span>
                         </td>
                         <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 align-middle">
-                          <span className="text-xs sm:text-sm font-black text-foreground leading-none tracking-tight group-hover:text-secondary transition-colors">{employer.employer_name}</span>
+                          <span className="text-xs sm:text-sm font-bold text-foreground leading-none tracking-tight group-hover:text-secondary transition-colors">{employer.employer_name}</span>
                         </td>
                         <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 align-middle">
                           <span className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400">{employer.employer_position}</span>
                         </td>
                         <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 align-middle">
                           <div className={cn(
-                            "inline-flex items-center gap-1 px-2 py-1 rounded-md text-[8px] sm:text-[9px] font-black uppercase tracking-widest",
+                            "inline-flex items-center gap-1 px-2 py-1 rounded-md text-[8px] sm:text-[9px] font-bold uppercase tracking-widest",
                             employer.face_detected
                               ? "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20"
                               : "bg-gray-500/10 text-gray-500 dark:text-gray-400 border border-gray-500/20"
@@ -261,10 +262,12 @@ const EmployerPage = () => {
             onClick={() => setPreviewImage(null)}
           >
             <div className="relative max-w-4xl max-h-[80vh] w-fit h-fit overflow-hidden animate-in zoom-in-95 duration-200">
-              <img
+              <Image
                 src={previewImage}
                 alt="Preview"
                 className="max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl border border-white/10"
+                width={800}
+                height={600}
               />
               <button className="absolute top-4 right-4 p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-all">
                 <X className="w-5 h-5" />
@@ -283,7 +286,7 @@ const EmployerPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="text-xl font-black tracking-tight text-foreground">Confirm Deletion</h3>
+                  <h3 className="text-xl font-bold tracking-tight text-foreground">Confirm Deletion</h3>
                   <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
                     Are you sure you want to remove this employer? This action cannot be undone.
                   </p>
@@ -292,14 +295,14 @@ const EmployerPage = () => {
                 <div className="flex gap-3 w-full">
                   <button
                     onClick={() => setShowDeleteConfirm(null)}
-                    className="flex-1 py-3.5 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 text-[10px] font-black uppercase tracking-widest text-foreground hover:bg-gray-100 dark:hover:bg-white/10 transition-all"
+                    className="flex-1 py-3.5 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 text-[10px] font-bold uppercase tracking-widest text-foreground hover:bg-gray-100 dark:hover:bg-white/10 transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleDelete}
                     disabled={!!isDeleting}
-                    className="flex-1 py-3.5 rounded-2xl bg-red-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-500/20 hover:bg-red-600 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+                    className="flex-1 py-3.5 rounded-2xl bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-red-500/20 hover:bg-red-600 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
                   >
                     {isDeleting ? 'Deleting...' : 'Yes, Delete'}
                   </button>
@@ -321,7 +324,7 @@ const EmployerPage = () => {
               {toast?.type === 'success' && <CheckCircle2 className="w-5 h-5" />}
               {toast?.type === 'delete' && <Trash2 className="w-5 h-5" />}
               {toast?.type === 'error' && <AlertCircle className="w-5 h-5" />}
-              <span className="text-xs font-black uppercase tracking-widest">{toast?.message}</span>
+              <span className="text-xs font-bold uppercase tracking-widest">{toast?.message}</span>
               <button onClick={() => setToast(null)} className="ml-2 hover:opacity-70">
                 <X className="w-4 h-4" />
               </button>

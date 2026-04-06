@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import {
@@ -22,10 +23,11 @@ import {
   Banknote
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { LucideIcon } from 'lucide-react';
 
 interface NavItem {
   name: string;
-  icon: any;
+  icon: LucideIcon;
   href: string;
   hasSub?: boolean;
   subItems?: { name: string; href: string; badge?: string }[];
@@ -138,7 +140,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
 
           {!isCollapsed && (
             <div className="absolute left-4 top-6 flex items-center">
-              <img src="/Pixzel-Digital-Logo-Light-Land.png" alt="Pixzel Digital" className="h-8 w-auto" />
+              <Image src="/Pixzel-Digital-Logo-Light-Land.png" alt="Pixzel Digital" className="h-8 w-auto" width={120} height={32} />
             </div>
           )}
         </div>
@@ -199,13 +201,13 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                         href={sub.href}
                         prefetch={true}
                         className={cn(
-                          "flex items-center justify-between py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors duration-150 cursor-pointer hover:translate-x-0.5 transition-transform",
+                          "flex items-center justify-between py-1.5 text-[10px] font-bold uppercase tracking-widest transition-colors duration-150 cursor-pointer hover:translate-x-0.5 transition-transform",
                           pathname === sub.href ? "text-secondary" : "text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white"
                         )}
                       >
                         <span>{sub.name}</span>
                         {sub.badge && (
-                          <span className="px-1.5 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-[8px] font-black">
+                          <span className="px-1.5 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-[8px] font-bold">
                             {sub.badge}
                           </span>
                         )}
@@ -254,7 +256,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
             <button
               onClick={() => toggleTheme('light')}
               className={cn(
-                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
+                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-bold transition-all rounded-md cursor-pointer",
                 theme === 'light' ? "bg-secondary text-white shadow-sm ring-1 ring-secondary/20" : "text-gray-400 hover:text-gray-900"
               )}
               title="Light Mode"
@@ -265,7 +267,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
             <button
               onClick={() => toggleTheme('dark')}
               className={cn(
-                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
+                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-bold transition-all rounded-md cursor-pointer",
                 theme === 'dark' ? "bg-black dark:bg-white/10 text-white shadow-sm ring-1 ring-white/10" : "text-gray-400 hover:text-gray-900 dark:hover:text-white"
               )}
               title="Dark Mode"
@@ -290,7 +292,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
             <X className="w-5 h-5" />
           </button>
           <div className="flex items-center">
-            <img src="/Pixzel-Digital-Logo-Light-Land.png" alt="Pixzel Digital" className="h-7 w-auto" />
+            <Image src="/Pixzel-Digital-Logo-Light-Land.png" alt="Pixzel Digital" className="h-7 w-auto" width={100} height={28} />
           </div>
           <div className="w-8" />
         </div>
@@ -349,13 +351,13 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                         prefetch={true}
                         onClick={() => setIsMobileOpen?.(false)}
                         className={cn(
-                          "flex items-center justify-between py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors duration-200 cursor-pointer",
+                          "flex items-center justify-between py-1.5 text-[10px] font-bold uppercase tracking-widest transition-colors duration-200 cursor-pointer",
                           pathname === sub.href ? "text-secondary" : "text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white"
                         )}
                       >
                         <span>{sub.name}</span>
                         {sub.badge && (
-                          <span className="px-1.5 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-[8px] font-black">
+                          <span className="px-1.5 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-[8px] font-bold">
                             {sub.badge}
                           </span>
                         )}
@@ -399,7 +401,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
             <button
               onClick={() => toggleTheme('light')}
               className={cn(
-                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
+                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-bold transition-all rounded-md cursor-pointer",
                 theme === 'light' ? "bg-secondary text-white shadow-sm ring-1 ring-secondary/20" : "text-gray-400 hover:text-gray-900"
               )}
             >
@@ -409,7 +411,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
             <button
               onClick={() => toggleTheme('dark')}
               className={cn(
-                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-black transition-all rounded-md cursor-pointer",
+                "flex-1 flex items-center justify-center gap-1 py-1.5 text-[9px] uppercase font-bold transition-all rounded-md cursor-pointer",
                 theme === 'dark' ? "bg-black dark:bg-white/10 text-white shadow-sm ring-1 ring-white/10" : "text-gray-400 hover:text-gray-900 dark:hover:text-white"
               )}
             >

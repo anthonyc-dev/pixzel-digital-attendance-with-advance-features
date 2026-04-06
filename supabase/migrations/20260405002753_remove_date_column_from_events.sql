@@ -1,0 +1,3 @@
+DROP INDEX IF EXISTS idx_events_date;
+
+ALTER TABLE events DROP COLUMN IF EXISTS date;
