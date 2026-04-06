@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, Hash, ScanLine, AlertCircle, Loader2, CheckCircle2, Mail, MapPin, Calendar, DollarSign } from 'lucide-react';
+import { History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, Hash, ScanLine, AlertCircle, Loader2, CheckCircle2, Mail, MapPin, Calendar, PhilippinePeso } from 'lucide-react';
 import Image from 'next/image';
 import { ENV } from '@/lib/api';
 
@@ -45,6 +45,7 @@ const RegistrationContent = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<'success' | 'error' | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState<'personal' | 'work'>('personal');
   const [isModelLoading, setIsModelLoading] = useState(true);
   const [modelError, setModelError] = useState<string | null>(null);
   const [detectedFaces, setDetectedFaces] = useState<number>(0);
@@ -145,12 +146,12 @@ const RegistrationContent = () => {
         employerId: id,
         employerName: name,
         employerPosition: pos,
-        contactNo: '',
-        email: '',
-        address: '',
-        gender: '',
-        birthDay: '',
-        baseSalary: '',
+        contactNo: searchParams.get('contact') || '',
+        email: searchParams.get('email') || '',
+        address: searchParams.get('address') || '',
+        gender: searchParams.get('gender') || '',
+        birthDay: searchParams.get('birthDay') || '',
+        baseSalary: searchParams.get('salary') || '',
       });
       setIsModalOpen(true);
       setIsCameraOpen(false);
@@ -292,49 +293,38 @@ const RegistrationContent = () => {
         if (ctx) {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-          // Draw face boxes
+          // Draw face markers
           detections.forEach((detection) => {
             const box = detection.box;
+            const centerX = box.x + box.width / 2;
+            const centerY = box.y + box.height / 2;
+            const radiusX = box.width / 2;
+            const radiusY = box.height * 0.6; // Slightly taller for face shape
 
-            // Draw face box with glow
+            // Draw oval face marker with glow
             ctx.shadowColor = '#C01148';
-            ctx.shadowBlur = 20;
+            ctx.shadowBlur = 15;
             ctx.strokeStyle = '#C01148';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]); // Dashed line for high-tech look
+            
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset line dash
+
+            // Draw scanner corners relative to the detection
+            const cornerSize = radiusX * 0.4;
             ctx.lineWidth = 3;
-            ctx.strokeRect(box.x, box.y, box.width, box.height);
-
-            // Draw corner accents
-            const cornerSize = Math.max(15, Math.min(box.width, box.height) * 0.1);
             ctx.shadowBlur = 0;
-            ctx.lineWidth = 4;
 
-            // Top-left corner
+            // Top-left
             ctx.beginPath();
-            ctx.moveTo(box.x, box.y + cornerSize);
-            ctx.lineTo(box.x, box.y);
-            ctx.lineTo(box.x + cornerSize, box.y);
+            ctx.moveTo(centerX - radiusX * 0.8, centerY - radiusY * 0.6);
+            ctx.lineTo(centerX - radiusX, centerY - radiusY * 0.8);
             ctx.stroke();
 
-            // Top-right corner
-            ctx.beginPath();
-            ctx.moveTo(box.x + box.width - cornerSize, box.y);
-            ctx.lineTo(box.x + box.width, box.y);
-            ctx.lineTo(box.x + box.width, box.y + cornerSize);
-            ctx.stroke();
-
-            // Bottom-left corner
-            ctx.beginPath();
-            ctx.moveTo(box.x, box.y + box.height - cornerSize);
-            ctx.lineTo(box.x, box.y + box.height);
-            ctx.lineTo(box.x + cornerSize, box.y + box.height);
-            ctx.stroke();
-
-            // Bottom-right corner
-            ctx.beginPath();
-            ctx.moveTo(box.x + box.width - cornerSize, box.y + box.height);
-            ctx.lineTo(box.x + box.width, box.y + box.height);
-            ctx.lineTo(box.x + box.width, box.y + box.height - cornerSize);
-            ctx.stroke();
+            // Additional tech markers could go here
           });
         }
       } catch (error) {
@@ -401,13 +391,17 @@ const RegistrationContent = () => {
     const video = videoRef.current;
 
     // Create canvas from video
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.drawImage(video, 0, 0);
-      const imageSrc = canvas.toDataURL('image/jpeg');
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        // Mirror the capture to match the mirrored UI
+        ctx.save();
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+        ctx.restore();
+        const imageSrc = canvas.toDataURL('image/jpeg');
 
       let faceDescriptor = null;
       try {
@@ -509,7 +503,18 @@ const RegistrationContent = () => {
   };
 
   const handleFormChange = (field: keyof EmployerForm, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    let finalValue = value;
+
+    // Apply title case to name, position, id, and address
+    const textFields: (keyof EmployerForm)[] = ['employerName', 'employerPosition', 'employerId', 'address'];
+
+    if (textFields.includes(field)) {
+      finalValue = value.split(' ').map(word =>
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(' ');
+    }
+
+    setFormData(prev => ({ ...prev, [field]: finalValue }));
   };
 
   const handleStartRegistration = () => {
@@ -536,188 +541,219 @@ const RegistrationContent = () => {
     <>
       {/* Employer Info Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          <div className="relative w-full max-w-sm sm:max-w-md bg-white dark:bg-[#0A0A0A] rounded-2xl border border-gray-100 dark:border-white/10 shadow-2xl overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_0%,_rgba(0,137,192,0.08)_0%,_transparent_50%)] pointer-events-none" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleCancel} />
+          <div className="relative w-full max-w-[420px] bg-white dark:bg-[#0A0A0A] rounded-2xl border border-gray-100 dark:border-white/10 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_0%,_rgba(192,17,72,0.05)_0%,_transparent_50%)] pointer-events-none" />
 
-            <div className="relative p-5 sm:p-6 md:p-8">
-              <div className="flex items-center gap-3 mb-5 sm:mb-6">
-                <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-secondary/10 border border-secondary/20">
-                  <ScanLine className="w-4 h-4 sm:w-5 sm:h-5 text-secondary" />
+            <div className="relative p-6 sm:p-7">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="p-3 rounded-xl bg-secondary/10 border border-secondary/20">
+                  <ScanFace className="w-5 h-5 text-secondary" />
                 </div>
                 <div>
-                  <h2 className="text-base sm:text-lg md:text-xl font-bold tracking-tight text-foreground">New Registration</h2>
-                  <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 mt-0.5 sm:mt-1">
-                    Enter employer details to begin
+                  <h2 className="text-lg font-bold tracking-tight text-foreground leading-none">Employer Registration</h2>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 mt-1.5">
+                    Fill in details to begin scan
                   </p>
                 </div>
               </div>
 
-                <div className="space-y-3 sm:space-y-4">
-                <div className="space-y-1.5 sm:space-y-2">
-                  <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
-                    {/* <Hash className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> */}
-                    Employer ID
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={formData.employerId}
-                      onChange={(e) => handleFormChange('employerId', e.target.value)}
-                      placeholder="Enter employer ID"
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
-                    />
-                    <Hash className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 sm:space-y-2">
-                  <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
-                    {/* <User className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> */}
-                    Employer Name
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={formData.employerName}
-                      onChange={(e) => handleFormChange('employerName', e.target.value)}
-                      placeholder="Enter full name"
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
-                    />
-                    <User className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 sm:space-y-2">
-                  <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
-                    {/* <Briefcase className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> */}
-                    Position
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={formData.employerPosition}
-                      onChange={(e) => handleFormChange('employerPosition', e.target.value)}
-                      placeholder="Enter position"
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
-                    />
-                    <Briefcase className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 sm:space-y-2">
-                  <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
-                    Contact No.
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={formData.contactNo}
-                      onChange={(e) => handleFormChange('contactNo', e.target.value)}
-                      placeholder="Enter contact number"
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
-                    />
-                    <Hash className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 sm:space-y-2">
-                  <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
-                    Email
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => handleFormChange('email', e.target.value)}
-                      placeholder="Enter email address"
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
-                    />
-                    <Mail className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 sm:space-y-2">
-                  <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
-                    Address
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={formData.address}
-                      onChange={(e) => handleFormChange('address', e.target.value)}
-                      placeholder="Enter address"
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
-                    />
-                    <MapPin className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 sm:space-y-2">
-                  <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
-                    Gender
-                  </label>
-                  <select
-                    value={formData.gender}
-                    onChange={(e) => handleFormChange('gender', e.target.value)}
-                    className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white"
-                  >
-                    <option value="">Select gender</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5 sm:space-y-2">
-                  <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
-                    Birth Day
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      value={formData.birthDay}
-                      onChange={(e) => handleFormChange('birthDay', e.target.value)}
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white"
-                    />
-                    <Calendar className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 sm:space-y-2">
-                  <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
-                    Base Salary
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={formData.baseSalary}
-                      onChange={(e) => handleFormChange('baseSalary', e.target.value)}
-                      placeholder="Enter base salary"
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3 px-3 sm:px-4 pl-9 sm:pl-11 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs sm:text-sm font-bold text-primary dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600"
-                    />
-                    <DollarSign className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3 sm:w-4 h-3 sm:h-4 text-gray-400" />
-                  </div>
-                </div>
+              {/* Tab Switcher */}
+              <div className="flex p-1 bg-gray-100 dark:bg-white/5 rounded-xl mb-6">
+                <button
+                  onClick={() => setActiveTab('personal')}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 py-2 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg cursor-pointer",
+                    activeTab === 'personal'
+                      ? "bg-white dark:bg-white/10 text-secondary shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <User className="w-3.5 h-3.5" />
+                  Personal
+                </button>
+                <button
+                  onClick={() => setActiveTab('work')}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 py-2 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg cursor-pointer",
+                    activeTab === 'work'
+                      ? "bg-white dark:bg-white/10 text-secondary shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Briefcase className="w-3.5 h-3.5" />
+                  Work
+                </button>
               </div>
 
-              <div className="flex items-center gap-2 sm:gap-3 mt-5 sm:mt-6">
+              <div className="space-y-6">
+                {activeTab === 'personal' ? (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-300">
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.employerName}
+                        onChange={(e) => handleFormChange('employerName', e.target.value)}
+                        placeholder="Enter full name"
+                        className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs font-bold text-foreground placeholder:text-gray-400 dark:placeholder:text-gray-600 shadow-sm"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5 min-w-0">
+                        <label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
+                          Gender
+                        </label>
+                        <div className="relative group">
+                          <select
+                            value={formData.gender}
+                            onChange={(e) => handleFormChange('gender', e.target.value)}
+                            className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/10 rounded-xl py-2.5 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs font-bold text-foreground appearance-none shadow-sm cursor-pointer dark:[&>option]:bg-[#0A0A0A] dark:[&>option]:text-white"
+                          >
+                            <option value="">Select</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                          </select>
+                          <ScanLine className="absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-secondary pointer-events-none opacity-60 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5 min-w-0">
+                        <label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
+                          Birth Date
+                        </label>
+                        <input
+                          type="date"
+                          value={formData.birthDay}
+                          onChange={(e) => handleFormChange('birthDay', e.target.value)}
+                          className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs font-bold text-foreground shadow-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5 min-w-0">
+                        <label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
+                          Contact
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.contactNo}
+                          onChange={(e) => handleFormChange('contactNo', e.target.value)}
+                          placeholder="Phone number"
+                          className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs font-bold text-foreground shadow-sm"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5 min-w-0">
+                        <label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
+                          Email
+                        </label>
+                        <input
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => handleFormChange('email', e.target.value)}
+                          placeholder="Email address"
+                          className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs font-bold text-foreground shadow-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
+                        Address
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.address}
+                        onChange={(e) => handleFormChange('address', e.target.value)}
+                        placeholder="Current home address"
+                        className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs font-bold text-foreground shadow-sm"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5 min-w-0">
+                        <label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
+                          Registration ID
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.employerId}
+                          onChange={(e) => handleFormChange('employerId', e.target.value)}
+                          placeholder="ID"
+                          className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs font-bold text-foreground shadow-sm"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5 min-w-0">
+                        <label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
+                          Job Position
+                        </label>
+                        <div className="relative group">
+                          <input
+                            type="text"
+                            value={formData.employerPosition}
+                            onChange={(e) => handleFormChange('employerPosition', e.target.value)}
+                            placeholder="Position"
+                            className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs font-bold text-foreground shadow-sm"
+                          />
+                          <Briefcase className="absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-secondary pointer-events-none opacity-60" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
+                        Base Salary
+                      </label>
+                      <div className="relative group">
+                        <input
+                          type="number"
+                          value={formData.baseSalary}
+                          onChange={(e) => handleFormChange('baseSalary', e.target.value)}
+                          placeholder="Enter monthly salary"
+                          className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs font-bold text-foreground shadow-sm"
+                        />
+                        <PhilippinePeso className="absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-secondary pointer-events-none opacity-60" />
+                      </div>
+                    </div>
+
+                    {/* Quick validation indicator */}
+                    <div className="p-4 rounded-xl bg-secondary/5 border border-secondary/10 flex items-start gap-3">
+                      <AlertCircle className="w-4 h-4 text-secondary mt-0.5 shrink-0" />
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-secondary/70 leading-relaxed">
+                        {!formData.employerId || !formData.employerName || !formData.employerPosition 
+                          ? "Required fields missing. Switch to Personal tab to check Name." 
+                          : "All essential fields captured. You can now initialize scanner."}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3 mt-8">
                 <button
                   onClick={handleCancel}
-                  className="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-foreground text-[10px] sm:text-[11px] font-bold uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-all cursor-pointer"
+                  className="flex-1 py-3.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 text-foreground text-[10px] font-bold uppercase tracking-widest hover:bg-gray-100 dark:hover:bg-white/10 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleStartRegistration}
                   disabled={!formData.employerId || !formData.employerName || !formData.employerPosition}
-                  className="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-secondary hover:opacity-90 text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-widest shadow-lg shadow-secondary/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer"
+                  className="flex-[1.5] py-3.5 rounded-xl bg-secondary hover:opacity-90 text-white text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-secondary/30 active:scale-[0.98] transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 group cursor-pointer"
                 >
-                  <ScanFace className="w-3 sm:w-4 h-3 sm:h-4" />
-                  Start Scanner
+                  <ScanFace className="w-4 h-4" />
+                  Initialize
                 </button>
-
               </div>
             </div>
           </div>
@@ -784,33 +820,33 @@ const RegistrationContent = () => {
                 <div className="flex-1 flex flex-col items-center justify-center relative w-full min-h-[250px] sm:min-h-[300px] md:min-h-[350px]">
                   {isCameraOpen ? (
                     <div className="relative w-full h-full max-w-xl sm:max-w-2xl bg-black rounded-xl sm:rounded-2xl overflow-hidden border border-white/10 shadow-2xl group flex flex-col justify-center items-center">
-                      {/* Video Element */}
+                      {/* Video Element (Mirrored) */}
                       <video
                         ref={videoRef}
                         autoPlay
                         playsInline
                         muted
                         className={cn(
-                          "absolute inset-0 w-full h-full object-cover transition-opacity duration-300",
+                          "absolute inset-0 w-full h-full object-cover transition-opacity duration-300 scale-x-[-1]",
                           isScanning ? "opacity-50 blur-sm" : "opacity-100"
                         )}
                       />
 
-                      {/* Employer Info Overlay (Top Left) */}
-                      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-30 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-black/40 dark:bg-white/10 backdrop-blur-md border border-white/20 shadow-xl animate-in slide-in-from-left-4 fade-in duration-700">
-                        <div className="p-1.5 rounded-lg bg-secondary/20 border border-secondary/30">
-                          <User className="w-3 sm:w-4 h-3 sm:h-4 text-secondary" />
+                      {/* Employer Info Overlay (Bottom Left) */}
+                      <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 z-30 flex items-center gap-2.5 px-3 py-2 rounded-xl bg-black/40 dark:bg-white/5 backdrop-blur-md border border-white/10 shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-700">
+                        <div className="p-1.5 rounded-lg bg-secondary/10 border border-secondary/20 shadow-inner group-hover:scale-105 transition-transform">
+                          <User className="w-3 h-3 text-secondary" />
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-[10px] sm:text-xs font-bold text-white leading-none tracking-tight">{formData.employerName}</span>
-                          <span className="text-[8px] sm:text-[9px] font-bold text-white/60 uppercase tracking-widest mt-1">{formData.employerPosition}</span>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-[10px] font-bold text-white leading-none tracking-tight truncate max-w-[120px]">{formData.employerName}</span>
+                          <span className="text-[7px] font-bold text-white/50 uppercase tracking-widest mt-1 truncate">{formData.employerPosition}</span>
                         </div>
                       </div>
 
-                      {/* Canvas for face detection overlay */}
+                      {/* Canvas for face detection overlay (Mirrored) */}
                       <canvas
                         ref={canvasRef}
-                        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                        className="absolute inset-0 w-full h-full object-cover pointer-events-none scale-x-[-1]"
                       />
 
                       {/* Face Detection Status */}
@@ -852,20 +888,73 @@ const RegistrationContent = () => {
                         </div>
                       </div>
 
-                      {/* Scanning Overlay Viewfinder */}
-                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                        <div className={cn(
-                          "relative w-48 sm:w-64 md:w-80 h-48 sm:h-64 md:h-80 border-y-2 border-secondary/50 bg-secondary/10",
-                          detectedFaces === 0 && isCameraOpen && "animate-pulse-subtle"
-                        )}>
-                          <div className="absolute top-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-l-4 border-secondary rounded-tl-lg sm:rounded-tl-xl -mt-0.5 -ml-0.5" />
-                          <div className="absolute top-0 right-0 w-10 sm:w-12 h-10 sm:h-12 border-t-4 border-r-4 border-secondary rounded-tr-lg sm:rounded-tr-xl -mt-0.5 -mr-0.5" />
-                          <div className="absolute bottom-0 left-0 w-10 sm:w-12 h-10 sm:h-12 border-b-4 border-l-4 border-secondary rounded-bl-lg sm:rounded-bl-xl -mb-0.5 -ml-0.5" />
-                          <div className="absolute bottom-0 right-0 w-10 sm:w-12 h-10 sm:h-12 border-b-4 border-r-4 border-secondary rounded-br-lg sm:rounded-br-xl -mb-0.5 -mr-0.5" />
+                      {/* Facial Silhouette Viewfinder */}
+                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-20">
+                        <div className="relative w-[80%] h-[80%] flex items-center justify-center">
+                          <svg
+                            viewBox="0 0 200 240"
+                            className={cn(
+                              "w-64 sm:w-80 h-auto overflow-visible transition-all duration-700",
+                              detectedFaces > 0 ? "text-green-500" : "text-secondary",
+                              isScanning && "scale-110 opacity-40 blur-[2px]"
+                            )}
+                            fill="none"
+                          >
+                            <defs>
+                              <filter id="face-glow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="4" result="blur" />
+                                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                              </filter>
+                            </defs>
+
+                            {/* Corner Accents */}
+                            <g className="opacity-60">
+                              <path d="M20 40V20H40" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                              <path d="M160 20H180V40" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                              <path d="M20 200V220H40" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                              <path d="M160 220H180V200" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                            </g>
+
+                            {/* Main Face Outline */}
+                            <path
+                              d="M100 20C145 20 175 55 175 100C175 150 155 200 120 225C105 235 100 240 100 240C100 240 95 235 80 225C45 200 25 150 25 100C25 55 55 20 100 20Z"
+                              stroke="currentColor"
+                              strokeWidth={detectedFaces > 0 ? "4" : "2"}
+                              filter="url(#face-glow)"
+                              strokeDasharray={detectedFaces > 0 ? "none" : "200 400"}
+                              className={cn(detectedFaces === 0 && "animate-scan-path")}
+                            />
+
+                            {/* Inner Silhouette Layer */}
+                            <path
+                              d="M100 35C135 35 160 65 160 100C160 140 145 185 115 210C105 220 100 225 100 225C100 225 95 220 85 210C55 185 40 140 40 100C40 65 65 35 100 35Z"
+                              stroke="currentColor"
+                              strokeWidth="1"
+                              strokeOpacity="0.4"
+                              fill="currentColor"
+                              fillOpacity="0.05"
+                            />
+
+                            {/* Wireframe Detail Lines */}
+                            <g className="opacity-20 translate-y-[-10px]">
+                              <path d="M100 35V225" stroke="currentColor" strokeWidth="0.5" />
+                              <path d="M50 100H150" stroke="currentColor" strokeWidth="0.5" />
+                              <path d="M60 150H140" stroke="currentColor" strokeWidth="0.5" />
+                              <path d="M70 180H130" stroke="currentColor" strokeWidth="0.5" />
+                              
+                              <path d="M100 35L160 100" stroke="currentColor" strokeWidth="0.5" />
+                              <path d="M100 35L40 100" stroke="currentColor" strokeWidth="0.5" />
+                              <path d="M100 225L160 100" stroke="currentColor" strokeWidth="0.5" />
+                              <path d="M100 225L40 100" stroke="currentColor" strokeWidth="0.5" />
+                            </g>
+                            
+                            {/* Scanning horizontal line */}
+                            <g className="animate-face-scan">
+                              <line x1="30" y1="100" x2="170" y2="100" stroke="currentColor" strokeWidth="2" filter="url(#face-glow)" />
+                              <rect x="25" y="98" width="150" height="4" fill="currentColor" fillOpacity="0.1" />
+                            </g>
+                          </svg>
                         </div>
-                        {isScanning && (
-                          <div className="absolute left-0 right-0 h-0.5 sm:h-1 bg-secondary shadow-[0_0_20px_4px_rgba(192,17,72,0.6)] animate-scan top-1/2" />
-                        )}
                       </div>
 
                       {/* Register Button Overlay */}
@@ -888,7 +977,12 @@ const RegistrationContent = () => {
                           <button
                             disabled={isScanning || detectedFaces === 0}
                             onClick={captureAndRegister}
-                            className="px-6 sm:px-10 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl bg-secondary hover:opacity-90 text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-widest shadow-lg shadow-secondary/30 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-1.5 sm:gap-2 cursor-pointer"
+                            className={cn(
+                              "px-6 sm:px-10 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-widest active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-1.5 sm:gap-2 cursor-pointer",
+                              detectedFaces > 0 
+                                ? "bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/30" 
+                                : "bg-secondary hover:opacity-90 shadow-lg shadow-secondary/30"
+                            )}
                           >
                             <ScanFace className="w-3 sm:w-4 h-3 sm:h-4" />
                             {isScanning ? 'Generating Descriptor...' : detectedFaces === 0 ? 'Position Face in Frame' : 'Register Face'}
@@ -1070,11 +1164,26 @@ const RegistrationContent = () => {
           animation: scan 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
         }
         @keyframes pulse-subtle {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.7; transform: scale(0.98); }
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 0.6; }
         }
         .animate-pulse-subtle {
           animation: pulse-subtle 2s ease-in-out infinite;
+        }
+        @keyframes scan-path {
+          0% { stroke-dashoffset: 1000; }
+          100% { stroke-dashoffset: 0; }
+        }
+        .animate-scan-path {
+          animation: scan-path 3s linear infinite;
+        }
+        @keyframes scan-line {
+          0%, 100% { transform: translateY(-120px) scaleX(0.8); opacity: 0; }
+          10%, 90% { opacity: 1; }
+          50% { transform: translateY(120px) scaleX(1); opacity: 1; }
+        }
+        .animate-face-scan {
+          animation: scan-line 4s ease-in-out infinite;
         }
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
