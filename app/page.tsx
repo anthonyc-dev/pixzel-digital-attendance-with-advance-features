@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import Header from '@/components/mainPage/Header';
+import { PageBackground } from '@/components/PageBackground';
 import { ENV } from '@/lib/api';
 
 interface AttendanceRecord {
@@ -510,12 +511,14 @@ const AttendancePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="relative min-h-screen text-foreground">
+      <PageBackground variant="default" />
 
-      {/* ── Header ── */}
-      <Header realTimeClock={formattedTime} currentDate={currentDate} />
+      <div className="relative z-[5] flex min-h-screen flex-col">
+        {/* ── Header ── */}
+        <Header realTimeClock={formattedTime} currentDate={currentDate} />
 
-      <main className="flex-1 p-6">
+        <main className="flex-1 p-6">
         <div className="space-y-6">
 
           <div className="w-full flex justify-center px-4">
@@ -525,16 +528,40 @@ const AttendancePage = () => {
               <div className="flex flex-col gap-6 w-full lg:flex-1">
 
                 {/* Camera / Preview Area */}
-                <div className="relative w-full rounded-2xl overflow-hidden bg-muted border-2 border-dashed border-border min-h-[500px]">
+                <div className="relative w-full min-h-[500px] overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-b from-card/90 via-card/50 to-muted/40 shadow-[0_22px_56px_-14px_rgba(0,0,0,0.55)] ring-1 ring-inset ring-white/15 dark:border-border/50 dark:from-card/40 dark:via-muted/30 dark:to-background/60 dark:shadow-[0_18px_48px_-12px_rgba(0,0,0,0.85)] dark:ring-white/5">
 
                   <canvas ref={canvasRef} className="hidden" />
 
-                  {/* Video / Photo Frame */}
-                  <div className="relative w-full h-[500px] overflow-hidden rounded-xl">
+                  {/* Frame chrome — label + status */}
+                  <div className="absolute left-4 top-4 z-20 flex max-w-[calc(100%-2rem)] items-center gap-3 rounded-2xl border border-border/60 bg-background/90 px-3 py-2.5 shadow-lg backdrop-blur-md md:left-5 md:top-5 md:px-4">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary/15 ring-1 ring-secondary/30">
+                      <Camera className="h-4 w-4 text-secondary" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                        Attendance scanner
+                      </p>
+                      <p className="truncate text-sm font-semibold tracking-tight text-foreground">
+                        Live preview
+                      </p>
+                    </div>
+                    {!cameraError && !holidayToday && (
+                      <span
+                        className="relative flex h-2.5 w-2.5 shrink-0"
+                        title="Camera feed"
+                        aria-hidden
+                      >
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/60 opacity-75" />
+                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_14px_rgba(16,185,129,0.75)]" />
+                      </span>
+                    )}
+                  </div>
 
+                  {/* Video / Photo Frame */}
+                  <div className="relative h-[500px] w-full overflow-hidden rounded-2xl">
                     {/* Live Camera Preview */}
                     {!isCaptured && !cameraError && (
-                      <div className="absolute inset-0 w-full h-full">
+                      <div className="absolute inset-0 z-0 w-full h-full">
                         {/* Skeleton Loading State */}
                         {isCameraLoading && (
                           <div className="absolute inset-0 flex items-center justify-center z-10">
@@ -625,12 +652,18 @@ const AttendancePage = () => {
                         unoptimized
                       />
                     )}
+
+                    {/* Subtle edge vignette — above video, below chrome (z-20 on parent) */}
+                    <div
+                      className="pointer-events-none absolute inset-0 z-[1] rounded-2xl shadow-[inset_0_0_90px_rgba(0,0,0,0.2)] ring-1 ring-inset ring-white/15 dark:shadow-[inset_0_0_120px_rgba(0,0,0,0.45)] dark:ring-white/10"
+                      aria-hidden
+                    />
                   </div>
 
                   {/* Scanning Indicator Overlay */}
                   {isScanning && !isCaptured && !isProcessing && !showSuccess && (
-                    <div className="absolute inset-x-0 top-0 p-4 z-10">
-                      <div className="bg-background/60 backdrop-blur-md border border-border/50 rounded-lg px-4 py-2 flex items-center gap-3 animate-pulse">
+                    <div className="absolute inset-x-0 top-[5.25rem] z-10 flex justify-center px-4 sm:top-24">
+                      <div className="bg-background/70 backdrop-blur-md border border-border/50 rounded-xl px-4 py-2 shadow-md flex items-center gap-3 animate-pulse">
                         <div className="w-2 h-2 rounded-full bg-secondary animate-ping" />
                         <span className="text-sm font-medium text-foreground">{scanStatus}</span>
                       </div>
@@ -648,7 +681,7 @@ const AttendancePage = () => {
 
                   {/* Camera Error / Holiday Message */}
                   {cameraError || holidayToday ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center bg-muted">
+                    <div className="absolute inset-0 z-[15] flex flex-col items-center justify-center gap-3 rounded-2xl px-6 text-center bg-muted/95 backdrop-blur-sm">
                       {holidayToday ? (
                         <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
                           <div className="w-20 h-20 rounded-full bg-red-500/10 border-2 border-red-500/30 flex items-center justify-center shadow-xl shadow-red-500/10">
@@ -677,7 +710,7 @@ const AttendancePage = () => {
 
                   {/* Success Overlay */}
                   {showSuccess && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                    <div className="absolute inset-0 z-[15] flex items-center justify-center rounded-2xl bg-background/80 backdrop-blur-sm">
                       <div className="text-center">
                         <div className="w-24 h-24 rounded-full bg-secondary flex items-center justify-center mx-auto shadow-lg animate-in zoom-in duration-300">
                           <CheckCircle2 className="w-12 h-12 text-secondary-foreground" />
@@ -716,7 +749,7 @@ const AttendancePage = () => {
 
                   {/* Processing Overlay */}
                   {isProcessing && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                    <div className="absolute inset-0 z-[15] flex items-center justify-center rounded-2xl bg-background/80 backdrop-blur-sm">
                       <div className="text-center">
                         <Loader2 className="w-12 h-12 animate-spin text-secondary mx-auto" />
                         <p className="mt-4 text-lg font-semibold text-foreground">
@@ -932,7 +965,7 @@ const AttendancePage = () => {
                           </Button>
                         </div>
                       )}
-                    </>
+                    </> 
                   )}
                 </div>
               </div>
@@ -941,7 +974,8 @@ const AttendancePage = () => {
           </div>
 
         </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 };
