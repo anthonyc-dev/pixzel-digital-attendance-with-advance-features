@@ -39,6 +39,8 @@ export async function PUT(
       net_pay,
       period,
       total_deduction,
+      late_count,
+      absent_count,
       status,
     } = body;
 
@@ -66,6 +68,8 @@ export async function PUT(
         net_pay,
         period,
         total_deduction,
+        late_count: late_count ?? 0,
+        absent_count: absent_count ?? 0,
         status: status || "pending",
         processed_at:
           status === "processed"
