@@ -504,7 +504,7 @@ const DTRPage = () => {
     };
 
     return (
-        <div className="flex flex-col gap-8 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out pb-10">
+        <div className="flex flex-col gap-8 w-full max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out pb-10">
 
             {/* Header Section */}
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -573,7 +573,7 @@ const DTRPage = () => {
                         </button>
                     ) : (
                         <>
-                            <div className="relative group w-full max-w-5xl">
+                            <div className="relative group w-full max-w-md">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-secondary transition-colors" />
                                 <input
                                     type="text"
