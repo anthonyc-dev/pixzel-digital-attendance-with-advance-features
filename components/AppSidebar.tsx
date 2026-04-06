@@ -215,15 +215,15 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                 )}
 
                 {!isCollapsed && item.subItems && isMenuOpen && (
-                  <div className="ml-5 space-y-0.5 mt-0.5 border-l border-gray-200 dark:border-white/5 pl-3 py-0.5 animate-in slide-in-from-top-2 duration-300">
+                  <div className="ml-3 mt-1 border-l-2 border-gray-300 dark:border-gray-600 pl-2 py-1 animate-in slide-in-from-top-2 duration-300">
                     {item.subItems.map((sub) => (
                       <Link
                         key={sub.name}
                         href={sub.href}
                         prefetch={true}
                         className={cn(
-                          "flex items-center justify-between py-1.5 text-[10px] font-bold uppercase tracking-widest transition-colors duration-150 cursor-pointer hover:translate-x-0.5 transition-transform",
-                          pathname === sub.href ? "text-secondary" : "text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                          "flex items-center justify-between py-1.5 text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer hover:translate-x-1",
+                          pathname === sub.href ? "text-secondary" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                         )}
                       >
                         <span>{sub.name}</span>
@@ -380,7 +380,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                 )}
 
                 {item.subItems && isMenuOpen && (
-                  <div className="ml-5 space-y-0.5 mt-0.5 border-l border-gray-200 dark:border-white/5 pl-3 py-0.5">
+                  <div className="ml-3 mt-1 border-l-2 border-gray-300 dark:border-gray-600 pl-2 py-1">
                     {item.subItems.map((sub) => (
                       <Link
                         key={sub.name}
@@ -388,8 +388,8 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                         prefetch={true}
                         onClick={() => setIsMobileOpen?.(false)}
                         className={cn(
-                          "flex items-center justify-between py-1.5 text-[10px] font-bold uppercase tracking-widest transition-colors duration-200 cursor-pointer",
-                          pathname === sub.href ? "text-secondary" : "text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                          "flex items-center justify-between py-2 text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer",
+                          pathname === sub.href ? "text-secondary" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                         )}
                       >
                         <span>{sub.name}</span>

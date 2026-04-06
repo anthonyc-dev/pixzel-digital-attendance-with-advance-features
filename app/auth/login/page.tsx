@@ -359,8 +359,7 @@ const Login = () => {
               )}
             </button>
             <div className="flex items-center justify-between text-[11px] text-neutral-600 pt-2 font-medium">
-              <span className="hover:text-neutral-400 cursor-pointer transition-colors">Forgot Password?</span>
-              <span className="hover:text-neutral-400 cursor-pointer transition-colors">Request Access</span>
+              {/* <span className="hover:text-neutral-400 cursor-pointer transition-colors">Forgot Password?</span> */}
             </div>
           </form>
         </section>

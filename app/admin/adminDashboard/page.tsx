@@ -9,9 +9,7 @@ import {
     TrendingUp, 
     Calendar,
     ChevronRight,
-    Activity,
-    Target,
-    RefreshCw
+    Activity
 } from 'lucide-react';
 import { 
     BarChart, 
@@ -25,12 +23,11 @@ import {
     Area,
     PieChart,
     Pie,
-    Cell,
-    Legend
+    Cell
 } from 'recharts';
 import { cn } from '@/lib/utils';
 import { ENV } from '@/lib/api';
-import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
+import { format, subDays, startOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
 
 interface Employee {
     id: string;
@@ -53,34 +50,28 @@ interface AttendanceRecord {
 const AdminDashboard = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const [empRes, attRes] = await Promise.all([
-                fetch(`${ENV.API_URL}/registration`),
-                fetch(`${ENV.API_URL}/attendance`)
-            ]);
-            
-            if (empRes.ok) {
-                const empData = await empRes.json();
-                setEmployees(Array.isArray(empData) ? empData : (empData.data || []));
-            }
-            
-            if (attRes.ok) {
-                const attData = await attRes.json();
-                setAttendance(Array.isArray(attData) ? attData : []);
-            }
-        } catch (e) {
-            console.error('Failed to fetch dashboard data:', e);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     useEffect(() => {
-        fetchData();
+        (async () => {
+            try {
+                const [empRes, attRes] = await Promise.all([
+                    fetch(`${ENV.API_URL}/registration`),
+                    fetch(`${ENV.API_URL}/attendance`)
+                ]);
+                
+                if (empRes.ok) {
+                    const empData = await empRes.json();
+                    setEmployees(Array.isArray(empData) ? empData : (empData.data || []));
+                }
+                
+                if (attRes.ok) {
+                    const attData = await attRes.json();
+                    setAttendance(Array.isArray(attData) ? attData : []);
+                }
+            } catch (e) {
+                console.error('Failed to fetch dashboard data:', e);
+            }
+        })();
     }, []);
 
     const getDynamicWeeklyData = () => {
@@ -171,13 +162,6 @@ const AdminDashboard = () => {
                 <div className="space-y-1">
                     <div className="flex items-center gap-3">
                         <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Analytics Overview</h1>
-                        <button
-                            onClick={fetchData}
-                            className="p-2 hover:bg-muted rounded-lg transition-colors"
-                            disabled={loading}
-                        >
-                            <RefreshCw className={cn("w-4 h-4 text-muted-foreground", loading && "animate-spin")} />
-                        </button>
                     </div>
                     <p className="text-muted-foreground text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] leading-none opacity-70 flex items-center gap-2">
                         <Activity className="w-3 h-3 text-secondary" />
@@ -189,10 +173,6 @@ const AdminDashboard = () => {
                         <Calendar className="w-3.5 h-3.5 text-secondary" />
                         <span>{format(new Date(), 'MMM dd')} - {format(subDays(new Date(), 7), 'MMM dd')}</span>
                     </div>
-                    <button className="flex items-center gap-1.5 px-4 py-2 bg-secondary/10 hover:bg-secondary text-secondary hover:text-white border border-secondary/20 rounded-xl font-bold uppercase tracking-widest text-[9px] transition-all duration-300">
-                        <Target className="w-3.5 h-3.5" />
-                        <span>Report</span>
-                    </button>
                 </div>
             </header>
 

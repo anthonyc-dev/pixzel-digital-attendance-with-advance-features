@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, Hash, ScanLine, AlertCircle, Loader2, CheckCircle2, Mail, MapPin, Calendar, PhilippinePeso } from 'lucide-react';
+import { History, Camera, X, CheckCircle, VideoOff, ScanFace, UserCheck, User, Briefcase, ScanLine, AlertCircle, Loader2, CheckCircle2, PhilippinePeso } from 'lucide-react';
 import Image from 'next/image';
 import { ENV } from '@/lib/api';
 
@@ -314,7 +314,6 @@ const RegistrationContent = () => {
             ctx.setLineDash([]); // Reset line dash
 
             // Draw scanner corners relative to the detection
-            const cornerSize = radiusX * 0.4;
             ctx.lineWidth = 3;
             ctx.shadowBlur = 0;
 
