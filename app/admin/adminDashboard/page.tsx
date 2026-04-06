@@ -9,8 +9,7 @@ import {
     TrendingUp, 
     Calendar,
     ChevronRight,
-    Activity,
-    Target
+    Activity
 } from 'lucide-react';
 import { 
     BarChart, 
@@ -28,7 +27,7 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 import { ENV } from '@/lib/api';
-import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
+import { format, subDays, startOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
 
 interface Employee {
     id: string;
@@ -53,7 +52,7 @@ const AdminDashboard = () => {
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
 
     useEffect(() => {
-        const fetchData = async () => {
+        (async () => {
             try {
                 const [empRes, attRes] = await Promise.all([
                     fetch(`${ENV.API_URL}/registration`),
@@ -62,64 +61,83 @@ const AdminDashboard = () => {
                 
                 if (empRes.ok) {
                     const empData = await empRes.json();
-                    setEmployees(empData.data || []);
+                    setEmployees(Array.isArray(empData) ? empData : (empData.data || []));
                 }
                 
                 if (attRes.ok) {
                     const attData = await attRes.json();
-                    setAttendance(attData || []);
+                    setAttendance(Array.isArray(attData) ? attData : []);
                 }
             } catch (e) {
                 console.error('Failed to fetch dashboard data:', e);
             }
-        };
-        fetchData();
+        })();
     }, []);
 
     const getDynamicWeeklyData = () => {
         const today = new Date();
         const weekStart = startOfWeek(today, { weekStartsOn: 1 });
-        const weekDays = eachDayOfInterval({ start: weekStart, end: endOfWeek(today) });
+        const weekDays = eachDayOfInterval({ start: weekStart, end: today });
 
         return weekDays.map(day => {
-            const dayAttendances = attendance.filter(a => 
-                isSameDay(new Date(a.timestamp), day)
+            const dayTimeIns = attendance.filter(a => 
+                isSameDay(new Date(a.timestamp), day) && a.type === 'time_in'
             );
             
-            const present = new Set(dayAttendances.map(a => a.employer_registration_id)).size;
-            const late = dayAttendances.filter(a => a.status === 'late').length;
-            const absent = employees.length - present;
+            const uniquePresent = new Set(dayTimeIns.map(a => a.employer_registration_id)).size;
+            const actualLate = dayTimeIns.filter(a => a.status === 'late').length;
             
             return {
                 name: format(day, 'EEE'),
-                present: present || 0,
-                late: late || 0,
-                absent: Math.max(0, absent) || 0
+                day: format(day, 'd'),
+                present: uniquePresent,
+                late: actualLate
             };
         });
     };
 
     const getAttendanceDistribution = () => {
-        const today = format(new Date(), 'yyyy-MM-dd');
-        const todayAttendances = attendance.filter(a => 
-            a.timestamp.startsWith(today)
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        const todayTimeIns = attendance.filter(a => 
+            a.timestamp.startsWith(todayStr) && a.type === 'time_in'
         );
         
-        const presentCount = todayAttendances.filter(a => a.status === 'present').length;
-        const late = todayAttendances.filter(a => a.status === 'late').length;
-        const total = todayAttendances.length || 1;
+        const uniqueToday = new Set(todayTimeIns.map(a => a.employer_registration_id)).size;
+        const lateToday = todayTimeIns.filter(a => a.status === 'late').length;
+        const presentToday = uniqueToday - lateToday;
         
         return [
-            { name: 'Present', value: Math.round((presentCount / total) * 100) || 0, color: '#10b981' },
-            { name: 'Late', value: Math.round((late / total) * 100) || 0, color: '#f59e0b' },
-            { name: 'Absent', value: Math.round(((employees.length - presentCount - late) / employees.length) * 100) || 0, color: '#ef4444' }
+            { name: 'Present', value: presentToday, color: '#10b981', bg: 'bg-emerald-500' },
+            { name: 'Late', value: lateToday, color: '#f59e0b', bg: 'bg-amber-500' }
         ];
     };
 
+    const getMonthlyTrendData = () => {
+        const today = new Date();
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        const daysInMonth = eachDayOfInterval({ start: monthStart, end: today });
+
+        return daysInMonth.map(day => {
+            const dayTimeIns = attendance.filter(a => 
+                isSameDay(new Date(a.timestamp), day) && a.type === 'time_in'
+            );
+            const present = new Set(dayTimeIns.map(a => a.employer_registration_id)).size;
+            
+            return {
+                name: format(day, 'd'),
+                present: present
+            };
+        });
+    };
+
     const totalEmployees = employees.length;
-    const activeToday = new Set(attendance.filter(a => a.timestamp.startsWith(format(new Date(), 'yyyy-MM-dd'))).map(a => a.employer_registration_id)).size;
-    const lateToday = attendance.filter(a => a.timestamp.startsWith(format(new Date(), 'yyyy-MM-dd')) && a.status === 'late').length;
-    const absentToday = totalEmployees - activeToday;
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const todayTimeIns = attendance.filter(a => 
+        a.timestamp.startsWith(todayStr) && a.type === 'time_in'
+    );
+    const activeToday = new Set(todayTimeIns.map(a => a.employer_registration_id)).size;
+    const lateToday = todayTimeIns.filter(a => a.status === 'late').length;
+    const absentToday = Math.max(0, totalEmployees - activeToday);
 
     const stats = [
         { title: 'Total Personnel', value: totalEmployees.toString().padStart(2, '0'), growth: '+12%', icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
@@ -129,76 +147,83 @@ const AdminDashboard = () => {
     ];
 
     const weeklyData = getDynamicWeeklyData();
+    const monthlyData = getMonthlyTrendData();
     const attendanceDistribution = getAttendanceDistribution();
-    const presentPercentage = attendanceDistribution[0]?.value || 0;
+    const presentPercentage = totalEmployees > 0 ? Math.round((activeToday / totalEmployees) * 100) : 0;
+    const averageEfficiency = weeklyData.length > 0 
+        ? Math.round(weeklyData.reduce((acc, d) => acc + (d.present > 0 ? 100 : 0), 0) / weeklyData.length)
+        : 0;
 
     return (
-        <div className="flex flex-col gap-6 w-full max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
-            {/* Header Section */}
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 dark:border-white/5 pb-6">
+        <div className="flex flex-col gap-4 sm:gap-5 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out pb-6 lg:pb-10">
+
+            {/* Page Title */}
+            <header className="flex flex-wrap items-center justify-between gap-4 py-2">
                 <div className="space-y-1">
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Analytics Overview</h1>
-                    <p className="text-muted-foreground text-xs font-semibold uppercase tracking-[0.2em] opacity-80 flex items-center gap-2">
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Analytics Overview</h1>
+                    </div>
+                    <p className="text-muted-foreground text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] leading-none opacity-70 flex items-center gap-2">
                         <Activity className="w-3 h-3 text-secondary" />
                         Real-time Performance Metrics
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-[10px] font-semibold uppercase tracking-widest text-foreground">
+                <div className="flex items-center gap-2">
+                    <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[10px] font-bold uppercase tracking-widest text-foreground">
                         <Calendar className="w-3.5 h-3.5 text-secondary" />
-                        <span>{format(new Date(), 'MMM dd')} - {format(subDays(new Date(), 7), 'MMM dd, yyyy')}</span>
+                        <span>{format(new Date(), 'MMM dd')} - {format(subDays(new Date(), 7), 'MMM dd')}</span>
                     </div>
-                    <button className="flex items-center gap-2 px-5 py-2.5 bg-secondary text-white rounded-lg font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all active:scale-95">
-                        <Target className="w-3.5 h-3.5" />
-                        <span>Report Details</span>
-                    </button>
                 </div>
             </header>
 
             {/* Quick Stats Grid */}
             <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.map((stat, idx) => (
-                    <div key={idx} className="p-6 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+                    <div key={idx} className="p-5 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm group hover:scale-[1.01] transition-all relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
                             <stat.icon className="w-16 h-16 text-foreground" />
                         </div>
-                        <div className="flex items-center justify-between mb-4">
-                            <div className={cn("p-2.5 rounded-lg", stat.bg)}>
-                                <stat.icon className={cn("w-5 h-5", stat.color)} />
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className={cn("p-2.5 rounded-xl", stat.bg)}>
+                                <stat.icon className={cn("w-4 h-4", stat.color)} />
                             </div>
-                            <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full",
-                                stat.growth.startsWith('+') ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
-                            )}>
-                                {stat.growth}
-                            </span>
+                            <div className="flex flex-col">
+                                <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-1">{stat.title}</div>
+                                <div className="text-[8px] font-bold text-emerald-500 flex items-center gap-1">
+                                    <TrendingUp className="w-2 h-2" />
+                                    {stat.growth}
+                                </div>
+                            </div>
                         </div>
-                        <div className="text-3xl font-bold text-foreground tracking-tight tabular-nums mb-1">{stat.value}</div>
-                        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{stat.title}</div>
+                        <div className="text-2xl font-bold text-foreground tabular-nums tracking-tight flex items-center gap-1">
+                            {stat.value}
+                            <TrendingUp className="w-3.5 h-3.5 text-gray-300 dark:text-gray-700 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                        </div>
                     </div>
                 ))}
             </section>
 
             {/* Main Graph Area */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Primary Bar Chart */}
-                <div className="lg:col-span-2 p-6 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm">
-                    <div className="flex items-center justify-between mb-8">
+                <div className="lg:col-span-2 p-5 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm">
+                    <div className="flex items-center justify-between mb-6">
                         <div>
-                            <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Attendance Trends</h3>
-                            <p className="text-[10px] font-semibold text-muted-foreground">Daily activity breakdown for the current week</p>
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-foreground">Weekly Attendance</h3>
+                            <p className="text-[9px] font-bold text-muted-foreground">Daily activity breakdown</p>
                         </div>
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-1.5">
-                                <div className="w-2 h-2 rounded-full bg-blue-500" />
-                                <span className="text-[9px] font-semibold uppercase text-muted-foreground">Present</span>
+                                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                                <span className="text-[9px] font-bold uppercase text-muted-foreground">Present</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <div className="w-2 h-2 rounded-full bg-amber-500" />
-                                <span className="text-[9px] font-semibold uppercase text-muted-foreground">Late</span>
+                                <span className="text-[9px] font-bold uppercase text-muted-foreground">Late</span>
                             </div>
                         </div>
                     </div>
-                    <div className="h-[300px] w-full">
+                    <div className="h-[280px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={weeklyData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
@@ -227,27 +252,29 @@ const AdminDashboard = () => {
                                         boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)'
                                     }}
                                 />
-                                <Bar dataKey="present" fill="#2563eb" radius={[4, 4, 0, 0]} barSize={30} />
-                                <Bar dataKey="late" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={30} />
+                                <Bar dataKey="present" name="Present" fill="#10b981" radius={[4, 4, 0, 0]} barSize={32} />
+                                <Bar dataKey="late" name="Late" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={32} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
                 {/* Secondary Metrics / Pie Chart */}
-                <div className="p-6 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm flex flex-col">
-                    <div className="mb-6">
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Status Distribution</h3>
-                        <p className="text-[10px] font-semibold text-muted-foreground">Overall ratio of attendance categories</p>
+                <div className="p-5 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm flex flex-col">
+                    <div className="mb-4">
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-foreground">Today&apos;s Status</h3>
+                        <p className="text-[9px] font-bold text-muted-foreground">Attendance breakdown</p>
                     </div>
-                    <div className="h-[200px] w-full relative">
+                    <div className="h-[160px] w-full relative">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
                                     data={attendanceDistribution}
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={5}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={50}
+                                    outerRadius={70}
+                                    paddingAngle={3}
                                     dataKey="value"
                                 >
                                     {attendanceDistribution.map((entry, index) => (
@@ -266,35 +293,35 @@ const AdminDashboard = () => {
                             </PieChart>
                         </ResponsiveContainer>
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                            <span className="text-xl font-bold text-foreground">{presentPercentage}%</span>
-                            <span className="text-[8px] font-semibold uppercase text-muted-foreground tracking-widest">Score</span>
+                            <span className="text-2xl font-bold text-foreground">{presentPercentage}%</span>
+                            <span className="text-[8px] font-bold uppercase text-muted-foreground tracking-widest">Rate</span>
                         </div>
                     </div>
-                    <div className="mt-auto space-y-3">
+                    <div className="mt-auto space-y-2">
                         {attendanceDistribution.map((item, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-all transition-colors cursor-default">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                                    <span className={cn("text-[10px] font-bold text-foreground uppercase tracking-widest", item.name === 'On Time' && "text-emerald-500")}>{item.name === 'On Time' ? 'Present' : item.name}</span>
+                            <div key={idx} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                <div className="flex items-center gap-2">
+                                    <div className={cn("w-2 h-2 rounded-full", item.bg)} />
+                                    <span className="text-[10px] font-bold text-foreground uppercase tracking-widest">{item.name}</span>
                                 </div>
-                                <span className="text-[10px] font-bold text-muted-foreground transition-colors group-hover:text-foreground">{item.value}%</span>
+                                <span className="text-[10px] font-bold text-muted-foreground">{item.value}</span>
                             </div>
                         ))}
                     </div>
                 </div>
             </div>
 
-            {/* Bottom Row: Recent Activity & Top Performers */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="p-6 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Latest Departures</h3>
+            {/* Bottom Row: Recent Activity & Efficiency Index */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="p-5 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-foreground">Latest Departures</h3>
                         <button className="text-[10px] font-bold text-secondary flex items-center gap-1 hover:underline">
-                            View Logs <ChevronRight className="w-3 h-3" />
+                            View All <ChevronRight className="w-3 h-3" />
                         </button>
                     </div>
-                    <div className="space-y-4">
-                        {employees.slice(0, 4).map((emp, idx) => {
+                    <div className="space-y-3">
+                        {employees.slice(0, 5).map((emp, idx) => {
                             const empTimeOuts = attendance
                                 .filter(a => a.employer_registration_id === emp.id && a.type === 'time_out')
                                 .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -303,19 +330,21 @@ const AdminDashboard = () => {
                             return (
                                 <div key={idx} className="flex items-center justify-between group">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center font-bold text-secondary border border-secondary/20">
+                                        <div className="w-9 h-9 rounded-xl bg-secondary/10 flex items-center justify-center font-bold text-secondary border border-secondary/20">
                                             {emp.employer_name.charAt(0)}
                                         </div>
                                         <div>
-                                            <div className="text-[11px] font-bold text-foreground group-hover:text-secondary transition-colors tabular-nums tracking-tight">{emp.employer_name}</div>
-                                            <div className="text-[9px] font-bold text-muted-foreground uppercase opacity-60 tracking-wider transition-opacity">{emp.employer_position || 'Staff'}</div>
+                                            <div className="text-[11px] font-bold text-foreground group-hover:text-secondary transition-colors">{emp.employer_name}</div>
+                                            <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{emp.employer_position || 'Staff'}</div>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="text-[10px] font-bold text-foreground tabular-nums tracking-tight">
+                                        <div className="text-[10px] font-bold text-foreground">
                                             {latestTimeOut ? format(new Date(latestTimeOut.timestamp), 'hh:mm a') : '--:-- --'}
                                         </div>
-                                        <div className="text-[8px] font-bold text-emerald-500 uppercase tracking-widest">
+                                        <div className={cn("text-[8px] font-bold uppercase tracking-widest",
+                                            latestTimeOut ? 'text-emerald-500' : 'text-rose-500'
+                                        )}>
                                             {latestTimeOut ? 'Exited' : 'Not Exited'}
                                         </div>
                                     </div>
@@ -325,20 +354,37 @@ const AdminDashboard = () => {
                     </div>
                 </div>
 
-                <div className="p-6 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm relative overflow-hidden">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Efficiency Index</h3>
-                        <button className="px-3 py-1 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full text-[9px] font-bold uppercase tracking-widest text-foreground transition-all">Monthly</button>
+                <div className="p-5 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-sm relative overflow-hidden">
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-foreground">Monthly Trend</h3>
+                            <p className="text-[9px] font-bold text-muted-foreground">Attendance performance</p>
+                        </div>
+                        <button className="px-3 py-1 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full text-[9px] font-bold uppercase tracking-widest text-foreground transition-all">
+                            This Month
+                        </button>
                     </div>
-                    <div className="h-[180px] w-full">
+                    <div className="h-[150px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={weeklyData}>
+                            <AreaChart data={monthlyData}>
                                 <defs>
-                                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                    <linearGradient id="colorPresent" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#0089C0" stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor="#0089C0" stopOpacity={0}/>
                                     </linearGradient>
                                 </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                                <XAxis
+                                    dataKey="name"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 9, fontWeight: 700, fill: 'currentColor' }}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 9, fontWeight: 700, fill: 'currentColor' }}
+                                />
                                 <Tooltip
                                     contentStyle={{
                                         background: '#1a1a1a',
@@ -348,22 +394,26 @@ const AdminDashboard = () => {
                                         fontWeight: 900
                                     }}
                                 />
-                                <Area type="monotone" dataKey="present" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
+                                <Area 
+                                    type="monotone" 
+                                    dataKey="present" 
+                                    stroke="#0089C0" 
+                                    strokeWidth={2} 
+                                    fillOpacity={1} 
+                                    fill="url(#colorPresent)" 
+                                    name="Present"
+                                />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
-                    <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-white/10">
-                         <div className="space-y-1">
-                            <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest block">Average Score</span>
-                            <span className="text-xl font-bold text-foreground tracking-tight">
-                                {weeklyData.length > 0 
-                                    ? Math.round(weeklyData.reduce((acc, d) => acc + (d.present / (d.present + d.late + d.absent || 1)) * 100, 0) / weeklyData.length)
-                                    : 0}%
-                            </span>
-                         </div>
-                         <div className="p-2.5 rounded-full bg-emerald-500/20 text-emerald-500 border border-emerald-500/20">
-                            <TrendingUp className="w-5 h-5" />
-                         </div>
+                    <div className="mt-4 flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/10">
+                        <div className="space-y-1">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block">Weekly Avg</span>
+                            <span className="text-lg font-bold text-foreground tracking-tight">{averageEfficiency}%</span>
+                        </div>
+                        <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                            <TrendingUp className="w-4 h-4" />
+                        </div>
                     </div>
                 </div>
             </div>

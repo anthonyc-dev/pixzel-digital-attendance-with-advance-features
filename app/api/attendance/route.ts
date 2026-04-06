@@ -22,6 +22,8 @@ interface AttendanceLog {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const employer_id = searchParams.get("employer_id");
+  const start_date = searchParams.get("start_date");
+  const end_date = searchParams.get("end_date");
 
   const supabase = await createSupabaseServer();
 
@@ -31,6 +33,7 @@ export async function GET(request: Request) {
       `
       *,
       employer_registration (
+        id,
         employer_id,
         employer_name,
         employer_position,
@@ -50,6 +53,14 @@ export async function GET(request: Request) {
     if (employer) {
       query = query.eq("employer_registration_id", employer.id);
     }
+  }
+
+  if (start_date) {
+    query = query.gte("timestamp", `${start_date}T00:00:00+08:00`);
+  }
+
+  if (end_date) {
+    query = query.lte("timestamp", `${end_date}T23:59:59+08:00`);
   }
 
   const { data, error } = await query;
@@ -101,7 +112,18 @@ export async function POST(req: Request) {
 
     // 3. Face matching
     console.log(`Starting match for ${employees?.length || 0} employees...`);
-    const match = findBestMatch(descriptor, employees);
+    
+    const validEmployees = employees?.filter(emp => emp.descriptor && emp.descriptor.length > 0) || [];
+    console.log(`Valid employees with descriptors: ${validEmployees.length}`);
+    
+    if (validEmployees.length === 0) {
+      return NextResponse.json({
+        success: false,
+        message: "No registered employees found. Please register first.",
+      });
+    }
+    
+    const match = findBestMatch(descriptor, validEmployees);
     console.log(
       "Match result:",
       match
@@ -178,7 +200,9 @@ export async function POST(req: Request) {
       if (type === "time_out") {
         const hasTimeIn = todayLogs?.some((log) => log.type === "time_in");
         if (!hasTimeIn) {
-          console.log(`Warning: ${employer_registration.employer_name} timed out without a time in.`);
+          console.log(
+            `Warning: ${employer_registration.employer_name} timed out without a time in.`,
+          );
           // We allow it to prevent the "error" at 6pm
         }
       }
@@ -193,7 +217,7 @@ export async function POST(req: Request) {
     }
 
     // 6. Determine status (9:15 AM or later is late)
-    // NOTE: We use 'on_time' internally for DB constraint compatibility, 
+    // NOTE: We use 'on_time' internally for DB constraint compatibility,
     // but the UI will display it as 'present'.
     const hours = now.getHours();
     const minutes = now.getMinutes();
@@ -239,6 +263,7 @@ export async function POST(req: Request) {
       },
     });
   } catch (err: unknown) {
+    console.error("Attendance API error:", err);
     if (err instanceof Error) {
       return NextResponse.json(
         { success: false, message: err.message },

@@ -1,23 +1,32 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/utils/supabase/server";
 
-export async function GET() {
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
   const supabase = await createSupabaseServer();
 
   const { data, error } = await supabase
     .from("payroll_records")
     .select("*")
-    .order("created_at", { ascending: false });
+    .eq("id", id)
+    .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 404 });
   }
 
   return NextResponse.json(data);
 }
 
-export async function POST(req: Request) {
+export async function PUT(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
+    const { id } = await params;
     const supabase = await createSupabaseServer();
     const body = await req.json();
 
@@ -36,26 +45,21 @@ export async function POST(req: Request) {
     } = body;
 
     if (
-      employer_registration_id === undefined ||
-      employer_registration_id === null ||
+      !employer_registration_id ||
       !full_name ||
-      base_salary === undefined ||
-      base_salary === null ||
-      gross_pay === undefined ||
-      gross_pay === null ||
-      net_pay === undefined ||
-      net_pay === null
+      !base_salary ||
+      !gross_pay ||
+      !net_pay
     ) {
-      console.log('Missing required fields:', { employer_registration_id, full_name, base_salary, gross_pay, net_pay });
       return NextResponse.json(
-        { error: "Missing required fields", received: { employer_registration_id, full_name, base_salary, gross_pay, net_pay } },
+        { error: "Missing required fields" },
         { status: 400 },
       );
     }
 
     const { data, error } = await supabase
       .from("payroll_records")
-      .insert({
+      .update({
         employer_registration_id,
         full_name,
         position,
@@ -64,23 +68,26 @@ export async function POST(req: Request) {
         net_pay,
         period,
         total_deduction,
-        late_count: late_count || 0,
-        absent_count: absent_count || 0,
+        late_count: late_count ?? 0,
+        absent_count: absent_count ?? 0,
         status: status || "pending",
-        processed_at: status === "processed" ? new Date().toISOString() : null,
+        processed_at:
+          status === "processed"
+            ? new Date().toISOString()
+            : status === "paid"
+              ? new Date().toISOString()
+              : null,
       })
+      .eq("id", id)
       .select()
       .single();
 
     if (error) {
-      console.error("Supabase insert error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log("Created payroll record:", data);
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json(data);
   } catch (err: unknown) {
-    console.error("Payroll POST error:", err);
     if (err instanceof Error) {
       return NextResponse.json({ error: err.message }, { status: 500 });
     }
@@ -89,4 +96,23 @@ export async function POST(req: Request) {
       { status: 500 },
     );
   }
+}
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const supabase = await createSupabaseServer();
+
+  const { error } = await supabase
+    .from("payroll_records")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ message: "Payroll record deleted successfully" });
 }
