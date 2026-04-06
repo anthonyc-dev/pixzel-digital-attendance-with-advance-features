@@ -8,16 +8,15 @@ import {
     TrendingUp,
     Wallet,
     CreditCard,
-    DollarSign,
-    PieChart,
-    Printer,
     Plus,
     X,
     RefreshCw,
     CheckCircle,
-    Clock
+    Clock,
+    MoreHorizontal,
+    Pencil,
+    Trash2
 } from 'lucide-react';
-import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { ENV } from '@/lib/api';
 
@@ -27,18 +26,10 @@ interface PayrollRecord {
     full_name: string;
     position: string;
     base_salary: number;
-    allowances: number;
     gross_pay: number;
-    overtime_pay: number;
-    sss: number;
-    philhealth: number;
-    pagibig: number;
-    tax: number;
-    late_deduction: number;
-    absent_deduction: number;
     net_pay: number;
-    payment_method: string;
     period: string;
+    total_deduction: number;
     status: 'pending' | 'processed' | 'paid';
     created_at: string;
     processed_at: string | null;
@@ -52,12 +43,6 @@ interface Employee {
     status: string;
     image: string | null;
     created_at: string;
-}
-
-interface AttendanceRecord {
-    status?: string;
-    timestamp?: string;
-    created_at?: string;
 }
 
 const PayrollPage = () => {
@@ -74,71 +59,12 @@ const PayrollPage = () => {
     const [lateCount, setLateCount] = useState(0);
     const [absentCount, setAbsentCount] = useState(0);
     const [processing, setProcessing] = useState(false);
+    const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
 
-    const fetchAttendanceData = useCallback(async () => {
-        if (!selectedEmployer || !startDate || !endDate) return;
-        
-        try {
-            const res = await fetch(`${ENV.API_URL}/attendance?employer_id=${selectedEmployer}&start_date=${startDate}&end_date=${endDate}`);
-            if (res.ok) {
-                const data = await res.json();
-                const records = Array.isArray(data) ? data : (data.data || []);
-
-                const holidayDates = new Set<string>();
-                records.forEach((record: AttendanceRecord) => {
-                    const status = record.status?.toLowerCase();
-                    if (status === 'holiday' || status === 'event') {
-                        const timestamp = record.timestamp || record.created_at;
-                        if (!timestamp) return;
-                        const dateObj = new Date(timestamp);
-                        const date = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
-                        holidayDates.add(date);
-                    }
-                });
-
-                let late = 0;
-                let absent = 0;
-
-                const countedDates = new Set<string>();
-
-                records.forEach((record: AttendanceRecord) => {
-                    const status = record.status?.toLowerCase();
-                    const timestamp = record.timestamp || record.created_at;
-                    if (!timestamp) return;
-
-                    const dateObj = new Date(timestamp);
-                    const date = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
-
-                    if (holidayDates.has(date)) return;
-
-                    if (status === 'absent') {
-                        if (!countedDates.has(date)) {
-                            absent++;
-                            countedDates.add(date);
-                        }
-                    } else if (status === 'late') {
-                        if (!countedDates.has(date)) {
-                            late++;
-                            countedDates.add(date);
-                        }
-                    }
-                });
-
-                setLateCount(late);
-                setAbsentCount(absent);
-            }
-        } catch (e) {
-            console.error('Failed to fetch attendance:', e);
-        }
-    }, [selectedEmployer, startDate, endDate]);
-
-    useEffect(() => {
-        fetchAttendanceData();
-    }, [fetchAttendanceData]);
-
-    useEffect(() => {
-        fetchData();
-    }, []);
+    const formatDate = (dateStr: string) => {
+        const [year, month, day] = dateStr.split('-');
+        return `${month}-${day}-${year}`;
+    };
 
     const fetchData = async () => {
         setLoading(true);
@@ -161,7 +87,6 @@ const PayrollPage = () => {
                     empMap.set(String(emp.id), emp);
                 });
                 setEmployees(empMap);
-                console.log('Employees loaded:', empList.length);
             }
         } catch (e) {
             console.error('Failed to fetch payroll data:', e);
@@ -170,17 +95,68 @@ const PayrollPage = () => {
         }
     };
 
-    const handleAddSalary = async () => {
-        console.log('handleAddSalary called', { selectedEmployer, salaryAmount, employeesSize: employees.size });
+    const fetchAttendanceData = useCallback(async () => {
+        if (!selectedEmployer || !startDate || !endDate) return;
 
+        const employee = employees.get(selectedEmployer);
+        if (!employee) return;
+
+        try {
+            const res = await fetch(`${ENV.API_URL}/dtr?employer_id=${employee.employer_id}&start_date=${startDate}&end_date=${endDate}`);
+            if (res.ok) {
+                const data = await res.json();
+                const records = Array.isArray(data) ? data : (data.data || []);
+
+                let late = 0;
+                let absent = 0;
+
+                records.forEach((record: { date?: string; status?: string; is_late?: boolean }) => {
+                    const status = record.status?.toLowerCase();
+                    if (status === 'absent') {
+                        absent++;
+                    } else if (record.is_late === true) {
+                        late++;
+                    }
+                });
+
+                setLateCount(late);
+                setAbsentCount(absent);
+            }
+        } catch (e) {
+            console.error('Failed to fetch DTR:', e);
+        }
+    }, [selectedEmployer, startDate, endDate, employees]);
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    useEffect(() => {
+        fetchAttendanceData();
+    }, [fetchAttendanceData]);
+
+    useEffect(() => {
+        const handleClickOutside = (e: Event) => {
+            const target = e.target as HTMLElement;
+            if (target && !target.closest('.action-menu-button') && !target.closest('.action-menu-dropdown')) {
+                setOpenActionMenu(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
+    }, []);
+
+    const handleAddSalary = async () => {
         if (!selectedEmployer || !salaryAmount || !startDate || !endDate) {
             alert('Please select an employee, enter a salary amount, and select date range');
             return;
         }
 
         const employee = employees.get(selectedEmployer);
-        console.log('Looking for employee:', selectedEmployer, 'Found:', employee);
-
         if (!employee) {
             alert('Employee not found. Please refresh and try again.');
             return;
@@ -189,20 +165,15 @@ const PayrollPage = () => {
         setProcessing(true);
         try {
             const baseSalary = parseFloat(salaryAmount);
-            const allowances = 0;
-            const grossPay = baseSalary + allowances;
-            const sss = grossPay * 0;
-            const philhealth = grossPay * 0;
-            const pagibig = grossPay * 0;
-            const tax = grossPay * 0;
+            const grossPay = baseSalary;
 
             const lateDeduction = lateCount * 50;
             const absentDeduction = absentCount * 100;
-            const attendanceDeductions = lateDeduction + absentDeduction;
+            const totalDeduction = lateDeduction + absentDeduction;
 
-            const netPay = grossPay - sss - philhealth - pagibig - tax - attendanceDeductions;
+            const netPay = grossPay - totalDeduction;
 
-            const period = `${startDate} to ${endDate}`;
+            const period = `${formatDate(startDate)} - ${formatDate(endDate)}`;
 
             const res = await fetch(`${ENV.API_URL}/payroll`, {
                 method: 'POST',
@@ -212,18 +183,10 @@ const PayrollPage = () => {
                     full_name: employee.employer_name,
                     position: employee.employer_position,
                     base_salary: baseSalary,
-                    allowances,
                     gross_pay: grossPay,
-                    overtime_pay: 0,
-                    sss,
-                    philhealth,
-                    pagibig,
-                    tax,
-                    late_deduction: lateDeduction,
-                    absent_deduction: absentDeduction,
                     net_pay: netPay,
-                    payment_method: 'bank_transfer',
                     period,
+                    total_deduction: totalDeduction,
                     status: 'pending'
                 })
             });
@@ -279,6 +242,23 @@ const PayrollPage = () => {
         }
     };
 
+    const handleDeletePayroll = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this payroll record?')) return;
+        
+        try {
+            const res = await fetch(`${ENV.API_URL}/payroll/${id}`, {
+                method: 'DELETE'
+            });
+            
+            if (res.ok) {
+                setPayrollRecords(prev => prev.filter(p => p.id !== id));
+                setOpenActionMenu(null);
+            }
+        } catch (e) {
+            console.error('Failed to delete payroll:', e);
+        }
+    };
+
     const filteredRecords = payrollRecords.filter(record => {
         const employee = employees.get(record.employer_registration_id);
         const nameMatch = record.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -292,13 +272,13 @@ const PayrollPage = () => {
         ? totalPayroll / payrollRecords.length
         : 0;
     const totalDeductions = payrollRecords.reduce((sum, p) =>
-        sum + p.sss + p.philhealth + p.pagibig + p.tax, 0);
+        sum + p.total_deduction, 0);
     const processedCount = payrollRecords.filter(p => p.status === 'processed' || p.status === 'paid').length;
 
     const stats = [
         { title: 'Total Payroll', value: `₱ ${totalPayroll.toLocaleString('en-PH', { minimumFractionDigits: 0 })}`, sub: 'This Period', icon: Wallet, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
         { title: 'Avg Net Pay', value: `₱ ${avgNetPay.toLocaleString('en-PH', { minimumFractionDigits: 0 })}`, sub: 'Per Employee', icon: Banknote, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-        { title: 'Total Deductions', value: `₱ ${totalDeductions.toLocaleString('en-PH', { minimumFractionDigits: 0 })}`, sub: 'All Employees', icon: PieChart, color: 'text-rose-500', bg: 'bg-rose-500/10' },
+        { title: 'Total Deductions', value: `₱ ${totalDeductions.toLocaleString('en-PH', { minimumFractionDigits: 0 })}`, sub: 'All Employees', icon: CreditCard, color: 'text-rose-500', bg: 'bg-rose-500/10' },
         { title: 'Processed', value: processedCount.toString().padStart(2, '0'), sub: 'Employees', icon: CreditCard, color: 'text-secondary', bg: 'bg-secondary/10' },
     ];
 
@@ -331,13 +311,9 @@ const PayrollPage = () => {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => setShowSalaryModal(true)}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-all">
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-all cursor-pointer">
                         <Plus className="w-3.5 h-3.5 text-secondary" />
                         <span>Add Payroll</span>
-                    </button>
-                    <button className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-all">
-                        <Printer className="w-3.5 h-3.5 text-secondary" />
-                        <span>Print Slips</span>
                     </button>
                     <button className="flex items-center gap-2 px-4 py-2.5 bg-secondary text-white rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all">
                         <Download className="w-3.5 h-3.5" />
@@ -384,17 +360,13 @@ const PayrollPage = () => {
                         <select
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
-                            className="flex items-center gap-1.5 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[9px] font-bold uppercase tracking-widest text-foreground/70 hover:bg-gray-50 transition-all shadow-sm"
+                            className="flex items-center gap-1.5 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[9px] font-bold uppercase tracking-widest text-black dark:text-white hover:bg-gray-50 transition-all shadow-sm"
                         >
-                            <option value="all">All Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="processed">Processed</option>
-                            <option value="paid">Paid</option>
+                            <option value="all" className="text-black">All Status</option>
+                            <option value="pending" className="text-black">Pending</option>
+                            <option value="processed" className="text-black">Processed</option>
+                            <option value="paid" className="text-black">Paid</option>
                         </select>
-                        <button className="flex items-center gap-1.5 px-4 py-2.5 bg-secondary text-white rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all shadow-md shadow-secondary/10">
-                            <DollarSign className="w-3.5 h-3.5" />
-                            <span>Batch Process</span>
-                        </button>
                     </div>
                 </div>
 
@@ -425,20 +397,10 @@ const PayrollPage = () => {
                             ) : (
                                 filteredRecords.map((record) => {
                                     const employee = employees.get(record.employer_registration_id);
-                                    const totalDeductions = record.sss + record.philhealth + record.pagibig + record.tax + (record.late_deduction || 0) + (record.absent_deduction || 0);
                                     return (
                                         <tr key={record.id} className="group hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
                                             <td className="p-5 text-left">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="relative">
-                                                        {employee?.image ? (
-                                                            <Image src={employee.image} alt={record.full_name} width={40} height={40} className="w-10 h-10 rounded-xl object-cover border border-white dark:border-white/10 shadow-md transition-all" />
-                                                        ) : (
-                                                            <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-lg font-bold text-secondary">
-                                                                {record.full_name.charAt(0)}
-                                                            </div>
-                                                        )}
-                                                    </div>
                                                     <div className="flex flex-col">
                                                         <span className="font-bold text-sm tracking-tight group-hover:text-secondary transition-colors">{record.full_name}</span>
                                                         <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none">{record.position}</span>
@@ -449,7 +411,7 @@ const PayrollPage = () => {
                                                 ₱ {record.base_salary.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                                             </td>
                                             <td className="p-5 text-rose-500 font-bold tabular-nums text-xs">
-                                                -₱ {totalDeductions.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                                                -₱ {record.total_deduction.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                                             </td>
                                             <td className="p-5">
                                                 <div className="flex items-center justify-center gap-2">
@@ -459,7 +421,15 @@ const PayrollPage = () => {
                                                     <TrendingUp className="w-3 h-3 text-emerald-500" />
                                                 </div>
                                             </td>
-                                            <td className="p-5 text-xs font-bold text-foreground/70">{record.period}</td>
+                                            <td className="p-5 text-xs font-bold text-foreground/70">
+                                                {(() => {
+                                                    const parts = record.period.split(/ to | - /);
+                                                    if (parts.length === 2) {
+                                                        return `${formatDate(parts[0])} - ${formatDate(parts[1])}`;
+                                                    }
+                                                    return record.period;
+                                                })()}
+                                            </td>
                                             <td className="p-5">
                                                 <div className="flex flex-col items-center gap-1.5">
                                                     <span className={cn(
@@ -474,22 +444,53 @@ const PayrollPage = () => {
                                                 </div>
                                             </td>
                                             <td className="p-5">
-                                                <div className="flex items-center justify-center gap-1">
-                                                    {record.status === 'pending' && (
-                                                        <button
-                                                            onClick={() => handleUpdateStatus(record.id, 'processed')}
-                                                            className="px-2 py-1 text-[8px] font-bold uppercase tracking-widest bg-emerald-500/10 text-emerald-600 rounded hover:bg-emerald-500/20 transition-colors"
-                                                        >
-                                                            Process
-                                                        </button>
-                                                    )}
-                                                    {record.status === 'processed' && (
-                                                        <button
-                                                            onClick={() => handleUpdateStatus(record.id, 'paid')}
-                                                            className="px-2 py-1 text-[8px] font-bold uppercase tracking-widest bg-blue-500/10 text-blue-600 rounded hover:bg-blue-500/20 transition-colors"
-                                                        >
-                                                            Mark Paid
-                                                        </button>
+                                                <div className="relative inline-block">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setOpenActionMenu(openActionMenu === record.id ? null : record.id)}
+                                                        className="action-menu-button p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                                                    >
+                                                        <MoreHorizontal className="w-4 h-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+                                                    </button>
+                                                    {openActionMenu === record.id && (
+                                                        <div className="action-menu-dropdown absolute right-[calc(100%+12px)] top-1/2 -translate-y-[68%] z-50 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 min-w-[140px] animate-in fade-in slide-in-from-right-4 duration-200">
+                                                            <button
+                                                                onClick={() => {
+                                                                    handleUpdateStatus(record.id, 'processed');
+                                                                    setOpenActionMenu(null);
+                                                                }}
+                                                                disabled={record.status !== 'pending'}
+                                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-emerald-600 hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            >
+                                                                <CheckCircle className="w-4 h-4" />
+                                                                Process
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    handleUpdateStatus(record.id, 'paid');
+                                                                    setOpenActionMenu(null);
+                                                                }}
+                                                                disabled={record.status !== 'processed'}
+                                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-blue-600 hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            >
+                                                                <CheckCircle className="w-4 h-4" />
+                                                                Mark Paid
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setOpenActionMenu(null)}
+                                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                                                            >
+                                                                <Pencil className="w-4 h-4 text-secondary" />
+                                                                Edit Payroll
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeletePayroll(record.id)}
+                                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                                Delete
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </div>
                                             </td>
@@ -519,7 +520,7 @@ const PayrollPage = () => {
                                 }}
                                 className="p-1 hover:bg-muted rounded-lg"
                             >
-                                <X className="w-5 h-5 text-foreground" />
+                                <X className="w-5 h-5 text-foreground cursor-pointer" />
                             </button>
                         </div>
                         <div className="space-y-4">
@@ -585,7 +586,7 @@ const PayrollPage = () => {
                             <button
                                 onClick={handleAddSalary}
                                 disabled={!selectedEmployer || !salaryAmount || !startDate || !endDate || processing}
-                                className="w-full py-3 bg-secondary text-white rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full py-3 bg-secondary text-white rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                             >
                                 {processing ? 'Creating...' : 'Create Payroll'}
                             </button>

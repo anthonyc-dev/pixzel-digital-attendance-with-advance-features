@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/utils/supabase/server";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const employer_id = searchParams.get("employer_id");
+  const start_date = searchParams.get("start_date");
+  const end_date = searchParams.get("end_date");
+
   const supabase = await createSupabaseServer();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("dtr_records")
     .select(
       `
@@ -16,8 +21,29 @@ export async function GET() {
         image
       )
     `,
-    )
-    .order("date", { ascending: false });
+    );
+
+  if (employer_id) {
+    const { data: employer } = await supabase
+      .from("employer_registration")
+      .select("id")
+      .eq("employer_id", employer_id)
+      .single();
+
+    if (employer) {
+      query = query.eq("employer_registration_id", employer.id);
+    }
+  }
+
+  if (start_date) {
+    query = query.gte("date", start_date);
+  }
+
+  if (end_date) {
+    query = query.lte("date", end_date);
+  }
+
+  const { data, error } = await query.order("date", { ascending: false });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -26,6 +52,7 @@ export async function GET() {
   const mappedData =
     data?.map((record: Record<string, unknown>) => ({
       id: record.id,
+      employer_registration_id: record.employer_registration_id,
       employer_id: (record.employer_registration as Record<string, unknown>)
         ?.employer_id,
       employer_name: (record.employer_registration as Record<string, unknown>)
