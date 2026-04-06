@@ -271,7 +271,10 @@ const AttendancePage = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+    ctx.restore();
     return canvas.toDataURL('image/jpeg', 0.85);
   }, []);
 
@@ -594,20 +597,21 @@ const AttendancePage = () => {
                           </div>
                         )}
 
-                        {/* Video Element */}
-                        <video
-                          ref={videoRefCallback}
-                          autoPlay
-                          playsInline
-                          muted
-                          className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ${isCameraLoading ? 'scale-105 blur-sm opacity-50' : 'scale-100 blur-0 opacity-100'
-                            }`}
-                          onLoadedData={() => setIsCameraLoading(false)}
-                          onError={() => {
-                            setIsCameraLoading(false);
-                            setCameraError("Camera not found");
-                          }}
-                        />
+                        <div className="absolute inset-0 scale-x-[-1]">
+                          <video
+                            ref={videoRefCallback}
+                            autoPlay
+                            playsInline
+                            muted
+                            className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ${isCameraLoading ? 'scale-105 blur-sm opacity-50' : 'scale-100 blur-0 opacity-100'
+                              }`}
+                            onLoadedData={() => setIsCameraLoading(false)}
+                            onError={() => {
+                              setIsCameraLoading(false);
+                              setCameraError("Camera not found");
+                            }}
+                          />
+                        </div>
                       </div>
                     )}
 
