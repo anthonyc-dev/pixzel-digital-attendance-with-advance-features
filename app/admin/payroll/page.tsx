@@ -55,9 +55,17 @@ interface DTRRecord {
     is_late: boolean;
 }
 
+interface DeductionSetting {
+    id: number;
+    late_deduction: number;
+    absent_deduction: number;
+    label: string;
+}
+
 const PayrollPage = () => {
     const [payrollRecords, setPayrollRecords] = useState<PayrollRecord[]>([]);
     const [employers, setEmployers] = useState<Employer[]>([]);
+    const [deductionSettings, setDeductionSettings] = useState<DeductionSetting | null>(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -135,9 +143,10 @@ const PayrollPage = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [payrollRes, empRes] = await Promise.all([
+            const [payrollRes, empRes, deductionRes] = await Promise.all([
                 fetch(`${ENV.API_URL}/payroll`),
-                fetch(`${ENV.API_URL}/registration`)
+                fetch(`${ENV.API_URL}/registration`),
+                fetch(`${ENV.API_URL}/deduction-settings`)
             ]);
 
             if (payrollRes.ok) {
@@ -151,6 +160,12 @@ const PayrollPage = () => {
                 const empList = Array.isArray(empData) ? empData : (empData.data || []);
                 console.log('Employers loaded:', empList.length, empList);
                 setEmployers(empList);
+            }
+
+            if (deductionRes.ok) {
+                const deductionData = await deductionRes.json();
+                setDeductionSettings(deductionData);
+                console.log('Deduction settings loaded:', deductionData);
             }
         } catch (e) {
             console.error('Failed to fetch data:', e);
@@ -195,14 +210,18 @@ const PayrollPage = () => {
 
         const monthlySalary = parseFloat(String(employer.base_salary)) || 0;
         console.log('Monthly salary:', monthlySalary);
-        
+
+        // Use configurable rates; fall back to defaults if not loaded yet
+        const lateRate = deductionSettings?.late_deduction ?? 50;
+        const absentRate = deductionSettings?.absent_deduction ?? 100;
+
         const halfMonthSalary = monthlySalary / 2;
-        const lateDeduction = lateCount * 50;
-        const absentDeduction = absentCount * 100;
+        const lateDeduction = lateCount * lateRate;
+        const absentDeduction = absentCount * absentRate;
         const totalDeduction = lateDeduction + absentDeduction;
         const netPay = halfMonthSalary - totalDeduction;
         
-        console.log('Half month salary:', halfMonthSalary, 'Deductions:', totalDeduction, 'Net pay:', netPay);
+        console.log('Half month salary:', halfMonthSalary, 'Rates: late=', lateRate, 'absent=', absentRate, 'Deductions:', totalDeduction, 'Net pay:', netPay);
 
         return {
             employer_registration_id: employer.id,
@@ -218,7 +237,7 @@ const PayrollPage = () => {
             status: 'pending' as const,
             processed_at: null
         };
-    }, []);
+    }, [deductionSettings]);
 
     const handleGeneratePayroll = async () => {
         const period = getCurrentPayrollPeriod();
@@ -521,13 +540,6 @@ const PayrollPage = () => {
                 <div className="space-y-2">
                     <div className="flex items-center gap-3">
                         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Employee Payroll</h1>
-                        <button
-                            onClick={fetchData}
-                            className="p-2 hover:bg-muted rounded-lg transition-colors"
-                            disabled={loading}
-                        >
-                            <RefreshCw className={cn("w-4 h-4 text-muted-foreground", loading && "animate-spin")} />
-                        </button>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Calendar className="w-3.5 h-3.5" />

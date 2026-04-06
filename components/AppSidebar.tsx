@@ -7,7 +7,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import {
   Calendar,
-  ScanFace,
   Clock,
   Settings,
   ChevronDown,
@@ -20,7 +19,8 @@ import {
   LogOut,
   Users,
   ClipboardCheck,
-  Banknote
+  Banknote,
+  CalendarDays
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
@@ -35,16 +35,34 @@ interface NavItem {
 
 const sidebarItems: NavItem[] = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/adminDashboard' },
-  { name: 'Employers', icon: Users, href: '/admin/employer' },
+  { 
+    name: 'Employers', 
+    icon: Users, 
+    href: '/admin/employer',
+    hasSub: true,
+    subItems: [
+      { name: 'List', href: '/admin/employer' },
+      { name: 'Register', href: '/admin/employerRegistration' },
+    ]
+  },
   { name: 'DTR', icon: ClipboardCheck, href: '/admin/dtr' },
-  { name: 'Payroll', icon: Banknote, href: '/admin/payroll' },
+  { 
+    name: 'Payroll', 
+    icon: Banknote, 
+    href: '/admin/payroll',
+    hasSub: true,
+    subItems: [
+      { name: 'Run Payroll', href: '/admin/payroll' },
+      { name: 'Deductions', href: '/admin/deduction' },
+      { name: 'Leaves', href: '/admin/leaves' },
+    ]
+  },
   { name: 'Calendar', icon: Calendar, href: '/admin/adminCalendar' },
   {
     name: 'Activities',
     icon: Clock,
     href: '/admin/activities',
   },
-  { name: 'Register', icon: ScanFace, href: '/admin/employerRegistration' },
 ];
 
 const bottomItems = [
@@ -63,7 +81,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
   const router = useRouter();
   const pathname = usePathname();
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  const [openMenus, setOpenMenus] = useState<string[]>(['Activities']);
+  const [openMenus, setOpenMenus] = useState<string[]>(['Employers', 'Payroll']);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const supabase = createClient();
