@@ -60,6 +60,14 @@ const PayrollPage = () => {
     const [absentCount, setAbsentCount] = useState(0);
     const [processing, setProcessing] = useState(false);
     const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingRecord, setEditingRecord] = useState<PayrollRecord | null>(null);
+    const [editSalaryAmount, setEditSalaryAmount] = useState('');
+    const [editDeductions, setEditDeductions] = useState('');
+    const [editStatus, setEditStatus] = useState<'pending' | 'processed' | 'paid'>('pending');
+    const [isEditing, setIsEditing] = useState(false);
 
     const formatDate = (dateStr: string) => {
         const [year, month, day] = dateStr.split('-');
@@ -242,20 +250,70 @@ const PayrollPage = () => {
         }
     };
 
-    const handleDeletePayroll = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this payroll record?')) return;
-        
+    const handleDeletePayroll = async () => {
+        if (!showDeleteConfirm) return;
+
+        setIsDeleting(true);
         try {
-            const res = await fetch(`${ENV.API_URL}/payroll/${id}`, {
+            const res = await fetch(`${ENV.API_URL}/payroll/${showDeleteConfirm}`, {
                 method: 'DELETE'
             });
             
             if (res.ok) {
-                setPayrollRecords(prev => prev.filter(p => p.id !== id));
-                setOpenActionMenu(null);
+                setPayrollRecords(prev => prev.filter(p => p.id !== showDeleteConfirm));
             }
         } catch (e) {
             console.error('Failed to delete payroll:', e);
+        } finally {
+            setIsDeleting(false);
+            setShowDeleteConfirm(null);
+            setOpenActionMenu(null);
+        }
+    };
+
+    const handleEditClick = (record: PayrollRecord) => {
+        setEditingRecord(record);
+        setEditSalaryAmount(record.base_salary.toString());
+        setEditDeductions(record.total_deduction.toString());
+        setEditStatus(record.status as 'pending' | 'processed' | 'paid');
+        setShowEditModal(true);
+        setOpenActionMenu(null);
+    };
+
+    const handleUpdatePayroll = async () => {
+        if (!editingRecord || !editSalaryAmount) return;
+
+        setIsEditing(true);
+        try {
+            const baseSalary = parseFloat(editSalaryAmount);
+            const totalDeduction = parseFloat(editDeductions) || 0;
+            const netPay = baseSalary - totalDeduction;
+
+            const res = await fetch(`${ENV.API_URL}/payroll/${editingRecord.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...editingRecord,
+                    base_salary: baseSalary,
+                    total_deduction: totalDeduction,
+                    net_pay: netPay,
+                    status: editStatus
+                })
+            });
+
+            if (res.ok) {
+                setPayrollRecords(prev => prev.map(p =>
+                    p.id === editingRecord.id
+                        ? { ...p, base_salary: baseSalary, total_deduction: totalDeduction, net_pay: netPay, status: editStatus }
+                        : p
+                ));
+                setShowEditModal(false);
+                setEditingRecord(null);
+            }
+        } catch (e) {
+            console.error('Failed to update payroll:', e);
+        } finally {
+            setIsEditing(false);
         }
     };
 
@@ -477,14 +535,17 @@ const PayrollPage = () => {
                                                                 Mark Paid
                                                             </button>
                                                             <button
-                                                                onClick={() => setOpenActionMenu(null)}
+                                                                onClick={() => handleEditClick(record)}
                                                                 className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
                                                             >
                                                                 <Pencil className="w-4 h-4 text-secondary" />
                                                                 Edit Payroll
                                                             </button>
                                                             <button
-                                                                onClick={() => handleDeletePayroll(record.id)}
+                                                                onClick={() => {
+                                                                    setShowDeleteConfirm(record.id);
+                                                                    setOpenActionMenu(null);
+                                                                }}
                                                                 className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                                                             >
                                                                 <Trash2 className="w-4 h-4" />
@@ -590,6 +651,132 @@ const PayrollPage = () => {
                             >
                                 {processing ? 'Creating...' : 'Create Payroll'}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-[#0A0A0A] rounded-xl p-6 w-full max-w-sm shadow-2xl border border-gray-100 dark:border-white/10 animate-in zoom-in-95 duration-200">
+                        <div className="flex flex-col items-center text-center gap-4">
+                            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                                <Trash2 className="w-6 h-6 text-red-500" />
+                            </div>
+
+                            <div className="space-y-1">
+                                <h3 className="text-lg font-bold tracking-tight text-foreground">Confirm Deletion</h3>
+                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
+                                    Are you sure you want to remove this payroll record? This action cannot be undone.
+                                </p>
+                            </div>
+
+                            <div className="flex gap-3 w-full">
+                                <button
+                                    onClick={() => setShowDeleteConfirm(null)}
+                                    className="flex-1 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 text-[10px] font-bold uppercase tracking-widest text-foreground hover:bg-gray-100 dark:hover:bg-white/10 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDeletePayroll}
+                                    disabled={isDeleting}
+                                    className="flex-1 py-3 rounded-xl bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-red-500/20 hover:bg-red-600 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+                                >
+                                    {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Payroll Modal */}
+            {showEditModal && editingRecord && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-[#0A0A0A] rounded-xl p-5 w-full max-w-sm shadow-2xl border border-gray-100 dark:border-white/10 animate-in zoom-in-95 duration-200">
+                        <div className="flex flex-col gap-4">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-base font-bold tracking-tight text-foreground">Edit Payroll</h3>
+                                <button
+                                    onClick={() => {
+                                        setShowEditModal(false);
+                                        setEditingRecord(null);
+                                    }}
+                                    className="p-1 hover:bg-muted rounded-lg transition-colors"
+                                >
+                                    <X className="w-4 h-4 text-foreground cursor-pointer" />
+                                </button>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div className="p-3 bg-muted rounded-lg">
+                                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Employee</div>
+                                    <div className="text-sm font-bold text-foreground">{editingRecord.full_name}</div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Base Salary (PHP)</label>
+                                    <input
+                                        type="number"
+                                        value={editSalaryAmount}
+                                        onChange={(e) => setEditSalaryAmount(e.target.value)}
+                                        className="w-full px-3 py-2.5 bg-muted border border-gray-200 dark:border-white/10 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary transition-all text-sm"
+                                        placeholder="Enter amount"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Deductions (PHP)</label>
+                                    <input
+                                        type="number"
+                                        value={editDeductions}
+                                        onChange={(e) => setEditDeductions(e.target.value)}
+                                        className="w-full px-3 py-2.5 bg-muted border border-gray-200 dark:border-white/10 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary transition-all text-sm"
+                                        placeholder="Enter deductions"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Status</label>
+                                    <select
+                                        value={editStatus}
+                                        onChange={(e) => setEditStatus(e.target.value as 'pending' | 'processed' | 'paid')}
+                                        className="w-full px-3 py-2.5 bg-muted border border-gray-200 dark:border-white/10 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-secondary transition-all text-sm dark:[color-scheme:dark]"
+                                    >
+                                        <option value="pending">Pending</option>
+                                        <option value="processed">Processed</option>
+                                        <option value="paid">Paid</option>
+                                    </select>
+                                </div>
+
+                                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                                    <div className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">New Net Pay</div>
+                                    <div className="text-base font-bold text-foreground">
+                                        ₱ {((parseFloat(editSalaryAmount) || 0) - (parseFloat(editDeductions) || 0)).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => {
+                                        setShowEditModal(false);
+                                        setEditingRecord(null);
+                                    }}
+                                    className="flex-1 py-2.5 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 text-[10px] font-bold uppercase tracking-widest text-foreground hover:bg-gray-100 dark:hover:bg-white/10 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleUpdatePayroll}
+                                    disabled={!editSalaryAmount || isEditing}
+                                    className="flex-1 py-2.5 rounded-lg bg-secondary text-white text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-secondary/20 hover:opacity-90 transition-all disabled:opacity-50"
+                                >
+                                    {isEditing ? 'Saving...' : 'Save Changes'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
