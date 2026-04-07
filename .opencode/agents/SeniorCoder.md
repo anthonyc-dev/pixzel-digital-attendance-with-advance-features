@@ -1,5 +1,5 @@
 ---
-model: minimax/M2.5
+model: minimax/minimax-m2.5-free
 mode: primary
 temperature: 0.15
 maxSteps: 20

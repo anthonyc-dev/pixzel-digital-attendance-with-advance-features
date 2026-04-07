@@ -1,5 +1,5 @@
 ---
-model: minimax/M2.5
+model: minimax/minimax-m2.5-free
 mode: subagent
 temperature: 0.1
 maxSteps: 10
