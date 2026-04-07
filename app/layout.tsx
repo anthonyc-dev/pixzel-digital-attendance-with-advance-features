@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { TooltipProvider } from "@/components/ui/tooltip"
 import Script from "next/script";
 import { Plus_Jakarta_Sans, DM_Serif_Display, Fira_Code, Outfit } from "next/font/google";
+import { Analytics } from '@vercel/analytics/next';
 
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
@@ -100,6 +101,7 @@ export default function RootLayout({
         />
         <TooltipProvider>{children}</TooltipProvider>
         <Toaster />
+        <Analytics />
         <Script id="theme-script" strategy="afterInteractive">{`
           (function() {
             const theme = localStorage.getItem('theme');
