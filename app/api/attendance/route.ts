@@ -70,10 +70,37 @@ export async function GET(request: Request) {
   }
 
   const mappedData =
-    data?.map((log: AttendanceLog) => ({
-      ...log,
-      created_at: log.timestamp,
-    })) || [];
+    data?.map((log: AttendanceLog) => {
+      let finalStatus = log.status;
+      
+      // Retroactively fix the bugged statuses for 'time_in' using local PHT time.
+      if (log.type === "time_in") {
+        const dateObj = new Date(log.timestamp);
+        const formatter = new Intl.DateTimeFormat("en-US", {
+          timeZone: "Asia/Manila",
+          hour12: false,
+          hour: "numeric",
+          minute: "numeric",
+        });
+        const formattedParts = formatter.formatToParts(dateObj);
+        
+        let hours = parseInt(formattedParts.find(p => p.type === 'hour')?.value || "0", 10);
+        if (hours === 24) hours = 0;
+        const minutes = parseInt(formattedParts.find(p => p.type === 'minute')?.value || "0", 10);
+
+        if (hours > 9 || (hours === 9 && minutes >= 15)) {
+          finalStatus = "late";
+        } else {
+          finalStatus = "on_time"; 
+        }
+      }
+
+      return {
+        ...log,
+        status: finalStatus,
+        created_at: log.timestamp,
+      };
+    }) || [];
 
   return NextResponse.json(mappedData);
 }
@@ -216,11 +243,21 @@ export async function POST(req: Request) {
       }
     }
 
-    // 6. Determine status (9:15 AM or later is late)
-    // NOTE: We use 'on_time' internally for DB constraint compatibility,
-    // but the UI will display it as 'present'.
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
+    // Determine status (9:15 AM or later is late) using PHT timezone consistently
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Manila',
+      hour12: false,
+      hour: 'numeric',
+      minute: 'numeric',
+    });
+    const formattedParts = formatter.formatToParts(now);
+    
+    // In hour12: false, 24 is sometimes emitted for midnight, standard parse handled safely
+    const hoursStr = formattedParts.find(p => p.type === 'hour')?.value || '0';
+    let hours = parseInt(hoursStr, 10);
+    if (hours === 24) hours = 0;
+    
+    const minutes = parseInt(formattedParts.find(p => p.type === 'minute')?.value || '0', 10);
 
     let status = "on_time";
 
