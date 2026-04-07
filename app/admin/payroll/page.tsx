@@ -445,7 +445,9 @@ const PayrollPage = () => {
     }, []);
 
     const handleMarkAsPaid = async (id: string) => {
+        console.log('handleMarkAsPaid called with id:', id);
         const record = payrollRecords.find(p => p.id === id);
+        console.log('Found record:', record);
         if (!record) return;
 
         try {
@@ -454,8 +456,11 @@ const PayrollPage = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...record, status: 'paid' })
             });
+            console.log('Mark as paid response:', res.status);
 
             if (res.ok) {
+                const updated = await res.json();
+                console.log('Updated record:', updated);
                 setPayrollRecords(prev => prev.map(p =>
                     p.id === id ? { ...p, status: 'paid' } : p
                 ));
@@ -469,10 +474,12 @@ const PayrollPage = () => {
         if (!showDeleteConfirm) return;
 
         setIsDeleting(true);
+        console.log('Deleting payroll with id:', showDeleteConfirm);
         try {
             const res = await fetch(`${ENV.API_URL}/payroll/${showDeleteConfirm}`, {
                 method: 'DELETE'
             });
+            console.log('Delete response:', res.status);
 
             if (res.ok) {
                 setPayrollRecords(prev => prev.filter(p => p.id !== showDeleteConfirm));
@@ -764,8 +771,8 @@ const PayrollPage = () => {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="p-5">
-                                                <div className="relative inline-block">
+                                            <td className="p-5 overflow-visible">
+                                                <div className="relative inline-block action-menu-button">
                                                     <button
                                                         type="button"
                                                         onClick={() => setOpenActionMenu(openActionMenu === record.id ? null : record.id)}
@@ -774,16 +781,28 @@ const PayrollPage = () => {
                                                         <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
                                                     </button>
                                                     {openActionMenu === record.id && (
-                                                        <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-[#0A0A0A] rounded-xl shadow-xl border border-gray-100 dark:border-white/10 py-1 z-10">
+                                                        <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-[#0A0A0A] rounded-xl shadow-xl border border-gray-100 dark:border-white/10 py-1 z-[200] action-menu-dropdown">
                                                             <button
                                                                 onClick={() => {
-                                                                    handleMarkAsPaid(record.id);
+                                                                    console.log('Pay Slip clicked for record:', record.id);
+                                                                    setPayslipRecord(record);
+                                                                    setShowPayslip(true);
                                                                     setOpenActionMenu(null);
                                                                 }}
                                                                 className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-secondary hover:bg-gray-100 dark:hover:bg-white/10 cursor-pointer"
                                                             >
                                                                 <FileText className="w-4 h-4" />
                                                                 Pay Slip
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    handleMarkAsPaid(record.id);
+                                                                    setOpenActionMenu(null);
+                                                                }}
+                                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 cursor-pointer"
+                                                            >
+                                                                <CheckCircle className="w-4 h-4" />
+                                                                Mark as Paid
                                                             </button>
                                                             <button
                                                                 onClick={() => handleEditClick(record)}
