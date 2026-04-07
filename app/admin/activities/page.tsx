@@ -10,7 +10,8 @@ import {
     AlertCircle, 
     LogIn, 
     LogOut, 
-    Terminal 
+    Terminal,
+    Search
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -44,6 +45,7 @@ const ActivitiesPage = () => {
     const [, setEmployees] = useState<Employee[]>([]);
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         const fetchData = async () => {
@@ -74,6 +76,16 @@ const ActivitiesPage = () => {
     const recentLogs = [...attendance]
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, 50);
+
+    const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+
+    const filteredRecentLogs = normalizedSearchQuery
+        ? recentLogs.filter((log) =>
+            (log.employer_registration?.employer_name || '')
+                .toLowerCase()
+                .includes(normalizedSearchQuery)
+        )
+        : recentLogs;
 
     const stats = [
         { title: 'Total Logs', value: attendance.length.toString().padStart(2, '0'), sub: 'All Time Activity', icon: LucideHistory, iconColor: 'text-blue-400', bgColor: 'bg-blue-400/5', borderColor: 'border-blue-400/10' },
@@ -138,6 +150,21 @@ const ActivitiesPage = () => {
                 )}
             </section>
 
+            {/* Search Bar */}
+            <section className="w-full">
+                <div className="relative w-full max-w-md">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search employee name..."
+                        className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-xs font-medium text-foreground shadow-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-secondary dark:border-white/10 dark:bg-white/2"
+                        aria-label="Search activity logs"
+                    />
+                </div>
+            </section>
+
             {/* Logs Table Area */}
             <section className="flex flex-col gap-3">
                 <div className="w-full bg-white dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-xl overflow-hidden shadow-sm">
@@ -159,15 +186,17 @@ const ActivitiesPage = () => {
                                             <td className="p-4" colSpan={5}><div className="h-8 w-full bg-gray-50 dark:bg-white/[0.01] rounded animate-pulse" /></td>
                                         </tr>
                                     ))
-                                ) : recentLogs.length === 0 ? (
+                                ) : filteredRecentLogs.length === 0 ? (
                                     <tr>
                                         <td colSpan={5} className="p-12 text-center text-muted-foreground flex flex-col items-center gap-3">
                                             <LucideHistory className="w-8 h-8 opacity-20" />
-                                            <p className="font-bold uppercase tracking-widest text-[9px]">No activity logs recorded yet</p>
+                                            <p className="font-bold uppercase tracking-widest text-[9px]">
+                                                {normalizedSearchQuery ? 'No matching activity logs found' : 'No activity logs recorded yet'}
+                                            </p>
                                         </td>
                                     </tr>
                                 ) : (
-                                    recentLogs.map((log) => (
+                                    filteredRecentLogs.map((log) => (
                                         <tr key={log.id} className="group hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors cursor-default">
                                             <td className="px-4 py-3">
                                                 <div className="flex flex-col">

@@ -50,11 +50,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <main 
         ref={mainRef}
         className={cn(
-          "flex-1 flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto overflow-x-hidden relative z-10 transition-all duration-300 min-h-0 min-w-0 bg-gray-50/50 dark:bg-[#0a0a0a]",
+          "flex-1 flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto relative transition-all duration-300 min-h-0 bg-[#f5f5f5] dark:bg-[#0a0a0a]",
         )}
       >
         {/* Mobile Header */}
-        <div className="lg:hidden flex items-center justify-between mb-4 md:mb-6 sticky top-0 z-30 py-2 bg-white/80 dark:bg-black/80 backdrop-blur-lg">
+        <div className="lg:hidden flex items-center justify-between mb-4 md:mb-6 sticky top-0 z-30 py-2 backdrop-blur-lg">
           <button
             onClick={() => setIsMobileOpen(true)}
             className="p-2.5 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10"
