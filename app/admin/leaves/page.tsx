@@ -149,7 +149,7 @@ const LeavesPage = () => {
             setSubmitting(false);
         }
     };
-    
+
     return (
         <>
             <div className="flex flex-col gap-4 sm:gap-6 lg:gap-8 w-full mx-auto max-w-7xl animate-in fade-in duration-200 ease-out pb-4 sm:pb-6 lg:pb-10">
@@ -160,7 +160,7 @@ const LeavesPage = () => {
                             Manage employee leave requests
                         </p>
                     </div>
-                    <button 
+                    <button
                         onClick={() => setIsModalOpen(true)}
                         className="flex items-center gap-2 px-4 py-2.5 bg-secondary text-white rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all"
                     >
@@ -209,7 +209,7 @@ const LeavesPage = () => {
                                     </tr>
                                 ) : (
                                     filteredLeaves.map((leave) => (
-                                        <tr 
+                                        <tr
                                             key={leave.id}
                                             className="group hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-all border-b border-gray-100 dark:border-white/5 last:border-0 h-fit"
                                         >
@@ -261,7 +261,7 @@ const LeavesPage = () => {
                             <div className="flex items-center gap-2">
                                 <h2 className="text-lg font-bold tracking-tight text-foreground">Request Leave</h2>
                             </div>
-                            <button 
+                            <button
                                 onClick={() => setIsModalOpen(false)}
                                 className="p-1.5 hover:bg-muted rounded-lg transition-colors"
                             >
