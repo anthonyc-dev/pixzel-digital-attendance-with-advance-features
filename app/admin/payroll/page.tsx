@@ -98,7 +98,7 @@ const PayrollPage = () => {
         const month = date.getMonth() + 1;
         const day = date.getDate();
         const shortYear = String(year).slice(-2);
-        
+
         if (day <= 15) {
             return {
                 startDate: `${year}-${String(month).padStart(2, '0')}-01`,
@@ -168,9 +168,9 @@ const PayrollPage = () => {
             if (res.ok) {
                 const data = await res.json();
                 const logs = Array.isArray(data) ? data : (data.data || []);
-                
+
                 const grouped: Record<string, DTRRecord> = {};
-                
+
                 logs.forEach((log: any) => {
                     // Extract PHT local date string (YYYY-MM-DD)
                     const dateObj = new Date(log.timestamp);
@@ -183,7 +183,7 @@ const PayrollPage = () => {
                     const m = parts.find(p => p.type === 'month')?.value;
                     const d = parts.find(p => p.type === 'day')?.value;
                     const dateKey = `${y}-${m}-${d}`;
-                    
+
                     if (!grouped[dateKey]) {
                         grouped[dateKey] = {
                             id: log.id,
@@ -192,7 +192,7 @@ const PayrollPage = () => {
                             is_late: false,
                         };
                     }
-                    
+
                     if (log.type === 'time_in') {
                         if (log.status === 'late') {
                             grouped[dateKey].is_late = true;
@@ -200,7 +200,7 @@ const PayrollPage = () => {
                         }
                     }
                 });
-                
+
                 return Object.values(grouped);
             }
         } catch (e) {
@@ -211,7 +211,7 @@ const PayrollPage = () => {
 
     const computePayroll = useCallback(async (employer: Employer, startDate: string, endDate: string, periodStr: string) => {
         console.log('Computing payroll for:', employer.employer_name, 'employer_id:', employer.employer_id, 'base_salary:', employer.base_salary);
-        
+
         const dtrRecords: DTRRecord[] = await fetchDTRData(employer.employer_id, startDate, endDate);
         console.log('DTR Records found:', dtrRecords.length, dtrRecords);
 
@@ -221,8 +221,8 @@ const PayrollPage = () => {
         // Ensure we properly parse the Date objects within the precise scope of the payroll period
         const currentDate = new Date(startDate);
         // Set time to safely avoid timezone offset stripping
-        currentDate.setHours(12, 0, 0, 0); 
-        
+        currentDate.setHours(12, 0, 0, 0);
+
         const end = new Date(endDate);
         end.setHours(12, 0, 0, 0);
 
@@ -285,7 +285,7 @@ const PayrollPage = () => {
         const absentDeduction = absentCount * absentRate;
         const totalDeduction = lateDeduction + absentDeduction;
         const netPay = halfMonthSalary - totalDeduction;
-        
+
         console.log('Half month salary:', halfMonthSalary, 'Rates: late=', lateRate, 'absent=', absentRate, 'Deductions:', totalDeduction, 'Net pay:', netPay);
 
         return {
@@ -325,7 +325,7 @@ const PayrollPage = () => {
                 );
 
                 const baseSalary = parseFloat(String(employer.base_salary)) || 0;
-                
+
                 if (baseSalary <= 0) {
                     skippedCount++;
                     console.log('Skipping - no base salary:', employer.employer_name);
@@ -372,7 +372,7 @@ const PayrollPage = () => {
                             status: 'pending'
                         })
                     });
-                    
+
                     if (!res.ok) {
                         const error = await res.text();
                         console.error('Failed to create payroll:', error);
@@ -426,7 +426,7 @@ const PayrollPage = () => {
 
                 const startYear = '20' + startParts[2];
                 const endYear = '20' + endParts[2];
-                
+
                 const startDate = `${startYear}-${startParts[0]}-${startParts[1]}`;
                 const endDate = `${endYear}-${endParts[0]}-${endParts[1]}`;
 
@@ -651,7 +651,7 @@ const PayrollPage = () => {
                             </>
                         )}
                     </button>
-                    <button 
+                    <button
                         onClick={handleExportCSV}
                         className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-all"
                     >
@@ -989,7 +989,7 @@ const PayrollPage = () => {
                                 <h3 className="text-xs font-bold uppercase tracking-widest">Pay Slip</h3>
                                 <p className="text-[10px] opacity-80 mt-0.5">{formatPeriod(payslipRecord.period)}</p>
                             </div>
-                            
+
                             <div className="p-4 space-y-3">
                                 <div className="pb-2 border-b border-gray-100 dark:border-white/10">
                                     <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Employee</div>
