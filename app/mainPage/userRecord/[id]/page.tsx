@@ -24,7 +24,6 @@ import {
     Plane,
     Phone,
     Mail,
-    MapPin,
     CalendarDays,
     Wallet,
 } from 'lucide-react';
