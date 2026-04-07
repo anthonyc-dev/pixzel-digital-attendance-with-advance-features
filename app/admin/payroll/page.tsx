@@ -63,9 +63,6 @@ interface DTRRecord {
     date: string;
     status: string;
     is_late: boolean;
-    time_in?: string | null;
-    time_out?: string | null;
-    excuse?: string | null;
 }
 
 interface DeductionSetting {
@@ -225,12 +222,7 @@ const PayrollPage = () => {
         return [];
     };
 
-    const computePayroll = useCallback(async (
-        employer: Employer,
-        startDate: string,
-        endDate: string,
-        periodStr: string
-    ) => {
+    const computePayroll = useCallback(async (employer: Employer, startDate: string, endDate: string, periodStr: string) => {
         console.log('Computing payroll for:', employer.employer_name, 'employer_id:', employer.employer_id, 'base_salary:', employer.base_salary);
 
         const dtrRecords: DTRRecord[] = await fetchDTRData(employer.employer_id, startDate, endDate);
