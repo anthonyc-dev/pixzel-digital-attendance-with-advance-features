@@ -50,7 +50,33 @@ export async function GET(request: Request) {
   }
 
   const mappedData =
-    data?.map((record: Record<string, unknown>) => ({
+    data?.map((record: Record<string, unknown>) => {
+      let isLate = record.is_late as boolean;
+      let finalStatus = record.status;
+
+      // Retroactively fix bugged 'is_late' and 'status' based on 'time_in' string.
+      // time_in looks like "09:19 AM" or "05:45 PM"
+      const timeInStr = record.time_in as string;
+      if (timeInStr && timeInStr !== '--:-- --') {
+        const [timePart, amPm] = timeInStr.split(' ');
+        if (timePart && amPm) {
+          const [hourStr, minStr] = timePart.split(':');
+          let hours = parseInt(hourStr, 10);
+          const minutes = parseInt(minStr, 10);
+
+          if (amPm.toUpperCase() === 'PM' && hours !== 12) hours += 12;
+          if (amPm.toUpperCase() === 'AM' && hours === 12) hours = 0;
+
+          if (hours > 9 || (hours === 9 && minutes >= 15)) {
+            isLate = true;
+            if (finalStatus === "present" || finalStatus === "on_time") {
+                finalStatus = "late";
+            }
+          }
+        }
+      }
+
+      return {
       id: record.id,
       employer_registration_id: record.employer_registration_id,
       employer_id: (record.employer_registration as Record<string, unknown>)
@@ -66,11 +92,12 @@ export async function GET(request: Request) {
       time_out: record.time_out,
       total_hours: record.total_hours,
       overtime_minutes: record.overtime_minutes,
-      status: record.status,
-      is_late: record.is_late,
+      status: finalStatus,
+      is_late: isLate,
       excuse: record.excuse,
       created_at: record.created_at,
-    })) || [];
+      };
+    }) || [];
 
   return NextResponse.json(mappedData);
 }
