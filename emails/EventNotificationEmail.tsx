@@ -20,7 +20,9 @@ interface EventNotificationEmailProps {
   endDate: string;
 }
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://pixzel-digital-attendance-2026.vercel.app/Pixzel-Digital-Logo-Light-Land.png";
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL
+  ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")
+  : "https://pixzel-digital-attendance-2026.vercel.app";
 
 export const EventNotificationEmail = ({
   eventTitle,
@@ -46,7 +48,7 @@ export const EventNotificationEmail = ({
         <Container style={container}>
           <Section style={logoSection}>
             <Img
-              src={`https://pixzel-digital-attendance-2026.vercel.app/Pixzel-Digital-Logo-Light-Land.png`}
+              src={`${baseUrl}/Pixzel-Digital-Logo-Light-Land.png`}
               width="40"
               height="40"
               alt="Company Logo"

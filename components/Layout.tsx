@@ -31,7 +31,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <div className="flex bg-white dark:bg-black h-screen overflow-hidden text-primary dark:text-white font-sans transition-colors duration-500 selection:bg-secondary/40">
+    <div className="flex h-screen w-full min-w-0 overflow-hidden bg-white text-primary transition-colors duration-500 selection:bg-secondary/40 dark:bg-black dark:text-white">
       {/* Mobile Overlay */}
       {isMobileOpen && (
         <div 
@@ -67,7 +67,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         <div className="fixed top-0 right-0 w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-secondary/5 rounded-full blur-[100px] md:blur-[120px] pointer-events-none" />
         
         {/* Content Area Rendering */}
-        <div className="relative z-0 h-full">
+        <div className="relative z-0 h-full min-w-0 overflow-x-hidden">
           {children}
         </div>
       </main>

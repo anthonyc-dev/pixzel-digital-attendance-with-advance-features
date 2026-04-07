@@ -126,11 +126,11 @@ const EmployerPage = () => {
           </header>
 
           <section className="flex flex-col gap-4 sm:gap-6 flex-1 min-h-0">
-            <div className="w-full bg-white dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-lg overflow-hidden shadow-xl overflow-x-auto">
+            <div className="w-full bg-white dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-lg overflow-hidden shadow-xl overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               <table className="w-full text-left border-collapse min-w-[600px]">
                 <thead>
                   <tr className="bg-gray-50 dark:bg-white/[0.03] border-b border-gray-100 dark:border-white/5">
-                    <th className="px-4 py-3 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 w-20 sm:w-24 text-center whitespace-nowrap">Picture</th>
+                    <th className="px-4 py-3 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 w-20 sm:w-24 text-center whitespace-nowrap sticky left-0 bg-gray-50 dark:bg-[#1A1A1A] z-30 shadow-[1px_0_0_0_rgba(243,244,246,1)] dark:shadow-[1px_0_0_0_rgba(255,255,255,0.05)]">Picture</th>
                     <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 w-24 whitespace-nowrap">ID</th>
                     <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 min-w-[120px] whitespace-nowrap">Name</th>
                     <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 whitespace-nowrap">Position</th>
@@ -178,7 +178,7 @@ const EmployerPage = () => {
                         onClick={() => setSelectedEmployer(employer)}
                         className="group hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-all border-b border-gray-100 dark:border-white/5 last:border-0 h-fit cursor-pointer"
                       >
-                        <td className="p-2 w-20 sm:w-24 align-middle text-center border-r border-gray-100 dark:border-white/5">
+                        <td className="p-2 w-20 sm:w-24 align-middle text-center border-r border-gray-100 dark:border-white/5 sticky left-0 bg-white dark:bg-[#0A0A0A] z-30 shadow-[1px_0_0_0_rgba(243,244,246,1)] dark:shadow-[1px_0_0_0_rgba(255,255,255,0.05)]">
                           <button
                             onClick={() => employer.image && setPreviewImage(employer.image)}
                             className="w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-none border border-gray-100 dark:border-white/10 overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-white/5 hover:opacity-80 transition-opacity cursor-zoom-in"
