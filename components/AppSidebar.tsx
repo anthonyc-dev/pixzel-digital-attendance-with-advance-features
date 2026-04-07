@@ -7,7 +7,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import {
   Calendar,
-  ScanFace,
   Clock,
   Settings,
   ChevronDown,
