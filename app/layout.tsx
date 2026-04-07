@@ -84,12 +84,25 @@ export default function RootLayout({
         <link rel="alternate" hrefLang="en" href={siteConfig.url} />
         <link rel="alternate" hrefLang="x-default" href={siteConfig.url} />
 
-        {/* Security headers */}
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="referrer" content="strict-origin-when-cross-origin" />
 
         {/* Resource hints */}
         <link rel="preload" href="/fonts/custom-font.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        
+        {/* Synchronous Theme Initialization */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            try {
+              const theme = localStorage.getItem('theme');
+              if (theme === 'light') {
+                document.documentElement.classList.remove('dark');
+              } else {
+                document.documentElement.classList.add('dark');
+              }
+            } catch (e) {}
+          })();
+        `}} />
       </head>
       <body className="min-h-full flex flex-col">
         <Script
@@ -100,16 +113,6 @@ export default function RootLayout({
         />
         <TooltipProvider>{children}</TooltipProvider>
         <Toaster />
-        <Script id="theme-script" strategy="afterInteractive">{`
-          (function() {
-            const theme = localStorage.getItem('theme');
-            if (theme === 'light') {
-              document.documentElement.classList.remove('dark');
-            } else {
-              document.documentElement.classList.add('dark');
-            }
-          })();
-        `}</Script>
       </body>
     </html>
   );
