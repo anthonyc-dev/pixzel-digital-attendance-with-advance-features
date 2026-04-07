@@ -22,12 +22,6 @@ interface PayslipEmailProps {
   position?: string;
 }
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL
-  ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")
-  : "https://pixzel-digital-attendance-2026.vercel.app/Pixzel-Digital-Logo-Light-Land.png";
-
-const logoUrl = `${baseUrl}/Pixzel-Digital-Logo-Light-Land.png`;
-
 export const PayslipEmail = ({
   employeeName,
   payPeriod,
