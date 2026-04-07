@@ -14,10 +14,21 @@ import {
     Pencil,
     Trash2,
     Calendar,
-    Loader2
+    Loader2,
+    FileText,
+    Printer
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ENV } from '@/lib/api';
+
+interface CalendarEvent {
+    id: string;
+    title: string;
+    start_date: string;
+    end_date: string;
+    type: 'holiday' | 'event' | 'meeting' | 'other';
+    description?: string;
+}
 
 interface PayrollRecord {
     id: string;
@@ -65,7 +76,7 @@ const PayrollPage = () => {
     const [payrollRecords, setPayrollRecords] = useState<PayrollRecord[]>([]);
     const [employers, setEmployers] = useState<Employer[]>([]);
     const [deductionSettings, setDeductionSettings] = useState<DeductionSetting | null>(null);
-    const [events, setEvents] = useState<any[]>([]);
+    const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -171,9 +182,11 @@ const PayrollPage = () => {
 
                 const grouped: Record<string, DTRRecord> = {};
 
-                logs.forEach((log: any) => {
+
+                logs.forEach((log: unknown) => {
+                    const logData = log as { id: string; timestamp: string; type: string; status: string; time_in?: string; time_out?: string };
                     // Extract PHT local date string (YYYY-MM-DD)
-                    const dateObj = new Date(log.timestamp);
+                    const dateObj = new Date(logData.timestamp);
                     const formatter = new Intl.DateTimeFormat('en-US', {
                         timeZone: 'Asia/Manila',
                         year: 'numeric', month: '2-digit', day: '2-digit'
@@ -186,15 +199,15 @@ const PayrollPage = () => {
 
                     if (!grouped[dateKey]) {
                         grouped[dateKey] = {
-                            id: log.id,
+                            id: logData.id,
                             date: dateKey,
                             status: 'present',
                             is_late: false,
                         };
                     }
 
-                    if (log.type === 'time_in') {
-                        if (log.status === 'late') {
+                    if (logData.type === 'time_in') {
+                        if (logData.status === 'late') {
                             grouped[dateKey].is_late = true;
                             grouped[dateKey].status = 'late';
                         }
@@ -407,49 +420,6 @@ const PayrollPage = () => {
         } catch (e) {
             console.error('Failed to generate payroll:', e);
             alert('Failed to generate payroll. Check console for details.');
-        } finally {
-            setRegeneratingId(null);
-        }
-    };
-
-    const handleRegenerateSingle = async (record: PayrollRecord) => {
-        const employer = employers.find(e => e.id === record.employer_registration_id);
-        if (!employer || !employer.base_salary) return;
-
-        setRegeneratingId(record.id);
-
-        try {
-            const parts = record.period.match(/(\d{2})\/(\d{2})\/(\d{2})/g);
-            if (parts && parts.length === 2) {
-                const startParts = parts[0].split('/');
-                const endParts = parts[1].split('/');
-
-                const startYear = '20' + startParts[2];
-                const endYear = '20' + endParts[2];
-
-                const startDate = `${startYear}-${startParts[0]}-${startParts[1]}`;
-                const endDate = `${endYear}-${endParts[0]}-${endParts[1]}`;
-
-                const computed = await computePayroll(employer, startDate, endDate, record.period);
-
-                await fetch(`${ENV.API_URL}/payroll/${record.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ...record,
-                        base_salary: computed.base_salary,
-                        gross_pay: computed.gross_pay,
-                        net_pay: computed.net_pay,
-                        total_deduction: computed.total_deduction,
-                        late_count: computed.late_count,
-                        absent_count: computed.absent_count
-                    })
-                });
-
-                await fetchData();
-            }
-        } catch (e) {
-            console.error('Failed to regenerate payroll:', e);
         } finally {
             setRegeneratingId(null);
         }
