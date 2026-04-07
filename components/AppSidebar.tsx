@@ -220,7 +220,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                 )}
 
                 {!isCollapsed && item.subItems && isMenuOpen && (
-                  <div className="relative ml-3 mt-1 pl-2 py-1 animate-in slide-in-from-top-2 duration-300">
+                  <div className="relative ml-10 mt-1 pl-3 py-1 animate-in slide-in-from-top-2 duration-300">
                     {item.subItems.map((sub, index) => {
                       const isSubActive = pathname === sub.href;
                       return (
@@ -235,12 +235,12 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                         >
                           {/* Vertical connection line */}
                           <div className={cn(
-                            "absolute -left-2 w-[2px] bg-gray-300 dark:bg-gray-600",
+                            "absolute -left-3 w-[2px] bg-gray-300 dark:bg-gray-600",
                             index === 0 ? "-top-1" : "top-0",
                             index === item.subItems!.length - 1 ? "bottom-1/2" : "bottom-0"
                           )} />
                           {/* Horizontal connection line that stretches on hover */}
-                          <div className="absolute -left-2 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-2 group-hover:w-[12px]" />
+                          <div className="absolute -left-3 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-3 group-hover:w-[16px]" />
 
                           <span className={cn(
                             "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10 group-hover:translate-x-1",
@@ -403,7 +403,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                 )}
 
                 {item.subItems && isMenuOpen && (
-                  <div className="relative ml-3 mt-1 pl-2 py-1">
+                  <div className="relative ml-10 mt-1 pl-3 py-1">
                     {item.subItems.map((sub, index) => {
                       const isSubActive = pathname === sub.href;
                       return (
@@ -419,12 +419,12 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                         >
                           {/* Vertical connection line */}
                           <div className={cn(
-                            "absolute -left-2 w-[2px] bg-gray-300 dark:bg-gray-600",
+                            "absolute -left-3 w-[2px] bg-gray-300 dark:bg-gray-600",
                             index === 0 ? "-top-1" : "top-0",
                             index === item.subItems!.length - 1 ? "bottom-1/2" : "bottom-0"
                           )} />
                           {/* Horizontal connection line that stretches on hover */}
-                          <div className="absolute -left-2 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-2 group-hover:w-[12px]" />
+                          <div className="absolute -left-3 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-3 group-hover:w-[16px]" />
 
                           <span className={cn(
                             "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10 group-hover:translate-x-1",
