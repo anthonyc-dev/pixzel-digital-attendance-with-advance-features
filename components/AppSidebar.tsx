@@ -205,7 +205,8 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                       "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer outline-none",
                       isActive
                         ? "bg-secondary text-white shadow-lg shadow-secondary/20"
-                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
+                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white",
+                      isCollapsed ? "justify-center px-0" : "justify-between"
                     )}
                   >
                     <div className="flex items-center gap-2.5">

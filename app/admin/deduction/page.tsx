@@ -159,21 +159,23 @@ const DeductionSettingsPage = () => {
                                 </p>
                             </div>
 
-                            {/* Save button — matches payroll Generate Payroll button style */}
-                            <button
-                                id="save-deduction-settings"
-                                onClick={handleSave}
-                                disabled={saving || !hasChanges}
-                                className={cn(
-                                    'mt-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold uppercase tracking-widest text-[9px] transition-all shadow-lg w-full bg-secondary text-white shadow-secondary/20 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed'
-                                )}
-                            >
-                                {saving ? (
-                                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Saving...</span></>
-                                ) : (
-                                    <><Save className="w-3.5 h-3.5" /><span>Save Deduction Rates</span></>
-                                )}
-                            </button>
+                            {/* Save button — right aligned, compact */}
+                            <div className="flex md:justify-end justify-center mt-4">
+                                <button
+                                    id="save-deduction-settings"
+                                    onClick={handleSave}
+                                    disabled={saving || !hasChanges}
+                                    className={cn(
+                                        'flex items-center justify-center gap-2 px-4 w-full sm:w-auto py-2.5 rounded-xl font-bold uppercase tracking-widest text-[9px] transition-all shadow-lg bg-secondary text-white shadow-secondary/20 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed'
+                                    )}
+                                >
+                                    {saving ? (
+                                        <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Saving...</span></>
+                                    ) : (
+                                        <><Save className="w-3.5 h-3.5" /><span>Save Deduction Rates</span></>
+                                    )}
+                                </button>
+                            </div>
 
                             {!hasChanges && current && (
                                 <p className="text-center text-[10px] text-muted-foreground">

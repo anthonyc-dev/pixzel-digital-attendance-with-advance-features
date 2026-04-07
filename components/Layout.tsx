@@ -54,7 +54,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         )}
       >
         {/* Mobile Header */}
-        <div className="lg:hidden flex items-center justify-between mb-4 md:mb-6 sticky top-0 z-30 py-2 backdrop-blur-lg">
+        <div className="lg:hidden flex items-center justify-between sticky top-0 z-30 py-2 backdrop-blur-lg">
           <button
             onClick={() => setIsMobileOpen(true)}
             className="p-2.5 rounded-xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10"
