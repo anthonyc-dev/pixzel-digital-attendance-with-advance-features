@@ -27,8 +27,6 @@ export default function SettingsPage() {
   const [pageBg, setPageBg] = useState<PageBackgroundId>('fire');
   const [accountEmail, setAccountEmail] = useState<string>('');
 
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
 
   const [newEmail, setNewEmail] = useState('');
@@ -51,26 +49,24 @@ export default function SettingsPage() {
     toast.success('Page background updated');
   };
 
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPassword.length < 6) {
-      toast.error('Password must be at least 6 characters.');
+  const handleSendPasswordResetEmail = async () => {
+    if (!accountEmail) {
+      toast.error('No email found for this account.');
       return;
     }
-    if (newPassword !== confirmPassword) {
-      toast.error('Passwords do not match.');
-      return;
-    }
+
     setPasswordLoading(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    const { error } = await supabase.auth.resetPasswordForEmail(accountEmail, {
+      redirectTo: `${window.location.origin}/auth/reset-password`,
+    });
     setPasswordLoading(false);
+
     if (error) {
       toast.error(error.message);
       return;
     }
-    toast.success('Password updated');
-    setNewPassword('');
-    setConfirmPassword('');
+
+    toast.success('We sent a password reset code/link to your email.');
   };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -151,40 +147,30 @@ export default function SettingsPage() {
             <CardTitle>Change password</CardTitle>
           </div>
           <CardDescription>
-            Signed-in users can set a new password here.
+            We’ll email a one-time code/link to your registered email before you can set a new password.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handlePasswordSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="new-password">New password</Label>
-              <Input
-                id="new-password"
-                type="password"
-                autoComplete="new-password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="••••••••"
-              />
+          <div className="space-y-4">
+            <div className="rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+              Email used for password reset:{' '}
+              <span className="font-medium text-foreground break-all">
+                {accountEmail || '—'}
+              </span>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirm password</Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-              />
-            </div>
-            <Button type="submit" disabled={passwordLoading} className="gap-2">
+
+            <Button
+              type="button"
+              onClick={handleSendPasswordResetEmail}
+              disabled={passwordLoading || !accountEmail}
+              className="gap-2"
+            >
               {passwordLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : null}
-              Update password
+              Send OTP email
             </Button>
-          </form>
+          </div>
         </CardContent>
       </Card>
 

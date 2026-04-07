@@ -24,7 +24,7 @@ interface PayslipEmailProps {
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL
   ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")
-  : "https://pixzel-digital-attendance-2026.vercel.app/Pixzel-Digital-Logo-Light-Land.png";
+  : "https://pixzel-digital-attendance-2026.vercel.app";
 
 const logoUrl = `${baseUrl}/Pixzel-Digital-Logo-Light-Land.png`;
 
@@ -47,7 +47,7 @@ export const PayslipEmail = ({
         <Container style={container}>
           <Section style={logoSection}>
             <Img
-              src={"https://pixzel-digital-attendance-2026.vercel.app/Pixzel-Digital-Logo-Light-Land.png"}
+              src={logoUrl}
               width="40"
               height="40"
               alt="Company Logo"
