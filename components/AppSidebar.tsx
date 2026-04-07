@@ -53,7 +53,7 @@ const sidebarItems: NavItem[] = [
 ];
 
 const bottomItems = [
-  { name: 'Settings', icon: Settings, href: '#' },
+  { name: 'Settings', icon: Settings, href: '/admin/settings' },
   { name: 'Logout', icon: LogOut, href: '/auth/login', isLogout: true },
 ];
 
@@ -124,7 +124,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
     <>
       {/* Desktop Sidebar */}
       <aside className={cn(
-        "hidden lg:flex h-screen bg-white dark:bg-black border-r border-gray-100 dark:border-white/5 flex-col transition-all duration-300 ease-out relative font-sans overflow-hidden",
+        "hidden lg:flex h-screen bg-white dark:bg-black border-r border-gray-100 dark:border-white/5 flex-col transition-all duration-300 ease-out relative z-30 shrink-0 font-sans overflow-hidden",
         isCollapsed ? "w-20" : "w-52 xl:w-64"
       )}>
         <div className={cn(
@@ -205,7 +205,8 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                       "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer outline-none",
                       isActive
                         ? "bg-secondary text-white shadow-lg shadow-secondary/20"
-                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
+                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white",
+                      isCollapsed ? "justify-center px-0" : "justify-between"
                     )}
                   >
                     <div className="flex items-center gap-2.5">

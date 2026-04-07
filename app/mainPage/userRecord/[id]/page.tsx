@@ -24,9 +24,8 @@ import {
     Plane,
     Phone,
     Mail,
-    MapPin,
     CalendarDays,
-    DollarSign,
+    Wallet,
 } from 'lucide-react';
 import { ENV } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -372,74 +371,148 @@ const UserRecord = () => {
             <Header realTimeClock={formattedTime} />
 
             <main className="max-w-7xl mx-auto p-6">
-                <div className="bg-card border border-border rounded-2xl p-6 mb-8">
-                    <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center overflow-hidden border border-border">
-                                {userProfile.avatar ? (
-                                    <Image
-                                        src={userProfile.avatar}
-                                        alt="User avatar"
-                                        className="w-full h-full object-cover"
-                                        width={80}
-                                        height={80}
-                                    />
-                                ) : (
-                                    <User className="w-10 h-10 text-muted-foreground" />
-                                )}
-                            </div>
-                            <div>
-                                <h1 className="text-2xl font-bold text-foreground">{userProfile.name}</h1>
-                                <p className="text-muted-foreground">{userProfile.position}</p>
-                                <div className="flex gap-4 mt-2 text-sm">
-                                    <span className="text-muted-foreground">ID: {userProfile.employeeId}</span>
+                <div className="relative mb-8 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                    <div
+                        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_60%_at_100%_-10%,color-mix(in_srgb,var(--secondary)_12%,transparent),transparent_55%)]"
+                        aria-hidden
+                    />
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-secondary/30 to-transparent" aria-hidden />
+
+                    <div className="relative flex flex-col justify-center item-center gap-8 p-6 md:p-8 lg:flex-row lg:items-start lg:justify-between lg:gap-10 ">
+                        <div className="flex min-w-0 flex-1 flex-col gap-8">
+                            <div className="flex flex-col gap-6">
+                                <div className="relative shrink-0 flex justify-between">
+                                    <div className="h-28 w-28 overflow-hidden rounded-2xl bg-muted ring-2 ring-secondary/20 ring-offset-4 ring-offset-card shadow-md md:h-32 md:w-32">
+                                        {userProfile.avatar ? (
+                                            <Image
+                                                src={userProfile.avatar}
+                                                alt=""
+                                                className="h-full w-full object-cover"
+                                                width={128}
+                                                height={128}
+                                            />
+                                        ) : (
+                                            <div className="flex h-full w-full items-center justify-center">
+                                                <User className="h-14 w-14 text-muted-foreground md:h-16 md:w-16" />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="">
+                                        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Local time</p>
+                                        <p className="mt-1 text-xl font-semibold tabular-nums tracking-tight text-foreground md:text-2xl">
+                                            {formattedTime}
+                                        </p>
+                                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{currentDate}</p>
+                                    </div>
                                 </div>
-                                <div className="mt-3 space-y-1 text-sm">
+
+                                <div className="w-full max-w-3xl space-y-1 text-center lg:max-w-none lg:text-left">
+                                    <div className="flex flex-col items-center gap-2 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-3 lg:justify-start">
+                                        <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+                                            {userProfile.name}
+                                        </h1>
+                                        
+                                        <span className="inline-flex items-center rounded-full border border-border bg-muted/60 px-2.5 py-0.5 font-mono text-xs font-medium text-muted-foreground">
+                                            {userProfile.employeeId}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">{userProfile.position}</p>
+                                    {userProfile.department !== '---' && (
+                                        <p className="mt-1 flex items-center justify-center gap-1.5 text-xs text-muted-foreground lg:justify-start">
+                                            <Briefcase className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+                                            <span>{userProfile.department}</span>
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="min-w-0 w-full">
+                                <dl className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
                                     {userProfile.email !== '---' && (
-                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                            <Mail className="w-3 h-3" />
-                                            <span>{userProfile.email}</span>
+                                        <div className="flex gap-3 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 text-left backdrop-blur-sm transition-colors hover:bg-muted/40">
+                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background/80 text-muted-foreground shadow-sm">
+                                                <Mail className="h-4 w-4" aria-hidden />
+                                            </span>
+                                            <div className="min-w-0">
+                                                <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Email</dt>
+                                                <dd className="truncate text-sm text-foreground">{userProfile.email}</dd>
+                                            </div>
                                         </div>
                                     )}
                                     {userProfile.contactNo !== '---' && (
-                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                            <Phone className="w-3 h-3" />
-                                            <span>{userProfile.contactNo}</span>
+                                        <div className="flex gap-3 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 text-left backdrop-blur-sm transition-colors hover:bg-muted/40">
+                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background/80 text-muted-foreground shadow-sm">
+                                                <Phone className="h-4 w-4" aria-hidden />
+                                            </span>
+                                            <div className="min-w-0">
+                                                <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Phone</dt>
+                                                <dd className="text-sm text-foreground">{userProfile.contactNo}</dd>
+                                            </div>
                                         </div>
                                     )}
+
                                     {userProfile.address !== '---' && (
-                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                            <MapPin className="w-3 h-3" />
-                                            <span>{userProfile.address}</span>
+                                        <div className="flex gap-3 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 text-left backdrop-blur-sm transition-colors hover:bg-muted/40">
+                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background/80 text-muted-foreground shadow-sm">
+                                                <Briefcase className="h-4 w-4" aria-hidden />
+                                            </span>
+                                            <div className="min-w-0">
+                                                <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Position</dt>
+                                                <dd className="capitalize text-sm text-foreground">{userProfile.address}</dd>
+                                            </div>
                                         </div>
                                     )}
+
                                     {userProfile.gender !== '---' && (
-                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                            <User className="w-3 h-3" />
-                                            <span className="capitalize">{userProfile.gender}</span>
+                                        <div className="flex gap-3 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 text-left backdrop-blur-sm transition-colors hover:bg-muted/40">
+                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background/80 text-muted-foreground shadow-sm">
+                                                <User className="h-4 w-4" aria-hidden />
+                                            </span>
+                                            <div className="min-w-0">
+                                                <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Gender</dt>
+                                                <dd className="capitalize text-sm text-foreground">{userProfile.gender}</dd>
+                                            </div>
                                         </div>
                                     )}
                                     {userProfile.birthDay !== '---' && (
-                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                            <CalendarDays className="w-3 h-3" />
-                                            <span>{userProfile.birthDay}</span>
+                                        <div className="flex gap-3 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 text-left backdrop-blur-sm transition-colors hover:bg-muted/40">
+                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background/80 text-muted-foreground shadow-sm">
+                                                <CalendarDays className="h-4 w-4" aria-hidden />
+                                            </span>
+                                            <div className="min-w-0">
+                                                <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Date of birth</dt>
+                                                <dd className="text-sm text-foreground">{userProfile.birthDay}</dd>
+                                            </div>
                                         </div>
                                     )}
                                     {userProfile.baseSalary !== '---' && (
-                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                            <DollarSign className="w-3 h-3" />
-                                            <span>₱{userProfile.baseSalary}</span>
+                                        <div className="flex gap-3 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 text-left backdrop-blur-sm transition-colors hover:bg-muted/40">
+                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background/80 text-muted-foreground shadow-sm">
+                                                <Wallet className="h-4 w-4" aria-hidden />
+                                            </span>
+                                            <div className="min-w-0">
+                                                <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Base salary</dt>
+                                                <dd className="text-sm font-medium tabular-nums text-foreground">₱{userProfile.baseSalary}</dd>
+                                            </div>
                                         </div>
                                     )}
-                                </div>
+                                    {/* {userProfile.address !== '---' && (
+                                        <div className="flex gap-3 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 text-left backdrop-blur-sm transition-colors hover:bg-muted/40 sm:col-span-2">
+                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background/80 text-muted-foreground shadow-sm">
+                                                <MapPin className="h-4 w-4" aria-hidden />
+                                            </span>
+                                            <div className="min-w-0">
+                                                <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Address</dt>
+                                                <dd className="text-sm leading-snug text-foreground">{userProfile.address}</dd>
+                                            </div>
+                                        </div>
+                                    )} */}
+                                </dl>
                             </div>
                         </div>
-                        <div className="text-right">
-                            <p className="text-sm text-muted-foreground">{currentDate}</p>
-                            <div className="mt-2 text-2xl font-bold text-foreground tabular-nums">
-                                {formattedTime}
-                            </div>
-                        </div>
+
+                        
                     </div>
                 </div>
 

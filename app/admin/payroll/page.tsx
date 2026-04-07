@@ -16,7 +16,8 @@ import {
     Calendar,
     Loader2,
     FileText,
-    Printer
+    Printer,
+    X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ENV } from '@/lib/api';
@@ -109,7 +110,7 @@ const PayrollPage = () => {
         const month = date.getMonth() + 1;
         const day = date.getDate();
         const shortYear = String(year).slice(-2);
-        
+
         if (day <= 15) {
             return {
                 startDate: `${year}-${String(month).padStart(2, '0')}-01`,
@@ -179,9 +180,10 @@ const PayrollPage = () => {
             if (res.ok) {
                 const data = await res.json();
                 const logs = Array.isArray(data) ? data : (data.data || []);
-                
+
                 const grouped: Record<string, DTRRecord> = {};
-                
+
+
                 logs.forEach((log: unknown) => {
                     const logData = log as { id: string; timestamp: string; type: string; status: string; time_in?: string; time_out?: string };
                     // Extract PHT local date string (YYYY-MM-DD)
@@ -195,7 +197,7 @@ const PayrollPage = () => {
                     const m = parts.find(p => p.type === 'month')?.value;
                     const d = parts.find(p => p.type === 'day')?.value;
                     const dateKey = `${y}-${m}-${d}`;
-                    
+
                     if (!grouped[dateKey]) {
                         grouped[dateKey] = {
                             id: logData.id,
@@ -204,7 +206,7 @@ const PayrollPage = () => {
                             is_late: false,
                         };
                     }
-                    
+
                     if (logData.type === 'time_in') {
                         if (logData.status === 'late') {
                             grouped[dateKey].is_late = true;
@@ -212,7 +214,7 @@ const PayrollPage = () => {
                         }
                     }
                 });
-                
+
                 return Object.values(grouped);
             }
         } catch (e) {
@@ -223,7 +225,7 @@ const PayrollPage = () => {
 
     const computePayroll = useCallback(async (employer: Employer, startDate: string, endDate: string, periodStr: string) => {
         console.log('Computing payroll for:', employer.employer_name, 'employer_id:', employer.employer_id, 'base_salary:', employer.base_salary);
-        
+
         const dtrRecords: DTRRecord[] = await fetchDTRData(employer.employer_id, startDate, endDate);
         console.log('DTR Records found:', dtrRecords.length, dtrRecords);
 
@@ -233,8 +235,8 @@ const PayrollPage = () => {
         // Ensure we properly parse the Date objects within the precise scope of the payroll period
         const currentDate = new Date(startDate);
         // Set time to safely avoid timezone offset stripping
-        currentDate.setHours(12, 0, 0, 0); 
-        
+        currentDate.setHours(12, 0, 0, 0);
+
         const end = new Date(endDate);
         end.setHours(12, 0, 0, 0);
 
@@ -297,7 +299,7 @@ const PayrollPage = () => {
         const absentDeduction = absentCount * absentRate;
         const totalDeduction = lateDeduction + absentDeduction;
         const netPay = halfMonthSalary - totalDeduction;
-        
+
         console.log('Half month salary:', halfMonthSalary, 'Rates: late=', lateRate, 'absent=', absentRate, 'Deductions:', totalDeduction, 'Net pay:', netPay);
 
         return {
@@ -337,7 +339,7 @@ const PayrollPage = () => {
                 );
 
                 const baseSalary = parseFloat(String(employer.base_salary)) || 0;
-                
+
                 if (baseSalary <= 0) {
                     skippedCount++;
                     console.log('Skipping - no base salary:', employer.employer_name);
@@ -384,7 +386,7 @@ const PayrollPage = () => {
                             status: 'pending'
                         })
                     });
-                    
+
                     if (!res.ok) {
                         const error = await res.text();
                         console.error('Failed to create payroll:', error);
@@ -627,7 +629,7 @@ const PayrollPage = () => {
                             </>
                         )}
                     </button>
-                    <button 
+                    <button
                         onClick={handleExportCSV}
                         className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-all"
                     >
@@ -688,27 +690,28 @@ const PayrollPage = () => {
                         <select
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
-                            className="flex items-center gap-1 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[9px] font-bold uppercase tracking-widest text-black dark:text-white hover:bg-gray-50 transition-all shadow-sm"
+                            className="outline-none flex items-center gap-1 px-4 py-2.5 bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-xl text-[9px] font-bold uppercase tracking-widest text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/10 transition-all shadow-sm"
                         >
-                            <option value="all" className="text-black">All Status</option>
-                            <option value="pending" className="text-black">Pending</option>
-                            <option value="paid" className="text-black">Paid</option>
+                            <option value="all" className="bg-white text-black dark:bg-[#0A0A0A] dark:text-white outline-none">All Status</option>
+                            <option value="pending" className="bg-white text-black dark:bg-[#0A0A0A] dark:text-white outline-none">Pending</option>
+                            <option value="paid" className="bg-white text-black dark:bg-[#0A0A0A] dark:text-white outline-none">Paid</option>
                         </select>
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl overflow-hidden shadow-xl overflow-x-auto">
+                <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl shadow-xl overflow-visible">
+                    <div className="overflow-x-auto rounded-2xl">
                     <table className="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
-                            <tr className="bg-gray-50 dark:bg-white/10 border-b border-gray-100 dark:border-white/5 text-center">
-                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Employee</th>
-                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">15-Day Salary</th>
-                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Late/Absent</th>
-                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Deductions</th>
-                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Net Pay</th>
-                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Period</th>
-                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Status</th>
-                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Actions</th>
+                            <tr className="bg-gray-50 dark:bg-white/[0.03] border-b border-gray-100 dark:border-white/5 text-center">
+                                <th className="px-4 py-3.5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Employee</th>
+                                <th className="px-4 py-3.5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">15-Day Salary</th>
+                                <th className="px-4 py-3.5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Late/Absent</th>
+                                <th className="px-4 py-3.5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Deductions</th>
+                                <th className="px-4 py-3.5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Net Pay</th>
+                                <th className="px-4 py-3.5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Period</th>
+                                <th className="px-4 py-3.5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Status</th>
+                                <th className="px-4 py-3.5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-white/5 text-center">
@@ -830,6 +833,7 @@ const PayrollPage = () => {
                             )}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
 
@@ -883,7 +887,7 @@ const PayrollPage = () => {
                                     }}
                                     className="p-1 hover:bg-muted rounded-lg transition-colors"
                                 >
-                                    <Trash2 className="w-4 h-4 text-foreground cursor-pointer" />
+                                    <X className="w-4 h-4 text-foreground cursor-pointer" />
                                 </button>
                             </div>
 
@@ -977,7 +981,7 @@ const PayrollPage = () => {
                                 <h3 className="text-xs font-bold uppercase tracking-widest">Pay Slip</h3>
                                 <p className="text-[10px] opacity-80 mt-0.5">{formatPeriod(payslipRecord.period)}</p>
                             </div>
-                            
+
                             <div className="p-4 space-y-3">
                                 <div className="pb-2 border-b border-gray-100 dark:border-white/10">
                                     <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Employee</div>

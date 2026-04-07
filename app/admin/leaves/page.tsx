@@ -174,12 +174,12 @@ const LeavesPage = () => {
                             <thead>
                                 <tr className="bg-gray-50 dark:bg-white/[0.03] border-b border-gray-100 dark:border-white/5">
                                     <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 w-24 whitespace-nowrap">ID</th>
-                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 min-w-[120px] whitespace-nowrap">Employee</th>
-                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 whitespace-nowrap">Leave Type</th>
-                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 whitespace-nowrap">Start Date</th>
-                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 whitespace-nowrap">End Date</th>
-                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 min-w-[150px] whitespace-nowrap">Reason</th>
-                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 w-16 whitespace-nowrap">Actions</th>
+                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  min-w-[120px] whitespace-nowrap">Employee</th>
+                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  whitespace-nowrap">Leave Type</th>
+                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  whitespace-nowrap">Start Date</th>
+                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  whitespace-nowrap">End Date</th>
+                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  min-w-[150px] whitespace-nowrap">Reason</th>
+                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  w-16 whitespace-nowrap">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-white/5">
@@ -188,11 +188,11 @@ const LeavesPage = () => {
                                         {[1, 2, 3, 4, 5].map((i) => (
                                             <tr key={i}>
                                                 {Array.from({ length: 6 }).map((_, idx) => (
-                                                    <td key={idx} className="px-4 py-2 border-l border-gray-100 dark:border-white/5">
+                                                    <td key={idx} className="px-4 py-2 ">
                                                         <div className="h-3 w-full bg-gray-200 dark:bg-white/5 rounded animate-pulse" />
                                                     </td>
                                                 ))}
-                                                <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 text-center">
+                                                <td className="px-4 py-2  text-center">
                                                     <div className="h-3 w-8 bg-gray-200 dark:bg-white/5 rounded animate-pulse mx-auto" />
                                                 </td>
                                             </tr>
@@ -213,25 +213,25 @@ const LeavesPage = () => {
                                             key={leave.id}
                                             className="group hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-all border-b border-gray-100 dark:border-white/5 last:border-0 h-fit"
                                         >
-                                            <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 align-middle">
+                                            <td className="px-4 py-2  align-middle">
                                                 <span className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest">{leave.id}</span>
                                             </td>
-                                            <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 align-middle">
+                                            <td className="px-4 py-2  align-middle">
                                                 <span className="text-xs sm:text-sm font-bold text-foreground leading-none tracking-tight group-hover:text-secondary transition-colors block max-w-[120px] truncate" title={leave.employee_name}>{leave.employee_name}</span>
                                             </td>
-                                            <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 align-middle">
+                                            <td className="px-4 py-2  align-middle">
                                                 <span className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400 block truncate" title={leave.leave_type}>{leave.leave_type}</span>
                                             </td>
-                                            <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 align-middle whitespace-nowrap">
+                                            <td className="px-4 py-2  align-middle whitespace-nowrap">
                                                 <span className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400">{leave.start_date}</span>
                                             </td>
-                                            <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 align-middle whitespace-nowrap">
+                                            <td className="px-4 py-2  align-middle whitespace-nowrap">
                                                 <span className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400">{leave.end_date}</span>
                                             </td>
-                                            <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 align-middle">
+                                            <td className="px-4 py-2  align-middle">
                                                 <span className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400 block max-w-[150px] truncate" title={leave.reason}>{leave.reason}</span>
                                             </td>
-                                            <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 relative align-middle text-center min-w-[70px]">
+                                            <td className="px-4 py-2  relative align-middle text-center min-w-[70px]">
                                                 <button
                                                     type="button"
                                                     onClick={(e) => {
