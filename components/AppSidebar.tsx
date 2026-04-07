@@ -53,7 +53,7 @@ const sidebarItems: NavItem[] = [
 ];
 
 const bottomItems = [
-  { name: 'Settings', icon: Settings, href: '#' },
+  { name: 'Settings', icon: Settings, href: '/admin/settings' },
   { name: 'Logout', icon: LogOut, href: '/auth/login', isLogout: true },
 ];
 
@@ -124,7 +124,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
     <>
       {/* Desktop Sidebar */}
       <aside className={cn(
-        "hidden lg:flex h-screen bg-white dark:bg-black border-r border-gray-100 dark:border-white/5 flex-col transition-all duration-300 ease-out relative font-sans overflow-hidden",
+        "hidden lg:flex h-screen bg-white dark:bg-black border-r border-gray-100 dark:border-white/5 flex-col transition-all duration-300 ease-out relative z-30 shrink-0 font-sans overflow-hidden",
         isCollapsed ? "w-20" : "w-52 xl:w-64"
       )}>
         <div className={cn(

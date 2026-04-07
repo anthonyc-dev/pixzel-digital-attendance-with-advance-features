@@ -112,7 +112,7 @@ const ActivitiesPage = () => {
             </header>
 
             {/* Stats Grid */}
-            <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 bg-background/50 dark:bg-background/50">
                 {loading ? (
                     [...Array(4)].map((_, i) => (
                         <div key={i} className="p-5 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 animate-pulse space-y-4">
