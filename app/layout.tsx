@@ -84,7 +84,6 @@ export default function RootLayout({
         <link rel="alternate" hrefLang="en" href={siteConfig.url} />
         <link rel="alternate" hrefLang="x-default" href={siteConfig.url} />
 
-        {/* Security headers */}
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="referrer" content="strict-origin-when-cross-origin" />
 
