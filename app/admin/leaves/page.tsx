@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { ENV } from '@/lib/api';
-import { CalendarDays, Trash2, X, AlertCircle, CheckCircle2, Plus, Loader2, ChevronDown } from 'lucide-react';
+import { CalendarDays, Trash2, X, AlertCircle, CheckCircle2, Loader2, ChevronDown } from 'lucide-react';
 
 interface LeaveRequest {
     id: number;
@@ -39,8 +39,16 @@ const LeavesPage = () => {
     const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
     const [employers, setEmployers] = useState<Employer[]>([]);
     const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState('');
-
+    const search = '';
+    const filteredLeaves = useMemo(() => {
+        if (!search.trim()) return leaves;
+        const term = search.toLowerCase();
+        return leaves.filter(leave => 
+            leave.employee_name.toLowerCase().includes(term) ||
+            leave.leave_type.toLowerCase().includes(term)
+        );
+    }, [leaves]);
+    
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
@@ -53,12 +61,6 @@ const LeavesPage = () => {
         start_date: '',
         end_date: '',
     });
-
-    const filteredLeaves = leaves.filter(leave =>
-        leave.employee_name?.toLowerCase().includes(search.toLowerCase()) ||
-        leave.leave_type?.toLowerCase().includes(search.toLowerCase()) ||
-        leave.reason?.toLowerCase().includes(search.toLowerCase())
-    );
 
     const showToast = (message: string, type: 'success' | 'error' | 'delete') => {
         setToast({ message, type });
