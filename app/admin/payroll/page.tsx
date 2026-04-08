@@ -16,7 +16,8 @@ import {
     Calendar,
     Loader2,
     FileText,
-    Printer
+    Printer,
+    X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ENV } from '@/lib/api';
@@ -597,7 +598,7 @@ const PayrollPage = () => {
     };
 
     return (
-        <div className="flex flex-col gap-6 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out pb-10">
+        <div className="flex flex-col p-4 md:p-6 lg:p-8 gap-4 sm:gap-5 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out pb-6 lg:pb-10">
 
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div className="space-y-2">
@@ -689,27 +690,28 @@ const PayrollPage = () => {
                         <select
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
-                            className="flex items-center gap-1 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-[9px] font-bold uppercase tracking-widest text-black dark:text-white hover:bg-gray-50 transition-all shadow-sm"
+                            className="outline-none flex items-center gap-1 px-4 py-2.5 bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-xl text-[9px] font-bold uppercase tracking-widest text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/10 transition-all shadow-sm"
                         >
-                            <option value="all" className="text-black">All Status</option>
-                            <option value="pending" className="text-black">Pending</option>
-                            <option value="paid" className="text-black">Paid</option>
+                            <option value="all" className="bg-white text-black dark:bg-[#0A0A0A] dark:text-white outline-none">All Status</option>
+                            <option value="pending" className="bg-white text-black dark:bg-[#0A0A0A] dark:text-white outline-none">Pending</option>
+                            <option value="paid" className="bg-white text-black dark:bg-[#0A0A0A] dark:text-white outline-none">Paid</option>
                         </select>
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl overflow-hidden shadow-xl overflow-x-auto">
+                <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl shadow-xl overflow-visible">
+                    <div className="overflow-x-auto rounded-2xl">
                     <table className="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
-                            <tr className="bg-gray-50 dark:bg-white/10 border-b border-gray-100 dark:border-white/5 text-center">
-                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Employee</th>
-                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">15-Day Salary</th>
-                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Late/Absent</th>
-                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Deductions</th>
-                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Net Pay</th>
-                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Period</th>
-                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Status</th>
-                                <th className="p-5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Actions</th>
+                            <tr className="bg-gray-50 dark:bg-white/[0.03] border-b border-gray-100 dark:border-white/5 text-center">
+                                <th className="px-4 py-3.5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Employee</th>
+                                <th className="px-4 py-3.5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">15-Day Salary</th>
+                                <th className="px-4 py-3.5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Late/Absent</th>
+                                <th className="px-4 py-3.5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Deductions</th>
+                                <th className="px-4 py-3.5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Net Pay</th>
+                                <th className="px-4 py-3.5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Period</th>
+                                <th className="px-4 py-3.5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Status</th>
+                                <th className="px-4 py-3.5 text-[9px] font-bold uppercase tracking-[0.2em] text-gray-400">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-white/5 text-center">
@@ -831,6 +833,7 @@ const PayrollPage = () => {
                             )}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
 
@@ -884,7 +887,7 @@ const PayrollPage = () => {
                                     }}
                                     className="p-1 hover:bg-muted rounded-lg transition-colors"
                                 >
-                                    <Trash2 className="w-4 h-4 text-foreground cursor-pointer" />
+                                    <X className="w-4 h-4 text-foreground cursor-pointer" />
                                 </button>
                             </div>
 
