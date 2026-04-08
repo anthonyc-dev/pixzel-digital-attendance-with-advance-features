@@ -71,7 +71,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`dark ${plusJakarta.variable} ${outfit.variable} ${dmSerif.variable} ${firaCode.variable} h-full antialiased`}
+      className={`dark ${plusJakarta.variable} ${outfit.variable} ${dmSerif.variable} ${firaCode.variable} h-full overflow-x-hidden antialiased`}
     >
       <head>
         {/* Preconnect to important domains */}
@@ -106,7 +106,7 @@ export default function RootLayout({
           })();
         `}} />
       </head>
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col overflow-x-hidden">
         <Script
           id="structured-data"
           type="application/ld+json"

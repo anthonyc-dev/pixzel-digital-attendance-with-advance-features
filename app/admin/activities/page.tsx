@@ -95,7 +95,7 @@ const ActivitiesPage = () => {
     ];
 
     return (
-        <div className="flex flex-col gap-4 sm:gap-5 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out pb-6 lg:pb-10">
+        <div className="flex flex-col p-4 md:p-6 lg:p-8 gap-4 sm:gap-5 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out pb-6 lg:pb-10">
 
             {/* Page Title */}
             <header className="flex flex-wrap items-center justify-between gap-4 py-2">
@@ -112,7 +112,7 @@ const ActivitiesPage = () => {
             </header>
 
             {/* Stats Grid */}
-            <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 bg-background/50 dark:bg-background/50">
                 {loading ? (
                     [...Array(4)].map((_, i) => (
                         <div key={i} className="p-5 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 animate-pulse space-y-4">

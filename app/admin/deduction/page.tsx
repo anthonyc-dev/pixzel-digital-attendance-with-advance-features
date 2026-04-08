@@ -82,7 +82,7 @@ const DeductionSettingsPage = () => {
             parseFloat(absentVal) !== current.absent_deduction);
 
     return (
-        <div className="flex flex-col gap-6 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out pb-10">
+        <div className="flex flex-col p-4 md:p-6 lg:p-8 gap-4 sm:gap-5 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out pb-6 lg:pb-10">
 
             {/* Header */}
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -159,21 +159,23 @@ const DeductionSettingsPage = () => {
                                 </p>
                             </div>
 
-                            {/* Save button — matches payroll Generate Payroll button style */}
-                            <button
-                                id="save-deduction-settings"
-                                onClick={handleSave}
-                                disabled={saving || !hasChanges}
-                                className={cn(
-                                    'mt-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold uppercase tracking-widest text-[9px] transition-all shadow-lg w-full bg-secondary text-white shadow-secondary/20 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed'
-                                )}
-                            >
-                                {saving ? (
-                                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Saving...</span></>
-                                ) : (
-                                    <><Save className="w-3.5 h-3.5" /><span>Save Deduction Rates</span></>
-                                )}
-                            </button>
+                            {/* Save button — right aligned, compact */}
+                            <div className="flex md:justify-end justify-center mt-4">
+                                <button
+                                    id="save-deduction-settings"
+                                    onClick={handleSave}
+                                    disabled={saving || !hasChanges}
+                                    className={cn(
+                                        'flex items-center justify-center gap-2 px-4 w-full sm:w-auto py-2.5 rounded-xl font-bold uppercase tracking-widest text-[9px] transition-all shadow-lg bg-secondary text-white shadow-secondary/20 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed'
+                                    )}
+                                >
+                                    {saving ? (
+                                        <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Saving...</span></>
+                                    ) : (
+                                        <><Save className="w-3.5 h-3.5" /><span>Save Deduction Rates</span></>
+                                    )}
+                                </button>
+                            </div>
 
                             {!hasChanges && current && (
                                 <p className="text-center text-[10px] text-muted-foreground">
