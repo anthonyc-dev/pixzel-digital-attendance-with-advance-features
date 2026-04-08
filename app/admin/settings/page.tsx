@@ -27,6 +27,9 @@ export default function SettingsPage() {
   const [pageBg, setPageBg] = useState<PageBackgroundId>('fire');
   const [accountEmail, setAccountEmail] = useState<string>('');
 
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
 
   const [newEmail, setNewEmail] = useState('');
@@ -49,16 +52,42 @@ export default function SettingsPage() {
     toast.success('Page background updated');
   };
 
-  const handleSendPasswordResetEmail = async () => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
     if (!accountEmail) {
       toast.error('No email found for this account.');
       return;
     }
+    if (!currentPassword) {
+      toast.error('Enter your current password.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match.');
+      return;
+    }
+    if (newPassword === currentPassword) {
+      toast.error('New password must be different from your current password.');
+      return;
+    }
 
     setPasswordLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(accountEmail, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: accountEmail,
+      password: currentPassword,
     });
+    if (signInError) {
+      setPasswordLoading(false);
+      toast.error('Current password is incorrect.');
+      return;
+    }
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
     setPasswordLoading(false);
 
     if (error) {
@@ -66,7 +95,10 @@ export default function SettingsPage() {
       return;
     }
 
-    toast.success('We sent a password reset code/link to your email.');
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    toast.success('Password updated.');
   };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -93,7 +125,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="w-full min-w-0 max-w-2xl space-y-6 pb-10 animate-in fade-in duration-500 ease-out">
+    <div className="flex flex-col p-4 md:p-6 lg:p-8 gap-4 sm:gap-5 w-full mx-auto max-w-5xl animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out pb-6 lg:pb-10">
       <header className="space-y-1">
         <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
           Settings
@@ -147,30 +179,52 @@ export default function SettingsPage() {
             <CardTitle>Change password</CardTitle>
           </div>
           <CardDescription>
-            We’ll email a one-time code/link to your registered email before you can set a new password.
+            Enter your current password, then choose a new one (at least 6 characters). If you
+            forgot your password, use forgot password from the login page instead.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-              Email used for password reset:{' '}
-              <span className="font-medium text-foreground break-all">
-                {accountEmail || '—'}
-              </span>
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="current-password">Current password</Label>
+              <Input
+                id="current-password"
+                type="password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="••••••••"
+              />
             </div>
-
-            <Button
-              type="button"
-              onClick={handleSendPasswordResetEmail}
-              disabled={passwordLoading || !accountEmail}
-              className="gap-2"
-            >
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-new-password">Confirm new password</Label>
+              <Input
+                id="confirm-new-password"
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+            <Button type="submit" disabled={passwordLoading} className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-secondary hover:opacity-90 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-secondary/30 active:scale-[0.98] transition-all flex items-center  gap-1.5 sm:gap-2 w-fit cursor-pointer">
               {passwordLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : null}
-              Send OTP email
+              Update password
             </Button>
-          </div>
+          </form>
         </CardContent>
       </Card>
 
@@ -200,7 +254,7 @@ export default function SettingsPage() {
                 placeholder="you@company.com"
               />
             </div>
-            <Button type="submit" disabled={emailLoading} className="gap-2">
+            <Button type="submit" disabled={emailLoading} className=" px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-secondary hover:opacity-90 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-secondary/30 active:scale-[0.98] transition-all flex items-center  gap-1.5 sm:gap-2 w-fit cursor-pointer">
               {emailLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : null}

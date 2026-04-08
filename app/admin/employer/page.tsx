@@ -115,7 +115,7 @@ const EmployerPage = () => {
   
     return (
       <>
-        <div className="flex flex-col gap-4 sm:gap-6 lg:gap-8 w-full mx-auto max-w-7xl animate-in fade-in duration-200 ease-out pb-4 sm:pb-6 lg:pb-10">
+        <div className="flex flex-col p-4 md:p-6 lg:p-8 gap-4 sm:gap-5 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out pb-6 lg:pb-10">
           <header className="flex flex-wrap items-start sm:items-end justify-between gap-2 sm:gap-4">
             <div className="space-y-0.5 sm:space-y-1">
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">Employers</h1>
