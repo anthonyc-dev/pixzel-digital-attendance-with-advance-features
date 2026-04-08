@@ -26,7 +26,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const mainElement = mainRef.current;
     if (mainElement) {
-      mainElement.addEventListener('scroll', () => {}, { passive: true });
+      mainElement.addEventListener('scroll', () => { }, { passive: true });
     }
   }, []);
 
@@ -34,20 +34,20 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     <div className="flex h-screen w-full min-w-0 overflow-hidden bg-white text-primary transition-colors duration-500 selection:bg-secondary/40 dark:bg-black dark:text-white">
       {/* Mobile Overlay */}
       {isMobileOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
-      
-      <AppSidebar 
-        isCollapsed={isCollapsed} 
+
+      <AppSidebar
+        isCollapsed={isCollapsed}
         setIsCollapsed={handleSetIsCollapsed}
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
       />
-      
-      <main 
+
+      <main
         ref={mainRef}
         className={cn(
           "flex-1 flex flex-col  overflow-y-auto relative transition-all duration-300 min-h-0 bg-[#f5f5f5] dark:bg-[#0a0a0a]",
@@ -65,7 +65,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
         {/* Decorative Background Elements */}
         <div className="fixed top-0 right-0 w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-secondary/5 rounded-full blur-[100px] md:blur-[120px] pointer-events-none" />
-        
+
         {/* Content Area Rendering */}
         <div className="relative z-0 h-full min-w-0 overflow-x-hidden">
           {children}
