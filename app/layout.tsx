@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { TooltipProvider } from "@/components/ui/tooltip"
 import Script from "next/script";
 import { Plus_Jakarta_Sans, DM_Serif_Display, Fira_Code, Outfit } from "next/font/google";
+import { Analytics } from '@vercel/analytics/next';
 
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
@@ -89,9 +90,10 @@ export default function RootLayout({
 
         {/* Resource hints */}
         <link rel="preload" href="/fonts/custom-font.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
-        
+
         {/* Synchronous Theme Initialization */}
-        <script dangerouslySetInnerHTML={{ __html: `
+        <script dangerouslySetInnerHTML={{
+          __html: `
           (function() {
             try {
               const theme = localStorage.getItem('theme');
@@ -112,6 +114,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
         <TooltipProvider>{children}</TooltipProvider>
+        <Analytics />
         <Toaster />
       </body>
     </html>
