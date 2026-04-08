@@ -46,6 +46,9 @@ const sidebarItems: NavItem[] = [
       { name: 'Payroll', href: '/admin/payroll' },
       { name: 'Leave Request', href: '/admin/leaves' },
       { name: 'Deduction', href: '/admin/deduction' },
+      { name: 'Adjustment', href: '/admin/payrollAdjustment' },
+      { name: 'Exception', href: '/admin/payrollException' },
+      { name: 'Overtime', href: '/admin/overtime' },
     ]
   },
   { name: 'Calendar', icon: Calendar, href: '/admin/adminCalendar' },
