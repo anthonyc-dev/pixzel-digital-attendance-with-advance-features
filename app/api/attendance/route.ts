@@ -19,6 +19,23 @@ interface AttendanceLog {
   };
 }
 
+async function getLateGraceMinutes() {
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase
+    .from("payroll_deduction_settings")
+    .select("late_grace_minutes")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // Older schemas may not yet have late_grace_minutes.
+  if (error && (error as { code?: string }).code !== "42703") {
+    throw error;
+  }
+
+  return Number(data?.late_grace_minutes ?? 5);
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const employer_id = searchParams.get("employer_id");
@@ -69,6 +86,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  const lateGraceMinutes = await getLateGraceMinutes();
+  const lateThresholdMinutes = 9 * 60 + lateGraceMinutes;
+
   const mappedData =
     data?.map((log: AttendanceLog) => {
       let finalStatus = log.status;
@@ -88,7 +108,8 @@ export async function GET(request: Request) {
         if (hours === 24) hours = 0;
         const minutes = parseInt(formattedParts.find(p => p.type === 'minute')?.value || "0", 10);
 
-        if (hours > 9 || (hours === 9 && minutes >= 15)) {
+        const actualMinutes = hours * 60 + minutes;
+        if (actualMinutes > lateThresholdMinutes) {
           finalStatus = "late";
         } else {
           finalStatus = "on_time"; 
@@ -109,6 +130,7 @@ export async function POST(req: Request) {
   try {
     const supabase = await createSupabaseServer();
     const { descriptor, type: requestedType } = await req.json();
+    const lateGraceMinutes = await getLateGraceMinutes();
 
     if (!descriptor) {
       return NextResponse.json(
@@ -243,7 +265,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // Determine status (9:15 AM or later is late) using PHT timezone consistently
+    // Determine status using configurable grace period from payroll settings.
     const formatter = new Intl.DateTimeFormat('en-US', {
       timeZone: 'Asia/Manila',
       hour12: false,
@@ -262,7 +284,9 @@ export async function POST(req: Request) {
     let status = "on_time";
 
     if (type === "time_in") {
-      if (hours > 9 || (hours === 9 && minutes >= 15)) {
+      const actualMinutes = hours * 60 + minutes;
+      const lateThresholdMinutes = 9 * 60 + lateGraceMinutes;
+      if (actualMinutes > lateThresholdMinutes) {
         status = "late";
       }
     }

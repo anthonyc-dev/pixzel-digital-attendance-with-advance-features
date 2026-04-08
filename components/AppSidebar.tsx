@@ -45,6 +45,7 @@ const sidebarItems: NavItem[] = [
     name: 'Payroll', icon: Banknote, href: '/admin/payroll', hasSub: true, subItems: [
       { name: 'Payroll', href: '/admin/payroll' },
       { name: 'Leave Request', href: '/admin/leaves' },
+      { name: 'Computation', href: '/admin/computation' },
       { name: 'Deduction', href: '/admin/deduction' },
     ]
   },
