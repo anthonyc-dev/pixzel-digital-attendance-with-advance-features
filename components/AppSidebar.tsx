@@ -34,22 +34,29 @@ interface NavItem {
 
 const sidebarItems: NavItem[] = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/adminDashboard' },
-  { name: 'Employers', icon: Users, href: '/admin/employer', hasSub: true, subItems: [
-    { name: 'Employer', href: '/admin/employer' },
-    { name: 'Register', href: '/admin/employerRegistration' },
-  ]},
+  {
+    name: 'Employers', icon: Users, href: '/admin/employer', hasSub: true, subItems: [
+      { name: 'Employer', href: '/admin/employer' },
+      { name: 'Register', href: '/admin/employerRegistration' },
+    ]
+  },
   { name: 'DTR', icon: ClipboardCheck, href: '/admin/dtr' },
-  { name: 'Payroll', icon: Banknote, href: '/admin/payroll', hasSub: true, subItems: [
-    { name: 'Payroll', href: '/admin/payroll' },
-    { name: 'Leave Request', href: '/admin/leaves' },
-    { name: 'Deduction', href: '/admin/deduction' },
-  ]},
+  {
+    name: 'Payroll', icon: Banknote, href: '/admin/payroll', hasSub: true, subItems: [
+      { name: 'Payroll', href: '/admin/payroll' },
+      { name: 'Leave Request', href: '/admin/leaves' },
+      { name: 'Deduction', href: '/admin/deduction' },
+      { name: 'Adjustment', href: '/admin/payrollAdjustment' },
+      { name: 'Exception', href: '/admin/payrollException' },
+      { name: 'Overtime', href: '/admin/overtime' },
+    ]
+  },
   { name: 'Calendar', icon: Calendar, href: '/admin/adminCalendar' },
   { name: 'Activities', icon: Clock, href: '/admin/activities' },
 ];
 
 const bottomItems = [
-  { name: 'Settings', icon: Settings, href: '#' },
+  { name: 'Settings', icon: Settings, href: '/admin/settings' },
   { name: 'Logout', icon: LogOut, href: '/auth/login', isLogout: true },
 ];
 
@@ -120,7 +127,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
     <>
       {/* Desktop Sidebar */}
       <aside className={cn(
-        "hidden lg:flex h-screen bg-white dark:bg-black border-r border-gray-100 dark:border-white/5 flex-col transition-all duration-300 ease-out relative font-sans overflow-hidden",
+        "hidden lg:flex h-screen bg-white dark:bg-black border-r border-gray-100 dark:border-white/5 flex-col transition-all duration-300 ease-out relative z-30 shrink-0 font-sans overflow-hidden",
         isCollapsed ? "w-20" : "w-52 xl:w-64"
       )}>
         <div className={cn(
@@ -182,7 +189,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                       isActive
                         ? "bg-secondary text-white shadow-lg shadow-secondary/20 scale-[1.02]"
                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white",
-                      isCollapsed ? "justify-center px-0" : "justify-between" 
+                      isCollapsed ? "justify-center px-0" : "justify-between"
                     )}
                   >
                     <div className="flex items-center gap-2.5">
@@ -201,7 +208,8 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                       "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer outline-none",
                       isActive
                         ? "bg-secondary text-white shadow-lg shadow-secondary/20"
-                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
+                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white",
+                      isCollapsed ? "justify-center px-0" : "justify-between"
                     )}
                   >
                     <div className="flex items-center gap-2.5">
@@ -210,13 +218,13 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                     </div>
 
                     {!isCollapsed && item.hasSub && (
-                      <ChevronDown className={cn("w-3 h-3 opacity-30 transition-transform duration-200", isMenuOpen && "rotate-180")} />
+                      <ChevronDown className={cn("w-3 h-3 text-gray-400 dark:text-gray-500 transition-transform duration-200", isMenuOpen && "rotate-180")} />
                     )}
                   </button>
                 )}
 
                 {!isCollapsed && item.subItems && isMenuOpen && (
-                  <div className="relative ml-3 mt-1 pl-2 py-1 animate-in slide-in-from-top-2 duration-300">
+                  <div className="relative ml-10 mt-1 pl-3 py-1 animate-in slide-in-from-top-2 duration-300">
                     {item.subItems.map((sub, index) => {
                       const isSubActive = pathname === sub.href;
                       return (
@@ -231,13 +239,13 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                         >
                           {/* Vertical connection line */}
                           <div className={cn(
-                            "absolute -left-2 w-[2px] bg-gray-300 dark:bg-gray-600",
+                            "absolute -left-3 w-[2px] bg-gray-300 dark:bg-gray-600",
                             index === 0 ? "-top-1" : "top-0",
                             index === item.subItems!.length - 1 ? "bottom-1/2" : "bottom-0"
                           )} />
                           {/* Horizontal connection line that stretches on hover */}
-                          <div className="absolute -left-2 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-2 group-hover:w-[12px]" />
-                          
+                          <div className="absolute -left-3 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-3 group-hover:w-[16px]" />
+
                           <span className={cn(
                             "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10 group-hover:translate-x-1",
                             isSubActive
@@ -276,8 +284,8 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
               <div
                 className={cn(
                   "flex h-5 w-5 items-center justify-center rounded-full transition-all duration-500 ease-in-out shadow-md transform",
-                  theme === 'light' 
-                    ? "translate-x-1 bg-amber-400" 
+                  theme === 'light'
+                    ? "translate-x-1 bg-amber-400"
                     : "translate-x-7 bg-sky-500"
                 )}
               >
@@ -393,13 +401,13 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                     </div>
 
                     {item.hasSub && (
-                      <ChevronDown className={cn("w-3 h-3 opacity-30 transition-transform duration-200", isMenuOpen && "rotate-180")} />
+                      <ChevronDown className={cn("w-3 h-3 text-gray-400 dark:text-gray-500 transition-transform duration-200", isMenuOpen && "rotate-180")} />
                     )}
                   </button>
                 )}
 
                 {item.subItems && isMenuOpen && (
-                  <div className="relative ml-3 mt-1 pl-2 py-1">
+                  <div className="relative ml-10 mt-1 pl-3 py-1">
                     {item.subItems.map((sub, index) => {
                       const isSubActive = pathname === sub.href;
                       return (
@@ -415,12 +423,12 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                         >
                           {/* Vertical connection line */}
                           <div className={cn(
-                            "absolute -left-2 w-[2px] bg-gray-300 dark:bg-gray-600",
+                            "absolute -left-3 w-[2px] bg-gray-300 dark:bg-gray-600",
                             index === 0 ? "-top-1" : "top-0",
                             index === item.subItems!.length - 1 ? "bottom-1/2" : "bottom-0"
                           )} />
                           {/* Horizontal connection line that stretches on hover */}
-                          <div className="absolute -left-2 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-2 group-hover:w-[12px]" />
+                          <div className="absolute -left-3 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-3 group-hover:w-[16px]" />
 
                           <span className={cn(
                             "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10 group-hover:translate-x-1",
@@ -457,8 +465,8 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
               <div
                 className={cn(
                   "flex h-6 w-6 items-center justify-center rounded-full transition-all duration-500 ease-in-out shadow-md transform",
-                  theme === 'light' 
-                    ? "translate-x-1 bg-amber-400" 
+                  theme === 'light'
+                    ? "translate-x-1 bg-amber-400"
                     : "translate-x-8 bg-sky-500"
                 )}
               >

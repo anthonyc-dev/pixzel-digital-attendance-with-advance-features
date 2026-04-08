@@ -448,6 +448,46 @@ const DTRPage = () => {
             }
         });
 
+        // Determine the scope for filling absent days: from their earliest log (or 1st of month if none) to today
+        let minDateStr = format(new Date(), 'yyyy-MM-dd');
+        empLogs.forEach(log => {
+            const dStr = log.timestamp.split('T')[0];
+            if (dStr < minDateStr) minDateStr = dStr;
+        });
+
+        const loopDate = new Date(minDateStr + 'T12:00:00');
+        const endLoop = new Date();
+        endLoop.setHours(12, 0, 0, 0);
+
+        while (loopDate <= endLoop) {
+            const dateKey = format(loopDate, 'yyyy-MM-dd');
+            const isWeekend = loopDate.getDay() === 0 || loopDate.getDay() === 6;
+
+            const isHoliday = events.some(event => {
+                if (event.type !== 'holiday') return false;
+                if (!event.start_date || !event.end_date) return false;
+                const sDateStr = event.start_date.split('T')[0];
+                const eDateStr = event.end_date.split('T')[0];
+                return dateKey >= sDateStr && dateKey <= eDateStr;
+            });
+
+            // If day is missing entirely, check if we should auto-mark as absent
+            if (!groups[dateKey]) {
+                if (!isWeekend && !isHoliday) {
+                    groups[dateKey] = {
+                        id: `absent-${dateKey}`,
+                        rawDate: dateKey,
+                        date: format(loopDate, 'MMM dd, yyyy'),
+                        day: format(loopDate, 'EEEE'),
+                        status: 'absent',
+                        remarks: 'No attendance recorded',
+                    };
+                }
+            }
+
+            loopDate.setDate(loopDate.getDate() + 1);
+        }
+
         // Add events/holidays that might not have logs
         events.forEach(event => {
             try {
@@ -504,7 +544,7 @@ const DTRPage = () => {
     };
 
     return (
-        <div className="flex flex-col gap-8 w-full max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out pb-10">
+        <div className="flex flex-col p-4 md:p-6 lg:p-8 gap-4 sm:gap-5 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out pb-6 lg:pb-10">
 
             {/* Header Section */}
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">

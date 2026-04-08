@@ -155,7 +155,7 @@ const AdminDashboard = () => {
         : 0;
 
     return (
-        <div className="flex flex-col gap-4 sm:gap-5 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out pb-6 lg:pb-10">
+        <div className="flex flex-col p-4 md:p-6 lg:p-8 gap-4 sm:gap-5 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out pb-6 lg:pb-10">
 
             {/* Page Title */}
             <header className="flex flex-wrap items-center justify-between gap-4 py-2">
@@ -369,8 +369,8 @@ const AdminDashboard = () => {
                             <AreaChart data={monthlyData}>
                                 <defs>
                                     <linearGradient id="colorPresent" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#0089C0" stopOpacity={0.3}/>
-                                        <stop offset="95%" stopColor="#0089C0" stopOpacity={0}/>
+                                        <stop offset="5%" stopColor="#17bd54" stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor="#17bd54" stopOpacity={0}/>
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
@@ -397,7 +397,7 @@ const AdminDashboard = () => {
                                 <Area 
                                     type="monotone" 
                                     dataKey="present" 
-                                    stroke="#0089C0" 
+                                    stroke="#17bd54" 
                                     strokeWidth={2} 
                                     fillOpacity={1} 
                                     fill="url(#colorPresent)" 

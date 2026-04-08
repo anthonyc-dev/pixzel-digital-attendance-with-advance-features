@@ -149,10 +149,10 @@ const LeavesPage = () => {
             setSubmitting(false);
         }
     };
-    
+
     return (
         <>
-            <div className="flex flex-col gap-4 sm:gap-6 lg:gap-8 w-full mx-auto max-w-7xl animate-in fade-in duration-200 ease-out pb-4 sm:pb-6 lg:pb-10">
+            <div className="flex flex-col p-4 md:p-6 lg:p-8 gap-4 sm:gap-5 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out pb-6 lg:pb-10">
                 <header className="flex flex-wrap items-start sm:items-end justify-between gap-2 sm:gap-4">
                     <div className="space-y-0.5 sm:space-y-1">
                         <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">Leaves</h1>
@@ -160,7 +160,7 @@ const LeavesPage = () => {
                             Manage employee leave requests
                         </p>
                     </div>
-                    <button 
+                    <button
                         onClick={() => setIsModalOpen(true)}
                         className="flex items-center gap-2 px-4 py-2.5 bg-secondary text-white rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all"
                     >
@@ -174,12 +174,12 @@ const LeavesPage = () => {
                             <thead>
                                 <tr className="bg-gray-50 dark:bg-white/[0.03] border-b border-gray-100 dark:border-white/5">
                                     <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 w-24 whitespace-nowrap">ID</th>
-                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 min-w-[120px] whitespace-nowrap">Employee</th>
-                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 whitespace-nowrap">Leave Type</th>
-                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 whitespace-nowrap">Start Date</th>
-                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 whitespace-nowrap">End Date</th>
-                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 min-w-[150px] whitespace-nowrap">Reason</th>
-                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 border-l border-gray-100 dark:border-white/5 w-16 whitespace-nowrap">Actions</th>
+                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  min-w-[120px] whitespace-nowrap">Employee</th>
+                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  whitespace-nowrap">Leave Type</th>
+                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  whitespace-nowrap">Start Date</th>
+                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  whitespace-nowrap">End Date</th>
+                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  min-w-[150px] whitespace-nowrap">Reason</th>
+                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  w-16 whitespace-nowrap">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-white/5">
@@ -188,11 +188,11 @@ const LeavesPage = () => {
                                         {[1, 2, 3, 4, 5].map((i) => (
                                             <tr key={i}>
                                                 {Array.from({ length: 6 }).map((_, idx) => (
-                                                    <td key={idx} className="px-4 py-2 border-l border-gray-100 dark:border-white/5">
+                                                    <td key={idx} className="px-4 py-2 ">
                                                         <div className="h-3 w-full bg-gray-200 dark:bg-white/5 rounded animate-pulse" />
                                                     </td>
                                                 ))}
-                                                <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 text-center">
+                                                <td className="px-4 py-2  text-center">
                                                     <div className="h-3 w-8 bg-gray-200 dark:bg-white/5 rounded animate-pulse mx-auto" />
                                                 </td>
                                             </tr>
@@ -209,29 +209,29 @@ const LeavesPage = () => {
                                     </tr>
                                 ) : (
                                     filteredLeaves.map((leave) => (
-                                        <tr 
+                                        <tr
                                             key={leave.id}
                                             className="group hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-all border-b border-gray-100 dark:border-white/5 last:border-0 h-fit"
                                         >
-                                            <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 align-middle">
+                                            <td className="px-4 py-2  align-middle">
                                                 <span className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest">{leave.id}</span>
                                             </td>
-                                            <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 align-middle">
+                                            <td className="px-4 py-2  align-middle">
                                                 <span className="text-xs sm:text-sm font-bold text-foreground leading-none tracking-tight group-hover:text-secondary transition-colors block max-w-[120px] truncate" title={leave.employee_name}>{leave.employee_name}</span>
                                             </td>
-                                            <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 align-middle">
+                                            <td className="px-4 py-2  align-middle">
                                                 <span className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400 block truncate" title={leave.leave_type}>{leave.leave_type}</span>
                                             </td>
-                                            <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 align-middle whitespace-nowrap">
+                                            <td className="px-4 py-2  align-middle whitespace-nowrap">
                                                 <span className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400">{leave.start_date}</span>
                                             </td>
-                                            <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 align-middle whitespace-nowrap">
+                                            <td className="px-4 py-2  align-middle whitespace-nowrap">
                                                 <span className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400">{leave.end_date}</span>
                                             </td>
-                                            <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 align-middle">
+                                            <td className="px-4 py-2  align-middle">
                                                 <span className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400 block max-w-[150px] truncate" title={leave.reason}>{leave.reason}</span>
                                             </td>
-                                            <td className="px-4 py-2 border-l border-gray-100 dark:border-white/5 relative align-middle text-center min-w-[70px]">
+                                            <td className="px-4 py-2  relative align-middle text-center min-w-[70px]">
                                                 <button
                                                     type="button"
                                                     onClick={(e) => {
@@ -261,7 +261,7 @@ const LeavesPage = () => {
                             <div className="flex items-center gap-2">
                                 <h2 className="text-lg font-bold tracking-tight text-foreground">Request Leave</h2>
                             </div>
-                            <button 
+                            <button
                                 onClick={() => setIsModalOpen(false)}
                                 className="p-1.5 hover:bg-muted rounded-lg transition-colors"
                             >

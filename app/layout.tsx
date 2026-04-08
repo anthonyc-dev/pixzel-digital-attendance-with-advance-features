@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { TooltipProvider } from "@/components/ui/tooltip"
 import Script from "next/script";
 import { Plus_Jakarta_Sans, DM_Serif_Display, Fira_Code, Outfit } from "next/font/google";
+import { Analytics } from '@vercel/analytics/next';
 
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
@@ -70,7 +71,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`dark ${plusJakarta.variable} ${outfit.variable} ${dmSerif.variable} ${firaCode.variable} h-full antialiased`}
+      className={`dark ${plusJakarta.variable} ${outfit.variable} ${dmSerif.variable} ${firaCode.variable} h-full overflow-x-hidden antialiased`}
     >
       <head>
         {/* Preconnect to important domains */}
@@ -84,14 +85,28 @@ export default function RootLayout({
         <link rel="alternate" hrefLang="en" href={siteConfig.url} />
         <link rel="alternate" hrefLang="x-default" href={siteConfig.url} />
 
-        {/* Security headers */}
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="referrer" content="strict-origin-when-cross-origin" />
 
         {/* Resource hints */}
         <link rel="preload" href="/fonts/custom-font.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+
+        {/* Synchronous Theme Initialization */}
+        <script dangerouslySetInnerHTML={{
+          __html: `
+          (function() {
+            try {
+              const theme = localStorage.getItem('theme');
+              if (theme === 'light') {
+                document.documentElement.classList.remove('dark');
+              } else {
+                document.documentElement.classList.add('dark');
+              }
+            } catch (e) {}
+          })();
+        `}} />
       </head>
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col overflow-x-hidden">
         <Script
           id="structured-data"
           type="application/ld+json"
@@ -99,17 +114,8 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
         <TooltipProvider>{children}</TooltipProvider>
+        <Analytics />
         <Toaster />
-        <Script id="theme-script" strategy="afterInteractive">{`
-          (function() {
-            const theme = localStorage.getItem('theme');
-            if (theme === 'light') {
-              document.documentElement.classList.remove('dark');
-            } else {
-              document.documentElement.classList.add('dark');
-            }
-          })();
-        `}</Script>
       </body>
     </html>
   );
