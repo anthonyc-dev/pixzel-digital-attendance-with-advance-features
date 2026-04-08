@@ -11,11 +11,21 @@ import {
     LogIn, 
     LogOut, 
     Terminal,
-    Search
+    Search,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { ENV } from '@/lib/api';
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from '@/components/ui/pagination';
 
 interface Employee {
     id: string;
@@ -46,6 +56,8 @@ const ActivitiesPage = () => {
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         const fetchData = async () => {
@@ -79,6 +91,10 @@ const ActivitiesPage = () => {
 
     const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [normalizedSearchQuery]);
+
     const filteredRecentLogs = normalizedSearchQuery
         ? recentLogs.filter((log) =>
             (log.employer_registration?.employer_name || '')
@@ -86,6 +102,12 @@ const ActivitiesPage = () => {
                 .includes(normalizedSearchQuery)
         )
         : recentLogs;
+
+    const totalPages = Math.ceil(filteredRecentLogs.length / itemsPerPage);
+    const paginatedLogs = filteredRecentLogs.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
 
     const stats = [
         { title: 'Total Logs', value: attendance.length.toString().padStart(2, '0'), sub: 'All Time Activity', icon: LucideHistory, iconColor: 'text-blue-400', bgColor: 'bg-blue-400/5', borderColor: 'border-blue-400/10' },
@@ -196,7 +218,7 @@ const ActivitiesPage = () => {
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredRecentLogs.map((log) => (
+                                    paginatedLogs.map((log) => (
                                         <tr key={log.id} className="group hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors cursor-default">
                                             <td className="px-4 py-3">
                                                 <div className="flex flex-col">
@@ -260,9 +282,37 @@ const ActivitiesPage = () => {
                         </table>
                     </div>
                 </div>
-                <p className="text-[8px] text-center text-muted-foreground/40 font-bold uppercase tracking-[0.3em] py-2">
-                    End of recent activity stream
-                </p>
+                {!loading && filteredRecentLogs.length > 0 && (
+                    <div className="flex flex-col items-center gap-3 px-4 py-3 border-t border-gray-100 dark:border-white/5">
+                        <Pagination>
+                            <PaginationContent>
+                                <PaginationItem>
+                                    <PaginationPrevious 
+                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                        className={cn("cursor-pointer", currentPage === 1 && "pointer-events-none opacity-50")}
+                                    />
+                                </PaginationItem>
+                                {[...Array(totalPages)].map((_, i) => (
+                                    <PaginationItem key={i + 1}>
+                                        <PaginationLink 
+                                            onClick={() => setCurrentPage(i + 1)}
+                                            isActive={currentPage === i + 1}
+                                            className="cursor-pointer"
+                                        >
+                                            {i + 1}
+                                        </PaginationLink>
+                                    </PaginationItem>
+                                ))}
+                                <PaginationItem>
+                                    <PaginationNext 
+                                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                        className={cn("cursor-pointer", currentPage === totalPages && "pointer-events-none opacity-50")}
+                                    />
+                                </PaginationItem>
+                            </PaginationContent>
+                        </Pagination>
+                    </div>
+                )}
             </section>
         </div>
     );
