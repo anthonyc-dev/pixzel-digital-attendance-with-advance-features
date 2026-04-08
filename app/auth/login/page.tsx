@@ -8,6 +8,7 @@ import { ENV } from '@/lib/api'
 
 const Login = () => {
   const router = useRouter()
+  const supabase = createClient()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -55,8 +56,6 @@ const Login = () => {
     e.preventDefault()
     setError(null)
     setLoading(true)
-
-    const supabase = createClient()
     const typedIdentifier = identifier.trim()
 
     let emailToSignIn = typedIdentifier
@@ -249,7 +248,6 @@ const Login = () => {
                 </p>
               </div>
             ) : null}
-
             <div className="space-y-5">
               <div className="group relative">
                 <div className="absolute inset-y-0 left-4 flex items-center text-neutral-500 transition-colors group-focus-within:text-[#800B30]">
@@ -359,7 +357,14 @@ const Login = () => {
               )}
             </button>
             <div className="flex items-center justify-between text-[11px] text-neutral-600 pt-2 font-medium">
-              {/* <span className="hover:text-neutral-400 cursor-pointer transition-colors">Forgot Password?</span> */}
+              <button
+                type="button"
+                onClick={() => router.push('/auth/forgot-password')}
+                disabled={loading || isSuccess}
+                className="hover:text-neutral-400 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                Forgot Password?
+              </button>
             </div>
           </form>
         </section>
