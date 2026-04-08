@@ -93,7 +93,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="w-full min-w-0 max-w-2xl space-y-6 pb-10 animate-in fade-in duration-500 ease-out">
+    <div className="flex flex-col p-4 md:p-6 lg:p-8 gap-4 sm:gap-5 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out pb-6 lg:pb-10">
       <header className="space-y-1">
         <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
           Settings
@@ -163,7 +163,7 @@ export default function SettingsPage() {
               type="button"
               onClick={handleSendPasswordResetEmail}
               disabled={passwordLoading || !accountEmail}
-              className="gap-2"
+              className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-secondary hover:opacity-90 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-secondary/30 active:scale-[0.98] transition-all flex items-center gap-1.5 sm:gap-2 w-fit cursor-pointer"
             >
               {passwordLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -200,7 +200,7 @@ export default function SettingsPage() {
                 placeholder="you@company.com"
               />
             </div>
-            <Button type="submit" disabled={emailLoading} className="gap-2">
+            <Button type="submit" disabled={emailLoading} className=" px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-secondary hover:opacity-90 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-secondary/30 active:scale-[0.98] transition-all flex items-center  gap-1.5 sm:gap-2 w-fit cursor-pointer">
               {emailLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : null}
