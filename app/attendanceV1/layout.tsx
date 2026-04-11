@@ -36,7 +36,7 @@ export default function AttendanceV1Layout({
           <div className="w-10" />
         </header>
 
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        <main className="flex-1 p-4 lg:p-6 overflow-y-auto bg-background/60">
           {children}
         </main>
       </div>
