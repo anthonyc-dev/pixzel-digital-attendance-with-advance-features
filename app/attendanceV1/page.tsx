@@ -6,59 +6,26 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Users, 
-  Clock, 
-  Calendar, 
-  TrendingUp, 
-  DollarSign, 
+import {
+  Users,
+  Clock,
+  Calendar,
+  TrendingUp,
+  DollarSign,
   AlertCircle,
   CheckCircle2,
-  XCircle,
-  ArrowUpRight,
-  ArrowDownRight
+  XCircle
 } from 'lucide-react';
 import { dashboardStats, attendanceLogs, employees } from '@/lib/mock-data';
 
-const StatCard = ({ 
-  title, 
-  value, 
-  icon: Icon, 
-  trend, 
-  trendValue,
-  color 
-}: { 
-  title: string; 
-  value: string; 
-  icon: React.ElementType; 
-  trend?: 'up' | 'down';
-  trendValue?: string;
-  color: string;
-}) => (
-  <Card className="dark:bg-black dark:border-white/10 hover:shadow-lg transition-all duration-300">
-    <CardContent className="p-6">
-      <div className="flex items-center justify-between">
-        <div className={`p-3 rounded-xl ${color}`}>
-          <Icon className="w-6 h-6 text-white" />
-        </div>
-        {trend && (
-          <div className={`flex items-center gap-1 text-sm ${trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-            {trend === 'up' ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-            <span className="font-medium">{trendValue}</span>
-          </div>
-        )}
-      </div>
-      <div className="mt-4">
-        <p className="text-sm text-muted-foreground dark:text-gray-400">{title}</p>
-        <p className="text-2xl font-bold mt-1 dark:text-white">{value}</p>
-      </div>
-    </CardContent>
-  </Card>
-);
 
 export default function Dashboard() {
   const todayAttendance = attendanceLogs.filter(log => log.date === "2026-04-11");
-  
+  const totalPresent = todayAttendance.filter(log => log.status === 'Present').length;
+  const totalLate = todayAttendance.filter(log => log.status === 'Late').length;
+  const totalAbsent = dashboardStats.absent;
+  const totalLeave = dashboardStats.onLeave;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -75,34 +42,62 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard 
-          title="Total Employees" 
-          value={dashboardStats.totalEmployees.toString()} 
-          icon={Users} 
-          trend="up"
-          trendValue="2"
-          color="bg-blue-500"
-        />
-        <StatCard 
-          title="Present Today" 
-          value={dashboardStats.presentToday.toString()} 
-          icon={CheckCircle2} 
-          trend="up"
-          trendValue="5%"
-          color="bg-green-500"
-        />
-        <StatCard 
-          title="On Leave" 
-          value={dashboardStats.onLeave.toString()} 
-          icon={Clock} 
-          color="bg-amber-500"
-        />
-        <StatCard 
-          title="Absent" 
-          value={dashboardStats.absent.toString()} 
-          icon={XCircle} 
-          color="bg-red-500"
-        />
+        <Card className="dark:bg-black dark:border-white/10">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground dark:text-gray-400">Total Present</p>
+                <p className="text-2xl font-bold mt-1 dark:text-white">{totalPresent}</p>
+                <p className="text-xs text-green-500 mt-1">+5% from last period</p>
+              </div>
+              <div className="p-3 rounded-xl bg-green-500">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="dark:bg-black dark:border-white/10">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground dark:text-gray-400">Total Late</p>
+                <p className="text-2xl font-bold mt-1 dark:text-white">{totalLate}</p>
+                <p className="text-xs text-amber-500 mt-1">-2% from last period</p>
+              </div>
+              <div className="p-3 rounded-xl bg-amber-500">
+                <Clock className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="dark:bg-black dark:border-white/10">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground dark:text-gray-400">Total Absent</p>
+                <p className="text-2xl font-bold mt-1 dark:text-white">{totalAbsent}</p>
+                <p className="text-xs text-red-500 mt-1">+1% from last period</p>
+              </div>
+              <div className="p-3 rounded-xl bg-red-500">
+                <TrendingUp className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="dark:bg-black dark:border-white/10">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground dark:text-gray-400">On Leave</p>
+                <p className="text-2xl font-bold mt-1 dark:text-white">{totalLeave}</p>
+                <p className="text-xs text-blue-500 mt-1">Same as last period</p>
+              </div>
+              <div className="p-3 rounded-xl bg-blue-500">
+                <Calendar className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -123,7 +118,7 @@ export default function Dashboard() {
                   <div className="flex items-center gap-3">
                     <Avatar className="h-9 w-9">
                       <AvatarFallback className="text-xs bg-secondary text-white">
-                        {log.name.split(' ').map(n => n[0]).join('').slice(0,2)}
+                        {log.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
@@ -132,7 +127,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <Badge 
+                    <Badge
                       variant={log.status === 'Present' ? 'default' : log.status === 'Late' ? 'secondary' : 'destructive'}
                       className={log.status === 'Present' ? 'bg-green-500' : ''}
                     >
