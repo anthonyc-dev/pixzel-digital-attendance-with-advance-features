@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import AppSidebar from './components/AppSidebar';
+import { PageBackground } from '@/components/PageBackground';
 
 export default function AttendanceV1Layout({
   children,
@@ -12,7 +13,9 @@ export default function AttendanceV1Layout({
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-black">
+    <div className="relative flex min-h-screen bg-gray-50 dark:bg-black">
+      <PageBackground variant="subtle" />
+
       <AppSidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
@@ -21,7 +24,7 @@ export default function AttendanceV1Layout({
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen lg:ml-0">
+      <div className="relative z-[5] flex flex-1 flex-col min-h-screen min-w-0 lg:ml-0">
         {/* Mobile Header */}
         <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-black border-b border-gray-100 dark:border-white/5 sticky top-0 z-20">
           <button

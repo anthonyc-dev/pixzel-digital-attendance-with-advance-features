@@ -151,21 +151,46 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
   const supabase = createClient();
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
-    if (savedTheme) {
-      setTheme(savedTheme);
-      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-    } else {
-      document.documentElement.classList.add('dark');
-    }
     setIsImageLoaded(true);
+
+    const root = document.documentElement;
+    const syncThemeFromDom = () => {
+      setTheme(root.classList.contains('dark') ? 'dark' : 'light');
+    };
+
+    syncThemeFromDom();
+
+    const observer = new MutationObserver(syncThemeFromDom);
+    observer.observe(root, { attributes: true, attributeFilter: ['class'] });
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== 'theme') return;
+      const next = localStorage.getItem('theme');
+      const dark = next !== 'light';
+      root.classList.add('theme-switching');
+      root.classList.toggle('dark', dark);
+      setTheme(dark ? 'dark' : 'light');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => root.classList.remove('theme-switching'));
+      });
+    };
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('storage', onStorage);
+    };
   }, []);
 
   const toggleTheme = (newTheme: 'light' | 'dark') => {
-    setIsImageLoaded(false);
+    const root = document.documentElement;
+    root.classList.add('theme-switching');
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    root.classList.toggle('dark', newTheme === 'dark');
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => root.classList.remove('theme-switching'));
+    });
   };
 
   const path = pathname ?? '';
@@ -234,7 +259,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
     <>
       {/* Desktop Sidebar */}
       <aside className={cn(
-        "hidden lg:flex h-screen bg-white dark:bg-black border-r border-gray-100 dark:border-white/5 flex-col transition-all duration-300 ease-out relative z-30 shrink-0 font-sans overflow-hidden",
+        "hidden lg:flex h-screen bg-white dark:bg-black border-r border-gray-100 dark:border-white/5 flex-col transition-[width] duration-300 ease-out relative z-30 shrink-0 font-sans overflow-hidden",
         isCollapsed ? "w-20" : "w-52 xl:w-64"
       )}>
         <div className={cn(
@@ -258,21 +283,26 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
 
           {!isCollapsed && (
             <div className="absolute left-4 top-6 flex items-center">
-              <div className="relative w-[100px] h-[28px]">
+              <div className="relative h-[36px] w-[112px]">
                 {!isImageLoaded && (
                   <div className="absolute inset-0 flex items-center gap-2 animate-pulse">
-                    <div className="w-[28px] h-[28px] rounded-full bg-muted" />
+                    <div className="h-9 w-9 rounded-full bg-muted" />
                     <div className="flex flex-col gap-1">
-                      <div className="w-[60px] h-[8px] bg-muted rounded" />
-                      <div className="w-[40px] h-[6px] bg-muted rounded" />
+                      <div className="h-2 w-[72px] rounded bg-muted" />
+                      <div className="h-1.5 w-12 rounded bg-muted" />
                     </div>
                   </div>
                 )}
                 <Image
+                  key={theme}
                   src={theme === 'dark' ? "/Pixzel-Digital-Logo-Light-Land.png" : "/pixzel-logo.png"}
                   alt="Pixzel Digital"
                   fill
-                  className={cn("object-contain transition-all duration-300", isImageLoaded ? "opacity-100" : "opacity-0")}
+                  className={cn(
+                    'object-contain object-left origin-left transition-opacity duration-200',
+                    theme === 'dark' && 'scale-[1.14]',
+                    isImageLoaded ? 'opacity-100' : 'opacity-0',
+                  )}
                   onLoad={() => setIsImageLoaded(true)}
                 />
               </div>
@@ -292,7 +322,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                     href={item.href}
                     prefetch={true}
                     className={cn(
-                      "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer outline-none",
+                      "w-full flex items-center justify-between p-2.5 rounded-lg transition-colors duration-150 group text-sm relative cursor-pointer outline-none",
                       isActive
                         ? "bg-secondary text-white shadow-lg shadow-secondary/20 scale-[1.02]"
                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white",
@@ -312,7 +342,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                   <button
                     onClick={() => handleNavClick(item)}
                     className={cn(
-                      "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer outline-none",
+                      "w-full flex items-center justify-between p-2.5 rounded-lg transition-colors duration-150 group text-sm relative cursor-pointer outline-none",
                       isActive
                         ? "bg-secondary text-white shadow-lg shadow-secondary/20"
                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white",
@@ -484,7 +514,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
 
         <div className={cn("mt-auto shrink-0 space-y-3 p-2 pt-3 border-t border-gray-100 dark:border-white/5 bg-white dark:bg-black", isCollapsed && "px-0 flex flex-col items-center")}>
           <div className={cn(
-            "w-full flex items-center transition-all duration-300 py-1",
+            "w-full flex items-center py-1",
             isCollapsed ? "justify-center px-0" : "justify-start px-2.5"
           )}>
             <button
@@ -527,7 +557,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                   }
                 }}
                 className={cn(
-                  "w-full flex items-center gap-2.5 p-2.5 text-xs font-bold transition-all duration-200 rounded-lg cursor-pointer",
+                  "w-full flex items-center gap-2.5 p-2.5 text-xs font-bold transition-colors duration-150 rounded-lg cursor-pointer",
                   item.isLogout
                     ? "text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10"
                     : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white",
@@ -554,21 +584,26 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
           >
             <X className="w-5 h-5" />
           </button>
-          <div className="relative w-[90px] h-[24px]">
+          <div className="relative h-[32px] w-[100px]">
             {!isImageLoaded && (
               <div className="absolute inset-0 flex items-center gap-2 animate-pulse">
-                <div className="w-[24px] h-[24px] rounded-full bg-muted" />
+                <div className="h-8 w-8 rounded-full bg-muted" />
                 <div className="flex flex-col gap-1">
-                  <div className="w-[50px] h-[6px] bg-muted rounded" />
-                  <div className="w-[35px] h-[5px] bg-muted rounded" />
+                  <div className="h-1.5 w-14 rounded bg-muted" />
+                  <div className="h-1 w-10 rounded bg-muted" />
                 </div>
               </div>
             )}
             <Image
+              key={theme}
               src={theme === 'dark' ? "/Pixzel-Digital-Logo-Light-Land.png" : "/pixzel-logo.png"}
               alt="Pixzel Digital"
               fill
-              className={cn("object-contain transition-all duration-300", isImageLoaded ? "opacity-100" : "opacity-0")}
+              className={cn(
+                'object-contain object-left origin-left transition-opacity duration-200',
+                theme === 'dark' && 'scale-[1.14]',
+                isImageLoaded ? 'opacity-100' : 'opacity-0',
+              )}
               onLoad={() => setIsImageLoaded(true)}
             />
           </div>
@@ -588,7 +623,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                     onClick={() => setIsMobileOpen?.(false)}
                     prefetch={true}
                     className={cn(
-                      "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer",
+                      "w-full flex items-center justify-between p-2.5 rounded-lg transition-colors duration-150 group text-sm relative cursor-pointer",
                       isActive
                         ? "bg-secondary text-white shadow-lg shadow-secondary/20"
                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
@@ -603,7 +638,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                   <button
                     onClick={() => handleNavClick(item)}
                     className={cn(
-                      "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer",
+                      "w-full flex items-center justify-between p-2.5 rounded-lg transition-colors duration-150 group text-sm relative cursor-pointer",
                       isActive
                         ? "bg-secondary text-white shadow-lg shadow-secondary/20"
                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
@@ -815,7 +850,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                   }
                 }}
                 className={cn(
-                  "w-full flex items-center gap-2.5 p-2.5 text-xs font-bold transition-all duration-200 rounded-lg cursor-pointer",
+                  "w-full flex items-center gap-2.5 p-2.5 text-xs font-bold transition-colors duration-150 rounded-lg cursor-pointer",
                   item.isLogout
                     ? "text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10"
                     : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"

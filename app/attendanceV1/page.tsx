@@ -19,6 +19,7 @@ import {
   ArrowDownRight
 } from 'lucide-react';
 import { dashboardStats, attendanceLogs, employees } from '@/lib/mock-data';
+import { ENV } from '@/lib/api';
 
 const StatCard = ({ 
   title, 
