@@ -1,4 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  enumerateWorkingDays,
+  overlapWorkingDays,
+} from "@/lib/payroll/workingDays";
 
 const DEFAULTS = {
   lateGraceMinutes: 5,
@@ -40,6 +44,8 @@ type LeaveRequest = {
   applied: boolean;
   leave_type: string | null;
   leave_type_id: string | null;
+  duration?: string | null;
+  leave_payment_kind?: "PAID" | "UNPAID" | null;
 };
 
 type LeaveType = {
@@ -93,39 +99,6 @@ function getManilaParts(dateIso: string) {
     hour: hour === 24 ? 0 : hour,
     minute,
   };
-}
-
-function overlapDays(startDate: string, endDate: string, leaveStart: string, leaveEnd: string): string[] {
-  const from = new Date(`${startDate}T00:00:00Z`);
-  const to = new Date(`${endDate}T00:00:00Z`);
-  const lFrom = new Date(`${leaveStart}T00:00:00Z`);
-  const lTo = new Date(`${leaveEnd}T00:00:00Z`);
-
-  const start = from > lFrom ? from : lFrom;
-  const end = to < lTo ? to : lTo;
-  if (end < start) return [];
-
-  const out: string[] = [];
-  const cur = new Date(start);
-  while (cur <= end) {
-    out.push(cur.toISOString().slice(0, 10));
-    cur.setUTCDate(cur.getUTCDate() + 1);
-  }
-  return out;
-}
-
-function enumerateWorkingDays(startDate: string, endDate: string): string[] {
-  const out: string[] = [];
-  const cur = new Date(`${startDate}T00:00:00Z`);
-  const end = new Date(`${endDate}T00:00:00Z`);
-  while (cur <= end) {
-    const dow = cur.getUTCDay();
-    if (dow !== 0 && dow !== 6) {
-      out.push(cur.toISOString().slice(0, 10));
-    }
-    cur.setUTCDate(cur.getUTCDate() + 1);
-  }
-  return out;
 }
 
 function toAmount(value: number) {
@@ -205,7 +178,9 @@ export async function processPayrollCutoff(supabase: SupabaseClient, input: Proc
       safeOptionalSelect<LeaveRequest>(
         supabase
           .from("leave_requests")
-          .select("id, employer_registration_id, start_date, end_date, status, applied, leave_type, leave_type_id")
+          .select(
+            "id, employer_registration_id, start_date, end_date, status, applied, leave_type, leave_type_id, duration, leave_payment_kind",
+          )
           .eq("status", "approved")
           .eq("applied", false),
       ),
@@ -276,25 +251,67 @@ export async function processPayrollCutoff(supabase: SupabaseClient, input: Proc
     let breakOverageMinutes = 0;
 
     const leaveEntries = leavesByEmployee.get(employer.id) ?? [];
-    const leaveDayPct = new Map<string, number>();
+    type DayLeaveUnits = { paid: number; unpaid: number };
+    const leaveByDay = new Map<string, DayLeaveUnits>();
+
+    const dayWeight = (leave: LeaveRequest) =>
+      leave.duration === "HALF_DAY" ? 0.5 : 1;
+
     for (const leave of leaveEntries) {
-      const typeFromId = leave.leave_type_id ? leaveTypeById.get(leave.leave_type_id) : undefined;
-      const fallbackUnpaid = (leave.leave_type ?? "").toLowerCase().includes("unpaid");
-      const pct = typeFromId ? (typeFromId.is_paid ? typeFromId.percentage_pay / 100 : 0) : (fallbackUnpaid ? 0 : 1);
-      for (const day of overlapDays(input.startDate, input.endDate, leave.start_date, leave.end_date)) {
-        leaveDayPct.set(day, pct);
+      const days = overlapWorkingDays(
+        input.startDate,
+        input.endDate,
+        leave.start_date,
+        leave.end_date,
+      );
+      const w = dayWeight(leave);
+      let paidPortion: number;
+      let unpaidPortion: number;
+      if (leave.leave_payment_kind === "PAID") {
+        paidPortion = w;
+        unpaidPortion = 0;
+      } else if (leave.leave_payment_kind === "UNPAID") {
+        paidPortion = 0;
+        unpaidPortion = w;
+      } else {
+        const typeFromId = leave.leave_type_id ? leaveTypeById.get(leave.leave_type_id) : undefined;
+        const fallbackUnpaid = (leave.leave_type ?? "").toLowerCase().includes("unpaid");
+        const payPct = typeFromId
+          ? typeFromId.is_paid
+            ? typeFromId.percentage_pay / 100
+            : 0
+          : fallbackUnpaid
+            ? 0
+            : 1;
+        paidPortion = w * payPct;
+        unpaidPortion = w * (1 - payPct);
+      }
+      for (const day of days) {
+        const cur = leaveByDay.get(day) ?? { paid: 0, unpaid: 0 };
+        cur.paid += paidPortion;
+        cur.unpaid += unpaidPortion;
+        leaveByDay.set(day, cur);
       }
       appliedLeaveIds.push(leave.id);
+    }
+
+    let unpaidLeaveDayUnits = 0;
+    let leavePay = 0;
+    for (const day of workingDays) {
+      const eff = leaveByDay.get(day);
+      if (eff?.paid) leavePay += eff.paid * dailyRate;
     }
 
     for (const day of workingDays) {
       const attKey = `${employer.id}:${day}`;
       const att = attendanceByEmployeeDay.get(attKey);
-      const leavePct = leaveDayPct.get(day);
+      const eff = leaveByDay.get(day);
 
       if (!att?.firstIn || !att?.lastOut) {
-        if (leavePct === undefined) {
+        if (!eff) {
           absentDays += 1;
+        } else {
+          unpaidLeaveDayUnits += eff.unpaid;
         }
         continue;
       }
@@ -332,9 +349,8 @@ export async function processPayrollCutoff(supabase: SupabaseClient, input: Proc
       lateMinutes += late;
     }
 
-    const leavePay = Array.from(leaveDayPct.values()).reduce((sum, pct) => sum + dailyRate * pct, 0);
     const lateDeduction = (lateMinutes / 60) * hourlyRate;
-    const absentDeduction = absentDays * dailyRate;
+    const absentDeduction = absentDays * dailyRate + unpaidLeaveDayUnits * dailyRate;
     const breakDeduction = (breakOverageMinutes / 60) * hourlyRate;
     const overtimePay = (overtimeMinutes / 60) * hourlyRate * overtimeMultiplier;
     const carryOver = (adjustmentByEmployee.get(employer.id) ?? []).reduce((sum, x) => sum + Number(x.amount ?? 0), 0);
@@ -365,7 +381,7 @@ export async function processPayrollCutoff(supabase: SupabaseClient, input: Proc
       net_pay: toAmount(netPay),
       period: `${input.startDate} to ${input.endDate}`,
       late_count: Math.ceil(lateMinutes / 60),
-      absent_count: absentDays,
+      absent_count: Math.ceil(absentDays + unpaidLeaveDayUnits - 1e-9),
       status: "processed",
       processed_at: new Date().toISOString(),
     };
@@ -390,7 +406,7 @@ export async function processPayrollCutoff(supabase: SupabaseClient, input: Proc
           period: `${input.startDate} to ${input.endDate}`,
           total_deduction: toAmount(totalDeduction),
           late_count: Math.ceil(lateMinutes / 60),
-          absent_count: absentDays,
+          absent_count: Math.ceil(absentDays + unpaidLeaveDayUnits - 1e-9),
           status: "processed",
           processed_at: new Date().toISOString(),
         };
@@ -411,7 +427,7 @@ export async function processPayrollCutoff(supabase: SupabaseClient, input: Proc
           period: `${input.startDate} to ${input.endDate}`,
           total_deduction: toAmount(totalDeduction),
           late_count: Math.ceil(lateMinutes / 60),
-          absent_count: absentDays,
+          absent_count: Math.ceil(absentDays + unpaidLeaveDayUnits - 1e-9),
           status: "processed",
           processed_at: new Date().toISOString(),
         };

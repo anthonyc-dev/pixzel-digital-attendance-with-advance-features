@@ -8,6 +8,11 @@ interface LeaveRequest {
   reason: string;
   start_date: string;
   end_date: string;
+  status?: string;
+  duration?: string;
+  leave_payment_kind?: string | null;
+  approved_at?: string | null;
+  credits_consumed?: number;
   created_at: string;
   employer_registration?: {
     id: string;
@@ -66,6 +71,11 @@ export async function GET(request: Request) {
     end_date: leave.end_date,
     created_at: leave.created_at,
     image: leave.employer_registration?.image,
+    status: leave.status ?? "pending",
+    duration: leave.duration ?? "FULL_DAY",
+    leave_payment_kind: leave.leave_payment_kind ?? null,
+    approved_at: leave.approved_at ?? null,
+    credits_consumed: leave.credits_consumed ?? 0,
   })) || [];
 
   return NextResponse.json(mappedData);
@@ -76,7 +86,7 @@ export async function POST(req: Request) {
     const supabase = await createSupabaseServer();
     const body = await req.json();
 
-    const { employer_id, leave_type, reason, start_date, end_date } = body;
+    const { employer_id, leave_type, reason, start_date, end_date, duration } = body;
 
     if (!employer_id || !leave_type || !reason || !start_date || !end_date) {
       return NextResponse.json(
@@ -98,6 +108,9 @@ export async function POST(req: Request) {
       );
     }
 
+    const dur =
+      duration === "HALF_DAY" || duration === "FULL_DAY" ? duration : "FULL_DAY";
+
     const { data, error } = await supabase
       .from("leave_requests")
       .insert({
@@ -106,6 +119,7 @@ export async function POST(req: Request) {
         reason,
         start_date,
         end_date,
+        duration: dur,
       })
       .select()
       .single();

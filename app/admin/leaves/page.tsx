@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { ENV } from '@/lib/api';
-import { CalendarDays, Trash2, X, AlertCircle, CheckCircle2, Loader2, ChevronDown } from 'lucide-react';
+import { CalendarDays, Trash2, X, AlertCircle, CheckCircle2, Loader2, ChevronDown, Check, XCircle } from 'lucide-react';
 
 interface LeaveRequest {
     id: number;
@@ -15,6 +15,11 @@ interface LeaveRequest {
     reason: string;
     created_at: string;
     image?: string;
+    status?: string;
+    duration?: string;
+    leave_payment_kind?: string | null;
+    approved_at?: string | null;
+    credits_consumed?: number;
 }
 
 interface Employer {
@@ -53,6 +58,7 @@ const LeavesPage = () => {
     const [submitting, setSubmitting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
     const [isDeleting, setIsDeleting] = useState<number | null>(null);
+    const [actionLeaveId, setActionLeaveId] = useState<number | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'delete' } | null>(null);
     const [formData, setFormData] = useState({
         employer_id: '',
@@ -60,6 +66,7 @@ const LeavesPage = () => {
         reason: '',
         start_date: '',
         end_date: '',
+        duration: 'FULL_DAY' as 'FULL_DAY' | 'HALF_DAY',
     });
 
     const showToast = (message: string, type: 'success' | 'error' | 'delete') => {
@@ -123,6 +130,28 @@ const LeavesPage = () => {
         }
     };
 
+    const patchLeave = async (id: number, action: 'approve' | 'reject') => {
+        setActionLeaveId(id);
+        try {
+            const res = await fetch(`${ENV.API_URL}/leave/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action }),
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                showToast(json.error || `Failed to ${action} leave`, 'error');
+                return;
+            }
+            showToast(action === 'approve' ? 'Leave approved' : 'Leave rejected', 'success');
+            await fetchLeaves();
+        } catch {
+            showToast('Request failed', 'error');
+        } finally {
+            setActionLeaveId(null);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
@@ -130,13 +159,20 @@ const LeavesPage = () => {
             const res = await fetch(`${ENV.API_URL}/leave`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
+                body: JSON.stringify({
+                    employer_id: formData.employer_id,
+                    leave_type: formData.leave_type,
+                    reason: formData.reason,
+                    start_date: formData.start_date,
+                    end_date: formData.end_date,
+                    duration: formData.duration,
+                }),
             });
 
             if (res.ok) {
                 showToast('Leave request submitted successfully!', 'success');
                 setIsModalOpen(false);
-                setFormData({ employer_id: '', leave_type: '', reason: '', start_date: '', end_date: '' });
+                setFormData({ employer_id: '', leave_type: '', reason: '', start_date: '', end_date: '', duration: 'FULL_DAY' });
                 await fetchLeaves();
             } else {
                 const error = await res.json();
@@ -178,8 +214,11 @@ const LeavesPage = () => {
                                     <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  whitespace-nowrap">Leave Type</th>
                                     <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  whitespace-nowrap">Start Date</th>
                                     <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  whitespace-nowrap">End Date</th>
+                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  whitespace-nowrap">Duration</th>
+                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  whitespace-nowrap">Status</th>
+                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  whitespace-nowrap">Pay</th>
                                     <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  min-w-[150px] whitespace-nowrap">Reason</th>
-                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  w-16 whitespace-nowrap">Actions</th>
+                                    <th className="px-4 py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400  w-28 whitespace-nowrap">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-white/5">
@@ -187,20 +226,17 @@ const LeavesPage = () => {
                                     <>
                                         {[1, 2, 3, 4, 5].map((i) => (
                                             <tr key={i}>
-                                                {Array.from({ length: 6 }).map((_, idx) => (
+                                                {Array.from({ length: 10 }).map((_, idx) => (
                                                     <td key={idx} className="px-4 py-2 ">
                                                         <div className="h-3 w-full bg-gray-200 dark:bg-white/5 rounded animate-pulse" />
                                                     </td>
                                                 ))}
-                                                <td className="px-4 py-2  text-center">
-                                                    <div className="h-3 w-8 bg-gray-200 dark:bg-white/5 rounded animate-pulse mx-auto" />
-                                                </td>
                                             </tr>
                                         ))}
                                     </>
                                 ) : filteredLeaves.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7} className="p-8 text-center">
+                                        <td colSpan={10} className="p-8 text-center">
                                             <div className="flex flex-col items-center gap-2 text-gray-500 dark:text-gray-400">
                                                 <CalendarDays className="w-8 h-8 opacity-50" />
                                                 <span className="text-xs font-bold uppercase tracking-widest">No leaves found</span>
@@ -228,20 +264,56 @@ const LeavesPage = () => {
                                             <td className="px-4 py-2  align-middle whitespace-nowrap">
                                                 <span className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400">{leave.end_date}</span>
                                             </td>
+                                            <td className="px-4 py-2  align-middle whitespace-nowrap">
+                                                <span className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400">{leave.duration ?? 'FULL_DAY'}</span>
+                                            </td>
+                                            <td className="px-4 py-2  align-middle whitespace-nowrap">
+                                                <span className="text-[10px] sm:text-xs font-bold uppercase text-gray-500 dark:text-gray-400">{leave.status ?? 'pending'}</span>
+                                            </td>
+                                            <td className="px-4 py-2  align-middle whitespace-nowrap">
+                                                <span className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400">
+                                                    {leave.leave_payment_kind ?? '—'}
+                                                    {leave.credits_consumed ? ` (−${leave.credits_consumed})` : ''}
+                                                </span>
+                                            </td>
                                             <td className="px-4 py-2  align-middle">
                                                 <span className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400 block max-w-[150px] truncate" title={leave.reason}>{leave.reason}</span>
                                             </td>
-                                            <td className="px-4 py-2  relative align-middle text-center min-w-[70px]">
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setShowDeleteConfirm(leave.id);
-                                                    }}
-                                                    className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer text-red-500"
-                                                >
-                                                    <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                                                </button>
+                                            <td className="px-4 py-2  relative align-middle text-center min-w-[100px]">
+                                                <div className="flex items-center justify-center gap-0.5 flex-wrap">
+                                                    {(leave.status ?? 'pending') === 'pending' && (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                title="Approve"
+                                                                disabled={actionLeaveId === leave.id}
+                                                                onClick={(e) => { e.stopPropagation(); void patchLeave(leave.id, 'approve'); }}
+                                                                className="p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-500/10 transition-colors cursor-pointer text-green-600 disabled:opacity-40"
+                                                            >
+                                                                {actionLeaveId === leave.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4 sm:w-5 sm:h-5" />}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                title="Reject"
+                                                                disabled={actionLeaveId === leave.id}
+                                                                onClick={(e) => { e.stopPropagation(); void patchLeave(leave.id, 'reject'); }}
+                                                                className="p-2 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors cursor-pointer text-amber-600 disabled:opacity-40"
+                                                            >
+                                                                <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setShowDeleteConfirm(leave.id);
+                                                        }}
+                                                        className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer text-red-500"
+                                                    >
+                                                        <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -324,6 +396,23 @@ const LeavesPage = () => {
                                     className="w-full px-4 py-3 bg-muted border border-gray-200 dark:border-white/10 rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-all resize-none"
                                     required
                                 />
+                            </div>
+
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                    Duration (per working day in range)
+                                </label>
+                                <div className="relative">
+                                    <select
+                                        value={formData.duration}
+                                        onChange={(e) => setFormData({ ...formData, duration: e.target.value as 'FULL_DAY' | 'HALF_DAY' })}
+                                        className="w-full px-4 py-3 bg-muted border border-gray-200 dark:border-white/10 rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-all appearance-none cursor-pointer"
+                                    >
+                                        <option value="FULL_DAY">Full day (1 credit / day)</option>
+                                        <option value="HALF_DAY">Half day (0.5 credit / day)</option>
+                                    </select>
+                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
