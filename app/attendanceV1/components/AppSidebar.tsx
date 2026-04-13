@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
 import {
   Calendar,
   Clock,
@@ -30,35 +31,58 @@ import {
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
 
+interface NavSubItem {
+  name: string;
+  href: string;
+  icon?: LucideIcon;
+  badge?: string;
+  hasSub?: boolean;
+  subItems?: NavSubItem[];
+}
+
 interface NavItem {
   name: string;
   icon: LucideIcon;
   href: string;
   hasSub?: boolean;
-  subItems?: NavItem[];
+  subItems?: NavSubItem[];
 }
 
-
-
 const sidebarItems: NavItem[] = [
-  { name: 'Dashboard', icon: LayoutDashboard, href: '/attendanceV1' },
-  { name: 'Employee Management', icon: Users, href: '/attendanceV1/employee-management' },
+  { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/adminDashboard' },
   {
-    name: 'Attendance', icon: ClipboardCheck, href: '#', hasSub: true, subItems: [
+    name: 'Employers', icon: Users, href: '/admin/employer', hasSub: true, subItems: [
+      { name: 'Employer', href: '/admin/employer' },
+      { name: 'Register', href: '/admin/employerRegistration' },
+    ]
+  },
+  {
+    name: 'Attendance', icon: ClipboardCheck, href: '/attendanceV1/attendance/attendance-log', hasSub: true, subItems: [
       { name: 'Attendance Log', icon: FileText, href: '/attendanceV1/attendance/attendance-log' },
       { name: 'Exceptions', icon: Clock, href: '/attendanceV1/attendance/exceptions' },
       { name: 'Attendance Report', icon: FilePlus, href: '/attendanceV1/attendance/attendance-report' },
     ]
   },
+  { name: 'DTR', icon: ClipboardCheck, href: '/admin/dtr' },
+  // {
+  //   name: 'Payroll', icon: Banknote, href: '/admin/payroll', hasSub: true, subItems: [
+  //     { name: 'Payroll', href: '/admin/payroll' },
+  //     { name: 'Leave Request', href: '/admin/leaves' },
+  //     { name: 'Deduction', href: '/admin/deduction' },
+  //     { name: 'Adjustment', href: '/admin/payrollAdjustment' },
+  //     { name: 'Exception', href: '/admin/payrollException' },
+  //     { name: 'Overtime', href: '/admin/overtime' },
+  //   ]
+  // },
   {
-    name: 'Leave Management', icon: Hourglass, href: '#', hasSub: true, subItems: [
+    name: 'Leave Management', icon: Hourglass, href: '/attendanceV1/leave-management/leave-balance', hasSub: true, subItems: [
       { name: 'Leave Balance', icon: Wallet, href: '/attendanceV1/leave-management/leave-balance' },
       { name: 'Leave Taken', icon: Clock, href: '/attendanceV1/leave-management/leave-taken' },
       { name: 'Manual Override', icon: Settings, href: '/attendanceV1/leave-management/manual-override' },
     ]
   },
   {
-    name: 'Overtime Management', icon: Timer, href: '#', hasSub: true, subItems: [
+    name: 'Overtime Management', icon: Timer, href: '/attendanceV1/overtime-management/overtime-log', hasSub: true, subItems: [
       { name: 'Overtime Log', icon: Clock, href: '/attendanceV1/overtime-management/overtime-log' },
       { name: 'Overtime Report', icon: FilePlus, href: '/attendanceV1/overtime-management/overtime-report' },
       { name: 'Manual Override', icon: Settings, href: '/attendanceV1/overtime-management/manual-override' },
@@ -101,18 +125,12 @@ const sidebarItems: NavItem[] = [
       { name: 'Employee Payslip', icon: FileText, href: '/attendanceV1/reports/employee-payslip' },
     ]
   },
-  {
-    name: 'Settings', icon: Settings2, href: '#', hasSub: true, subItems: [
-      { name: 'Automation Rules', icon: Settings, href: '/attendanceV1/settings/automation-rules' },
-      { name: 'Loan Terms', icon: Wallet, href: '/attendanceV1/settings/loan-terms' },
-      { name: 'Deduction Templates', icon: CreditCard, href: '/attendanceV1/settings/deduction-templates' },
-      { name: 'Payroll Periods', icon: Calendar, href: '/attendanceV1/settings/payroll-periods' },
-    ]
-  },
+  { name: 'Calendar', icon: Calendar, href: '/admin/adminCalendar' },
+  { name: 'Activities', icon: Clock, href: '/admin/activities' },
 ];
 
 const bottomItems = [
-  { name: 'Settings', icon: Settings, href: '/attendanceV1/settings/automation-rules' },
+  { name: 'Settings', icon: Settings, href: '/admin/settings' },
   { name: 'Logout', icon: LogOut, href: '/auth/login', isLogout: true },
 ];
 
@@ -130,6 +148,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
   const [openMenus, setOpenMenus] = useState<string[]>([]);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const supabase = createClient();
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
@@ -149,17 +168,51 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
 
+  const path = pathname ?? '';
+
+  const nestedMenuKey = (parentName: string, subName: string) =>
+    `${parentName}::${subName}`;
+
   const toggleMenu = (name: string) => {
     setOpenMenus(prev =>
       prev.includes(name) ? prev.filter(i => i !== name) : [...prev, name]
     );
   };
 
+  useEffect(() => {
+    setOpenMenus((prev) => {
+      const need = new Set(prev);
+      for (const item of sidebarItems) {
+        if (!item.subItems) continue;
+        for (const sub of item.subItems) {
+          if (sub.hasSub && sub.subItems?.length) {
+            const childMatch = sub.subItems.some(
+              (n) =>
+                path === n.href ||
+                (n.href !== '#' && path.startsWith(`${n.href}/`))
+            );
+            if (childMatch) {
+              need.add(item.name);
+              need.add(`${item.name}::${sub.name}`);
+            }
+          } else if (
+            sub.href !== '#' &&
+            (path === sub.href || path.startsWith(`${sub.href}/`))
+          ) {
+            need.add(item.name);
+          }
+        }
+      }
+      return [...need];
+    });
+  }, [path]);
+
   const handleNavClick = (item: NavItem) => {
     if (item.hasSub) {
       toggleMenu(item.name);
       return;
     }
+    // Mobile menu closing is handled on the Link onClick
     if (setIsMobileOpen) setIsMobileOpen(false);
   };
 
@@ -167,6 +220,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
     if (isLoggingOut) return;
     setIsLoggingOut(true);
     try {
+      await supabase.auth.signOut();
       router.push('/auth/login');
       router.refresh();
     } catch (error) {
@@ -175,83 +229,6 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
       setIsLoggingOut(false);
     }
   };
-
-  const isParentActive = (item: NavItem): boolean => {
-    if (item.href === pathname) return true;
-    if (item.subItems) {
-      return item.subItems.some(sub => isParentActive(sub));
-    }
-    return false;
-  };
-
-  const renderSubItems = (subItems: NavItem[], depth: number = 0) => (
-    <div className={cn(
-      "relative ml-10 mt-1 pl-3 py-1 animate-in slide-in-from-top-2 duration-300",
-      depth > 0 && "ml-6"
-    )}>
-      {subItems.map((sub, index) => {
-        const isSubActive = isParentActive(sub);
-        return (
-          <div key={sub.name}>
-            {sub.href && sub.href !== '#' && !sub.hasSub ? (
-              <Link
-                href={sub.href}
-                prefetch={true}
-                onClick={() => setIsMobileOpen?.(false)}
-                className={cn(
-                  "relative flex items-center gap-2 py-1.5 text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer group",
-                  isSubActive ? "text-secondary" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                )}
-              >
-                <div className={cn(
-                  "absolute -left-3 w-[2px] bg-gray-300 dark:bg-gray-600",
-                  index === 0 ? "-top-1" : "top-0",
-                  index === subItems.length - 1 ? "bottom-1/2" : "bottom-0"
-                )} />
-                <div className="absolute -left-3 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-3 group-hover:w-[16px]" />
-                <span className={cn(
-                  "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10 group-hover:translate-x-1",
-                  isSubActive
-                    ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
-                    : "border border-gray-400 dark:border-gray-500 bg-transparent"
-                )} />
-                <span className="flex-1 transition-transform duration-150 group-hover:translate-x-1">{sub.name}</span>
-              </Link>
-            ) : (
-              <button
-                onClick={() => {
-                  toggleMenu(sub.name);
-                  if (setIsMobileOpen) setIsMobileOpen(false);
-                }}
-                className={cn(
-                  "relative flex items-center gap-2 py-1.5 text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer group w-full",
-                  isSubActive ? "text-secondary" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                )}
-              >
-                <div className={cn(
-                  "absolute -left-3 w-[2px] bg-gray-300 dark:bg-gray-600",
-                  index === 0 ? "-top-1" : "top-0",
-                  index === subItems.length - 1 ? "bottom-1/2" : "bottom-0"
-                )} />
-                <div className="absolute -left-3 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-3 group-hover:w-[16px]" />
-                <span className={cn(
-                  "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10",
-                  isSubActive
-                    ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
-                    : "border border-gray-400 dark:border-gray-500 bg-transparent"
-                )} />
-                <span className="flex-1 text-left">{sub.name}</span>
-                {sub.hasSub && (
-                  <ChevronDown className={cn("w-3 h-3", openMenus.includes(sub.name) && "rotate-180")} />
-                )}
-              </button>
-            )}
-            {!isCollapsed && sub.subItems && openMenus.includes(sub.name) && renderSubItems(sub.subItems, depth + 1)}
-          </div>
-        );
-      })}
-    </div>
-  );
 
   return (
     <>
@@ -306,7 +283,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
         <nav className="flex-1 min-h-0 space-y-0.5 px-2 overflow-y-auto no-scrollbar">
           {sidebarItems.map((item) => {
             const isMenuOpen = openMenus.includes(item.name);
-            const active = isParentActive(item);
+            const isActive = path === item.href;
 
             return (
               <div key={item.name} className="space-y-0.5">
@@ -316,18 +293,18 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                     prefetch={true}
                     className={cn(
                       "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer outline-none",
-                      active
+                      isActive
                         ? "bg-secondary text-white shadow-lg shadow-secondary/20 scale-[1.02]"
                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white",
                       isCollapsed ? "justify-center px-0" : "justify-between"
                     )}
                   >
                     <div className="flex items-center gap-2.5">
-                      <item.icon className={cn("w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110", active ? "text-white" : "text-gray-500 dark:text-gray-400")} />
-                      {!isCollapsed && <span className={cn("font-bold tracking-tight text-xs", active ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>}
+                      <item.icon className={cn("w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110", isActive ? "text-white" : "text-gray-500 dark:text-gray-400")} />
+                      {!isCollapsed && <span className={cn("font-bold tracking-tight text-xs", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>}
                     </div>
 
-                    {isCollapsed && active && (
+                    {isCollapsed && isActive && (
                       <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-secondary rounded-l-full" />
                     )}
                   </Link>
@@ -336,15 +313,15 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                     onClick={() => handleNavClick(item)}
                     className={cn(
                       "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer outline-none",
-                      active
+                      isActive
                         ? "bg-secondary text-white shadow-lg shadow-secondary/20"
                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white",
                       isCollapsed ? "justify-center px-0" : "justify-between"
                     )}
                   >
                     <div className="flex items-center gap-2.5">
-                      <item.icon className={cn("w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110", active ? "text-white" : "text-gray-500 dark:text-gray-400")} />
-                      {!isCollapsed && <span className={cn("font-bold tracking-tight text-xs", active ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>}
+                      <item.icon className={cn("w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110", isActive ? "text-white" : "text-gray-500 dark:text-gray-400")} />
+                      {!isCollapsed && <span className={cn("font-bold tracking-tight text-xs", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>}
                     </div>
 
                     {!isCollapsed && item.hasSub && (
@@ -353,7 +330,153 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                   </button>
                 )}
 
-                {!isCollapsed && item.subItems && isMenuOpen && renderSubItems(item.subItems)}
+                {!isCollapsed && item.subItems && isMenuOpen && (
+                  <div className="relative ml-10 mt-1 pl-3 py-1 animate-in slide-in-from-top-2 duration-300">
+                    {item.subItems.map((sub, index) => {
+                      const isNestedOpen = openMenus.includes(
+                        nestedMenuKey(item.name, sub.name)
+                      );
+                      const isSubActive =
+                        sub.href !== '#' &&
+                        (path === sub.href ||
+                          path.startsWith(`${sub.href}/`));
+                      const nestedActive =
+                        sub.hasSub &&
+                        sub.subItems?.some(
+                          (n) =>
+                            path === n.href ||
+                            (n.href !== '#' &&
+                              path.startsWith(`${n.href}/`))
+                        );
+
+                      if (sub.hasSub && sub.subItems?.length) {
+                        return (
+                          <div key={sub.name} className="relative">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleMenu(nestedMenuKey(item.name, sub.name))
+                              }
+                              className={cn(
+                                "relative flex w-full items-center gap-2 py-1.5 text-left text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer group outline-none",
+                                nestedActive
+                                  ? "text-secondary"
+                                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "absolute -left-3 w-[2px] bg-gray-300 dark:bg-gray-600",
+                                  index === 0 ? "-top-1" : "top-0",
+                                  index === item.subItems!.length - 1 &&
+                                    !isNestedOpen
+                                    ? "bottom-1/2"
+                                    : "bottom-0"
+                                )}
+                              />
+                              <div className="absolute -left-3 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-3 group-hover:w-[16px]" />
+
+                              <span
+                                className={cn(
+                                  "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10",
+                                  nestedActive
+                                    ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
+                                    : "border border-gray-400 dark:border-gray-500 bg-transparent"
+                                )}
+                              />
+                              <span className="flex-1">{sub.name}</span>
+                              <ChevronDown
+                                className={cn(
+                                  "w-3 h-3 shrink-0 text-gray-400 dark:text-gray-500 transition-transform duration-200",
+                                  isNestedOpen && "rotate-180"
+                                )}
+                              />
+                            </button>
+                            {isNestedOpen && (
+                              <div className="relative ml-4 border-l border-gray-300 dark:border-gray-600 pl-3 py-0.5">
+                                {sub.subItems.map((nested) => {
+                                  const isNestedLinkActive =
+                                    path === nested.href ||
+                                    (nested.href !== '#' &&
+                                      path.startsWith(`${nested.href}/`));
+                                  return (
+                                    <Link
+                                      key={nested.name}
+                                      href={nested.href}
+                                      prefetch={true}
+                                      className={cn(
+                                        "relative flex items-center gap-2 py-1.5 text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer group",
+                                        isNestedLinkActive
+                                          ? "text-secondary"
+                                          : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                                      )}
+                                    >
+                                      <span
+                                        className={cn(
+                                          "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10 group-hover:translate-x-1",
+                                          isNestedLinkActive
+                                            ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
+                                            : "border border-gray-400 dark:border-gray-500 bg-transparent"
+                                        )}
+                                      />
+                                      <span className="flex-1 transition-transform duration-150 group-hover:translate-x-1">
+                                        {nested.name}
+                                      </span>
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <Link
+                          key={sub.name}
+                          href={sub.href}
+                          prefetch={true}
+                          className={cn(
+                            "relative flex items-center gap-2 py-1.5 text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer group",
+                            isSubActive
+                              ? "text-secondary"
+                              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                          )}
+                        >
+                          {/* Vertical connection line */}
+                          <div
+                            className={cn(
+                              "absolute -left-3 w-[2px] bg-gray-300 dark:bg-gray-600",
+                              index === 0 ? "-top-1" : "top-0",
+                              index === item.subItems!.length - 1
+                                ? "bottom-1/2"
+                                : "bottom-0"
+                            )}
+                          />
+                          {/* Horizontal connection line that stretches on hover */}
+                          <div className="absolute -left-3 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-3 group-hover:w-[16px]" />
+
+                          <span
+                            className={cn(
+                              "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10 group-hover:translate-x-1",
+                              isSubActive
+                                ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
+                                : "border border-gray-400 dark:border-gray-500 bg-transparent"
+                            )}
+                          />
+                          <span className="flex-1 transition-transform duration-150 group-hover:translate-x-1">
+                            {sub.name}
+                          </span>
+                          {sub.badge && (
+                            <span className="px-1.5 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-[8px] font-bold transition-transform duration-150 group-hover:translate-x-1">
+                              {sub.badge}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )
           })}
@@ -455,7 +578,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
         <nav className="flex-1 min-h-0 space-y-0.5 px-2 overflow-y-auto no-scrollbar">
           {sidebarItems.map((item) => {
             const isMenuOpen = openMenus.includes(item.name);
-            const active = isParentActive(item);
+            const isActive = path === item.href;
 
             return (
               <div key={item.name} className="space-y-0.5">
@@ -466,14 +589,14 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                     prefetch={true}
                     className={cn(
                       "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer",
-                      active
+                      isActive
                         ? "bg-secondary text-white shadow-lg shadow-secondary/20"
                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
                     )}
                   >
                     <div className="flex items-center gap-2.5">
-                      <item.icon className={cn("w-4 h-4 flex-shrink-0", active ? "text-white" : "text-gray-500 dark:text-gray-400")} />
-                      <span className={cn("font-bold tracking-tight text-xs", active ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>
+                      <item.icon className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-white" : "text-gray-500 dark:text-gray-400")} />
+                      <span className={cn("font-bold tracking-tight text-xs", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>
                     </div>
                   </Link>
                 ) : (
@@ -481,14 +604,14 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                     onClick={() => handleNavClick(item)}
                     className={cn(
                       "w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 group text-sm relative cursor-pointer",
-                      active
+                      isActive
                         ? "bg-secondary text-white shadow-lg shadow-secondary/20"
                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
                     )}
                   >
                     <div className="flex items-center gap-2.5">
-                      <item.icon className={cn("w-4 h-4 flex-shrink-0", active ? "text-white" : "text-gray-500 dark:text-gray-400")} />
-                      <span className={cn("font-bold tracking-tight text-xs", active ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>
+                      <item.icon className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-white" : "text-gray-500 dark:text-gray-400")} />
+                      <span className={cn("font-bold tracking-tight text-xs", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.name}</span>
                     </div>
 
                     {item.hasSub && (
@@ -498,7 +621,153 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                 )}
 
                 {item.subItems && isMenuOpen && (
-                  renderSubItems(item.subItems)
+                  <div className="relative ml-10 mt-1 pl-3 py-1">
+                    {item.subItems.map((sub, index) => {
+                      const isNestedOpen = openMenus.includes(
+                        nestedMenuKey(item.name, sub.name)
+                      );
+                      const isSubActive =
+                        sub.href !== '#' &&
+                        (path === sub.href ||
+                          path.startsWith(`${sub.href}/`));
+                      const nestedActive =
+                        sub.hasSub &&
+                        sub.subItems?.some(
+                          (n) =>
+                            path === n.href ||
+                            (n.href !== '#' &&
+                              path.startsWith(`${n.href}/`))
+                        );
+
+                      if (sub.hasSub && sub.subItems?.length) {
+                        return (
+                          <div key={sub.name} className="relative">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleMenu(nestedMenuKey(item.name, sub.name))
+                              }
+                              className={cn(
+                                "relative flex w-full items-center gap-2 py-1.5 text-left text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer group outline-none",
+                                nestedActive
+                                  ? "text-secondary"
+                                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "absolute -left-3 w-[2px] bg-gray-300 dark:bg-gray-600",
+                                  index === 0 ? "-top-1" : "top-0",
+                                  index === item.subItems!.length - 1 &&
+                                    !isNestedOpen
+                                    ? "bottom-1/2"
+                                    : "bottom-0"
+                                )}
+                              />
+                              <div className="absolute -left-3 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-3 group-hover:w-[16px]" />
+
+                              <span
+                                className={cn(
+                                  "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10",
+                                  nestedActive
+                                    ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
+                                    : "border border-gray-400 dark:border-gray-500 bg-transparent"
+                                )}
+                              />
+                              <span className="flex-1">{sub.name}</span>
+                              <ChevronDown
+                                className={cn(
+                                  "w-3 h-3 shrink-0 text-gray-400 dark:text-gray-500 transition-transform duration-200",
+                                  isNestedOpen && "rotate-180"
+                                )}
+                              />
+                            </button>
+                            {isNestedOpen && (
+                              <div className="relative ml-4 border-l border-gray-300 dark:border-gray-600 pl-3 py-0.5">
+                                {sub.subItems.map((nested) => {
+                                  const isNestedLinkActive =
+                                    path === nested.href ||
+                                    (nested.href !== '#' &&
+                                      path.startsWith(`${nested.href}/`));
+                                  return (
+                                    <Link
+                                      key={nested.name}
+                                      href={nested.href}
+                                      prefetch={true}
+                                      onClick={() => setIsMobileOpen?.(false)}
+                                      className={cn(
+                                        "relative flex items-center gap-2 py-1.5 text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer group",
+                                        isNestedLinkActive
+                                          ? "text-secondary"
+                                          : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                                      )}
+                                    >
+                                      <span
+                                        className={cn(
+                                          "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10 group-hover:translate-x-1",
+                                          isNestedLinkActive
+                                            ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
+                                            : "border border-gray-400 dark:border-gray-500 bg-transparent"
+                                        )}
+                                      />
+                                      <span className="flex-1 transition-transform duration-150 group-hover:translate-x-1">
+                                        {nested.name}
+                                      </span>
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <Link
+                          key={sub.name}
+                          href={sub.href}
+                          prefetch={true}
+                          onClick={() => setIsMobileOpen?.(false)}
+                          className={cn(
+                            "relative flex items-center gap-2 py-1.5 text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer group",
+                            isSubActive
+                              ? "text-secondary"
+                              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                          )}
+                        >
+                          {/* Vertical connection line */}
+                          <div
+                            className={cn(
+                              "absolute -left-3 w-[2px] bg-gray-300 dark:bg-gray-600",
+                              index === 0 ? "-top-1" : "top-0",
+                              index === item.subItems!.length - 1
+                                ? "bottom-1/2"
+                                : "bottom-0"
+                            )}
+                          />
+                          {/* Horizontal connection line that stretches on hover */}
+                          <div className="absolute -left-3 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-3 group-hover:w-[16px]" />
+
+                          <span
+                            className={cn(
+                              "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10 group-hover:translate-x-1",
+                              isSubActive
+                                ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
+                                : "border border-gray-400 dark:border-gray-500 bg-transparent"
+                            )}
+                          />
+                          <span className="flex-1 transition-transform duration-150 group-hover:translate-x-1">
+                            {sub.name}
+                          </span>
+                          {sub.badge && (
+                            <span className="px-1.5 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-[8px] font-bold transition-transform duration-150 group-hover:translate-x-1">
+                              {sub.badge}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             )

@@ -19,17 +19,33 @@ import {
   LogOut,
   Users,
   ClipboardCheck,
-  Banknote
+  Banknote,
+  FileText,
+  Hourglass,
+  Timer,
+  CreditCard,
+  Wallet,
+  FilePlus,
+  Settings2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
+
+interface NavSubItem {
+  name: string;
+  href: string;
+  icon?: LucideIcon;
+  badge?: string;
+  hasSub?: boolean;
+  subItems?: NavSubItem[];
+}
 
 interface NavItem {
   name: string;
   icon: LucideIcon;
   href: string;
   hasSub?: boolean;
-  subItems?: { name: string; href: string; badge?: string }[];
+  subItems?: NavSubItem[];
 }
 
 const sidebarItems: NavItem[] = [
@@ -40,15 +56,73 @@ const sidebarItems: NavItem[] = [
       { name: 'Register', href: '/admin/employerRegistration' },
     ]
   },
-  { name: 'DTR', icon: ClipboardCheck, href: '/admin/dtr' },
   {
-    name: 'Payroll', icon: Banknote, href: '/admin/payroll', hasSub: true, subItems: [
-      { name: 'Payroll', href: '/admin/payroll' },
-      { name: 'Leave Request', href: '/admin/leaves' },
-      { name: 'Deduction', href: '/admin/deduction' },
-      { name: 'Adjustment', href: '/admin/payrollAdjustment' },
-      { name: 'Exception', href: '/admin/payrollException' },
-      { name: 'Overtime', href: '/admin/overtime' },
+    name: 'Attendance', icon: ClipboardCheck, href: '/attendanceV1/attendance/attendance-log', hasSub: true, subItems: [
+      { name: 'Attendance Log', icon: FileText, href: '/attendanceV1/attendance/attendance-log' },
+      { name: 'Exceptions', icon: Clock, href: '/attendanceV1/attendance/exceptions' },
+      { name: 'Attendance Report', icon: FilePlus, href: '/attendanceV1/attendance/attendance-report' },
+    ]
+  },
+  { name: 'DTR', icon: ClipboardCheck, href: '/admin/dtr' },
+  // {
+  //   name: 'Payroll', icon: Banknote, href: '/admin/payroll', hasSub: true, subItems: [
+  //     { name: 'Payroll', href: '/admin/payroll' },
+  //     { name: 'Leave Request', href: '/admin/leaves' },
+  //     { name: 'Deduction', href: '/admin/deduction' },
+  //     { name: 'Adjustment', href: '/admin/payrollAdjustment' },
+  //     { name: 'Exception', href: '/admin/payrollException' },
+  //     { name: 'Overtime', href: '/admin/overtime' },
+  //   ]
+  // },
+  {
+    name: 'Leave Management', icon: Hourglass, href: '/attendanceV1/leave-management/leave-balance', hasSub: true, subItems: [
+      { name: 'Leave Balance', icon: Wallet, href: '/attendanceV1/leave-management/leave-balance' },
+      { name: 'Leave Taken', icon: Clock, href: '/attendanceV1/leave-management/leave-taken' },
+      { name: 'Manual Override', icon: Settings, href: '/attendanceV1/leave-management/manual-override' },
+    ]
+  },
+  {
+    name: 'Overtime Management', icon: Timer, href: '/attendanceV1/overtime-management/overtime-log', hasSub: true, subItems: [
+      { name: 'Overtime Log', icon: Clock, href: '/attendanceV1/overtime-management/overtime-log' },
+      { name: 'Overtime Report', icon: FilePlus, href: '/attendanceV1/overtime-management/overtime-report' },
+      { name: 'Manual Override', icon: Settings, href: '/attendanceV1/overtime-management/manual-override' },
+    ]
+  },
+  {
+    name: 'Deductions', icon: CreditCard, href: '#', hasSub: true, subItems: [
+      {
+        name: 'Loans & CA', icon: Wallet, href: '#', hasSub: true, subItems: [
+          { name: 'Active Loans', icon: Banknote, href: '/attendanceV1/deductions/loans-ca/active-loans' },
+          { name: 'Loan History', icon: Clock, href: '/attendanceV1/deductions/loans-ca/loan-history' },
+          { name: 'Payment Schedule', icon: Calendar, href: '/attendanceV1/deductions/loans-ca/payment-schedule' },
+          { name: 'Add New Loan', icon: FilePlus, href: '/attendanceV1/deductions/loans-ca/add-new-loan' },
+        ]
+      },
+      { name: 'Other Deductions', icon: CreditCard, href: '/attendanceV1/deductions/other-deductions' },
+      { name: 'Deduction Report', icon: FileText, href: '/attendanceV1/deductions/deduction-report' },
+    ]
+  },
+  {
+    name: 'Payroll', icon: Banknote, href: '#', hasSub: true, subItems: [
+      { name: 'Payroll Adjustments', icon: Settings, href: '/attendanceV1/payroll/payroll-adjustments' },
+      { name: 'Payroll Exceptions', icon: Clock, href: '/attendanceV1/payroll/payroll-exceptions' },
+      {
+        name: 'Process Payroll', icon: Clock, href: '#', hasSub: true, subItems: [
+          { name: 'Cutoff Date', icon: Calendar, href: '/attendanceV1/payroll/process-payroll/cutoff-date' },
+          { name: 'Review Auto-Calculations', icon: FileText, href: '/attendanceV1/payroll/process-payroll/review-auto-calculations' },
+          { name: 'Resolve Exceptions', icon: Settings, href: '/attendanceV1/payroll/process-payroll/resolve-exceptions' },
+          { name: 'Finalize', icon: Settings2, href: '/attendanceV1/payroll/process-payroll/finalize' },
+        ]
+      },
+      { name: 'Payroll History', icon: Clock, href: '/attendanceV1/payroll/payroll-history' },
+    ]
+  },
+  {
+    name: 'Reports', icon: FileText, href: '#', hasSub: true, subItems: [
+      { name: 'Payroll Register', icon: FileText, href: '/attendanceV1/reports/payroll-register' },
+      { name: 'Loan Balance Report', icon: Wallet, href: '/attendanceV1/reports/loan-balance-report' },
+      { name: 'Deduction Summary', icon: CreditCard, href: '/attendanceV1/reports/deduction-summary' },
+      { name: 'Employee Payslip', icon: FileText, href: '/attendanceV1/reports/employee-payslip' },
     ]
   },
   { name: 'Calendar', icon: Calendar, href: '/admin/adminCalendar' },
@@ -94,11 +168,44 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
 
+  const path = pathname ?? '';
+
+  const nestedMenuKey = (parentName: string, subName: string) =>
+    `${parentName}::${subName}`;
+
   const toggleMenu = (name: string) => {
     setOpenMenus(prev =>
       prev.includes(name) ? prev.filter(i => i !== name) : [...prev, name]
     );
   };
+
+  useEffect(() => {
+    setOpenMenus((prev) => {
+      const need = new Set(prev);
+      for (const item of sidebarItems) {
+        if (!item.subItems) continue;
+        for (const sub of item.subItems) {
+          if (sub.hasSub && sub.subItems?.length) {
+            const childMatch = sub.subItems.some(
+              (n) =>
+                path === n.href ||
+                (n.href !== '#' && path.startsWith(`${n.href}/`))
+            );
+            if (childMatch) {
+              need.add(item.name);
+              need.add(`${item.name}::${sub.name}`);
+            }
+          } else if (
+            sub.href !== '#' &&
+            (path === sub.href || path.startsWith(`${sub.href}/`))
+          ) {
+            need.add(item.name);
+          }
+        }
+      }
+      return [...need];
+    });
+  }, [path]);
 
   const handleNavClick = (item: NavItem) => {
     if (item.hasSub) {
@@ -176,7 +283,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
         <nav className="flex-1 min-h-0 space-y-0.5 px-2 overflow-y-auto no-scrollbar">
           {sidebarItems.map((item) => {
             const isMenuOpen = openMenus.includes(item.name);
-            const isActive = pathname === item.href;
+            const isActive = path === item.href;
 
             return (
               <div key={item.name} className="space-y-0.5">
@@ -226,7 +333,104 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                 {!isCollapsed && item.subItems && isMenuOpen && (
                   <div className="relative ml-10 mt-1 pl-3 py-1 animate-in slide-in-from-top-2 duration-300">
                     {item.subItems.map((sub, index) => {
-                      const isSubActive = pathname === sub.href;
+                      const isNestedOpen = openMenus.includes(
+                        nestedMenuKey(item.name, sub.name)
+                      );
+                      const isSubActive =
+                        sub.href !== '#' &&
+                        (path === sub.href ||
+                          path.startsWith(`${sub.href}/`));
+                      const nestedActive =
+                        sub.hasSub &&
+                        sub.subItems?.some(
+                          (n) =>
+                            path === n.href ||
+                            (n.href !== '#' &&
+                              path.startsWith(`${n.href}/`))
+                        );
+
+                      if (sub.hasSub && sub.subItems?.length) {
+                        return (
+                          <div key={sub.name} className="relative">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleMenu(nestedMenuKey(item.name, sub.name))
+                              }
+                              className={cn(
+                                "relative flex w-full items-center gap-2 py-1.5 text-left text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer group outline-none",
+                                nestedActive
+                                  ? "text-secondary"
+                                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "absolute -left-3 w-[2px] bg-gray-300 dark:bg-gray-600",
+                                  index === 0 ? "-top-1" : "top-0",
+                                  index === item.subItems!.length - 1 &&
+                                    !isNestedOpen
+                                    ? "bottom-1/2"
+                                    : "bottom-0"
+                                )}
+                              />
+                              <div className="absolute -left-3 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-3 group-hover:w-[16px]" />
+
+                              <span
+                                className={cn(
+                                  "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10",
+                                  nestedActive
+                                    ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
+                                    : "border border-gray-400 dark:border-gray-500 bg-transparent"
+                                )}
+                              />
+                              <span className="flex-1">{sub.name}</span>
+                              <ChevronDown
+                                className={cn(
+                                  "w-3 h-3 shrink-0 text-gray-400 dark:text-gray-500 transition-transform duration-200",
+                                  isNestedOpen && "rotate-180"
+                                )}
+                              />
+                            </button>
+                            {isNestedOpen && (
+                              <div className="relative ml-4 border-l border-gray-300 dark:border-gray-600 pl-3 py-0.5">
+                                {sub.subItems.map((nested) => {
+                                  const isNestedLinkActive =
+                                    path === nested.href ||
+                                    (nested.href !== '#' &&
+                                      path.startsWith(`${nested.href}/`));
+                                  return (
+                                    <Link
+                                      key={nested.name}
+                                      href={nested.href}
+                                      prefetch={true}
+                                      className={cn(
+                                        "relative flex items-center gap-2 py-1.5 text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer group",
+                                        isNestedLinkActive
+                                          ? "text-secondary"
+                                          : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                                      )}
+                                    >
+                                      <span
+                                        className={cn(
+                                          "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10 group-hover:translate-x-1",
+                                          isNestedLinkActive
+                                            ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
+                                            : "border border-gray-400 dark:border-gray-500 bg-transparent"
+                                        )}
+                                      />
+                                      <span className="flex-1 transition-transform duration-150 group-hover:translate-x-1">
+                                        {nested.name}
+                                      </span>
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
                       return (
                         <Link
                           key={sub.name}
@@ -234,25 +438,35 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                           prefetch={true}
                           className={cn(
                             "relative flex items-center gap-2 py-1.5 text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer group",
-                            isSubActive ? "text-secondary" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                            isSubActive
+                              ? "text-secondary"
+                              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                           )}
                         >
                           {/* Vertical connection line */}
-                          <div className={cn(
-                            "absolute -left-3 w-[2px] bg-gray-300 dark:bg-gray-600",
-                            index === 0 ? "-top-1" : "top-0",
-                            index === item.subItems!.length - 1 ? "bottom-1/2" : "bottom-0"
-                          )} />
+                          <div
+                            className={cn(
+                              "absolute -left-3 w-[2px] bg-gray-300 dark:bg-gray-600",
+                              index === 0 ? "-top-1" : "top-0",
+                              index === item.subItems!.length - 1
+                                ? "bottom-1/2"
+                                : "bottom-0"
+                            )}
+                          />
                           {/* Horizontal connection line that stretches on hover */}
                           <div className="absolute -left-3 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-3 group-hover:w-[16px]" />
 
-                          <span className={cn(
-                            "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10 group-hover:translate-x-1",
-                            isSubActive
-                              ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
-                              : "border border-gray-400 dark:border-gray-500 bg-transparent"
-                          )} />
-                          <span className="flex-1 transition-transform duration-150 group-hover:translate-x-1">{sub.name}</span>
+                          <span
+                            className={cn(
+                              "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10 group-hover:translate-x-1",
+                              isSubActive
+                                ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
+                                : "border border-gray-400 dark:border-gray-500 bg-transparent"
+                            )}
+                          />
+                          <span className="flex-1 transition-transform duration-150 group-hover:translate-x-1">
+                            {sub.name}
+                          </span>
                           {sub.badge && (
                             <span className="px-1.5 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-[8px] font-bold transition-transform duration-150 group-hover:translate-x-1">
                               {sub.badge}
@@ -364,7 +578,7 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
         <nav className="flex-1 min-h-0 space-y-0.5 px-2 overflow-y-auto no-scrollbar">
           {sidebarItems.map((item) => {
             const isMenuOpen = openMenus.includes(item.name);
-            const isActive = pathname === item.href;
+            const isActive = path === item.href;
 
             return (
               <div key={item.name} className="space-y-0.5">
@@ -409,7 +623,105 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                 {item.subItems && isMenuOpen && (
                   <div className="relative ml-10 mt-1 pl-3 py-1">
                     {item.subItems.map((sub, index) => {
-                      const isSubActive = pathname === sub.href;
+                      const isNestedOpen = openMenus.includes(
+                        nestedMenuKey(item.name, sub.name)
+                      );
+                      const isSubActive =
+                        sub.href !== '#' &&
+                        (path === sub.href ||
+                          path.startsWith(`${sub.href}/`));
+                      const nestedActive =
+                        sub.hasSub &&
+                        sub.subItems?.some(
+                          (n) =>
+                            path === n.href ||
+                            (n.href !== '#' &&
+                              path.startsWith(`${n.href}/`))
+                        );
+
+                      if (sub.hasSub && sub.subItems?.length) {
+                        return (
+                          <div key={sub.name} className="relative">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleMenu(nestedMenuKey(item.name, sub.name))
+                              }
+                              className={cn(
+                                "relative flex w-full items-center gap-2 py-1.5 text-left text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer group outline-none",
+                                nestedActive
+                                  ? "text-secondary"
+                                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "absolute -left-3 w-[2px] bg-gray-300 dark:bg-gray-600",
+                                  index === 0 ? "-top-1" : "top-0",
+                                  index === item.subItems!.length - 1 &&
+                                    !isNestedOpen
+                                    ? "bottom-1/2"
+                                    : "bottom-0"
+                                )}
+                              />
+                              <div className="absolute -left-3 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-3 group-hover:w-[16px]" />
+
+                              <span
+                                className={cn(
+                                  "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10",
+                                  nestedActive
+                                    ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
+                                    : "border border-gray-400 dark:border-gray-500 bg-transparent"
+                                )}
+                              />
+                              <span className="flex-1">{sub.name}</span>
+                              <ChevronDown
+                                className={cn(
+                                  "w-3 h-3 shrink-0 text-gray-400 dark:text-gray-500 transition-transform duration-200",
+                                  isNestedOpen && "rotate-180"
+                                )}
+                              />
+                            </button>
+                            {isNestedOpen && (
+                              <div className="relative ml-4 border-l border-gray-300 dark:border-gray-600 pl-3 py-0.5">
+                                {sub.subItems.map((nested) => {
+                                  const isNestedLinkActive =
+                                    path === nested.href ||
+                                    (nested.href !== '#' &&
+                                      path.startsWith(`${nested.href}/`));
+                                  return (
+                                    <Link
+                                      key={nested.name}
+                                      href={nested.href}
+                                      prefetch={true}
+                                      onClick={() => setIsMobileOpen?.(false)}
+                                      className={cn(
+                                        "relative flex items-center gap-2 py-1.5 text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer group",
+                                        isNestedLinkActive
+                                          ? "text-secondary"
+                                          : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                                      )}
+                                    >
+                                      <span
+                                        className={cn(
+                                          "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10 group-hover:translate-x-1",
+                                          isNestedLinkActive
+                                            ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
+                                            : "border border-gray-400 dark:border-gray-500 bg-transparent"
+                                        )}
+                                      />
+                                      <span className="flex-1 transition-transform duration-150 group-hover:translate-x-1">
+                                        {nested.name}
+                                      </span>
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
                       return (
                         <Link
                           key={sub.name}
@@ -418,25 +730,35 @@ const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen
                           onClick={() => setIsMobileOpen?.(false)}
                           className={cn(
                             "relative flex items-center gap-2 py-1.5 text-xs font-bold tracking-wide transition-colors duration-150 cursor-pointer group",
-                            isSubActive ? "text-secondary" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                            isSubActive
+                              ? "text-secondary"
+                              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                           )}
                         >
                           {/* Vertical connection line */}
-                          <div className={cn(
-                            "absolute -left-3 w-[2px] bg-gray-300 dark:bg-gray-600",
-                            index === 0 ? "-top-1" : "top-0",
-                            index === item.subItems!.length - 1 ? "bottom-1/2" : "bottom-0"
-                          )} />
+                          <div
+                            className={cn(
+                              "absolute -left-3 w-[2px] bg-gray-300 dark:bg-gray-600",
+                              index === 0 ? "-top-1" : "top-0",
+                              index === item.subItems!.length - 1
+                                ? "bottom-1/2"
+                                : "bottom-0"
+                            )}
+                          />
                           {/* Horizontal connection line that stretches on hover */}
                           <div className="absolute -left-3 top-1/2 h-[2px] bg-gray-300 dark:bg-gray-600 transition-all duration-150 w-3 group-hover:w-[16px]" />
 
-                          <span className={cn(
-                            "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10 group-hover:translate-x-1",
-                            isSubActive
-                              ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
-                              : "border border-gray-400 dark:border-gray-500 bg-transparent"
-                          )} />
-                          <span className="flex-1 transition-transform duration-150 group-hover:translate-x-1">{sub.name}</span>
+                          <span
+                            className={cn(
+                              "flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-150 relative z-10 group-hover:translate-x-1",
+                              isSubActive
+                                ? "bg-secondary shadow-[0_0_6px_1px] shadow-secondary/60"
+                                : "border border-gray-400 dark:border-gray-500 bg-transparent"
+                            )}
+                          />
+                          <span className="flex-1 transition-transform duration-150 group-hover:translate-x-1">
+                            {sub.name}
+                          </span>
                           {sub.badge && (
                             <span className="px-1.5 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-[8px] font-bold transition-transform duration-150 group-hover:translate-x-1">
                               {sub.badge}
