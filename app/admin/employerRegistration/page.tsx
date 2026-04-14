@@ -153,6 +153,7 @@ const RegistrationContent = () => {
         gender: searchParams.get('gender') || '',
         birthDay: searchParams.get('birthDay') || '',
         baseSalary: searchParams.get('salary') || '',
+        password: '',
       });
       setIsModalOpen(true);
       setIsCameraOpen(false);

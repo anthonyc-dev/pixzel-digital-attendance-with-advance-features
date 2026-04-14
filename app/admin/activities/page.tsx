@@ -12,8 +12,7 @@ import {
     LogOut, 
     Terminal,
     Search,
-    ChevronLeft,
-    ChevronRight
+    
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
