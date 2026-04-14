@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "../../../../utils/supabase/server";
+import { createHash } from "crypto";
+
+function hashPassword(password: string): string {
+  return createHash('sha256').update(password).digest('hex');
+}
 
 // UPDATE
 export async function PUT(
@@ -18,23 +23,32 @@ export async function PUT(
     );
   }
 
+  // Hash the password if provided
+  const hashedPassword = body.password ? hashPassword(body.password) : null;
+
+  const updateData: Record<string, unknown> = {
+    employer_id: body.employer_id,
+    employer_name: body.employer_name,
+    employer_position: body.employer_position,
+    face_detected: body.face_detected,
+    status: body.status,
+    contact_no: body.contact_no,
+    email: body.email,
+    address: body.address,
+    gender: body.gender,
+    birth_day: body.birth_day,
+    base_salary: body.base_salary,
+    image: body.image,
+    descriptor: body.descriptor,
+  };
+
+  if (hashedPassword) {
+    updateData.password = hashedPassword;
+  }
+
   const { data, error } = await supabase
     .from("employer_registration")
-    .update({
-      employer_id: body.employer_id,
-      employer_name: body.employer_name,
-      employer_position: body.employer_position,
-      face_detected: body.face_detected,
-      status: body.status,
-      contact_no: body.contact_no,
-      email: body.email,
-      address: body.address,
-      gender: body.gender,
-      birth_day: body.birth_day,
-      base_salary: body.base_salary,
-      image: body.image,
-      descriptor: body.descriptor,
-    })
+    .update(updateData)
     .eq("id", id)
     .select();
 

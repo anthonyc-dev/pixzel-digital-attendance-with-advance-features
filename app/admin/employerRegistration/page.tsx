@@ -34,6 +34,7 @@ type EmployerForm = {
   employerPosition: string;
   contactNo: string;
   email: string;
+  password: string;
   address: string;
   gender: string;
   birthDay: string;
@@ -55,6 +56,7 @@ const RegistrationContent = () => {
     employerPosition: '',
     contactNo: '',
     email: '',
+    password: '',
     address: '',
     gender: '',
     birthDay: '',
@@ -448,6 +450,7 @@ const RegistrationContent = () => {
             employer_position: formData.employerPosition,
             contact_no: formData.contactNo,
             email: formData.email,
+            password: formData.password,
             address: formData.address,
             gender: formData.gender,
             birth_day: formData.birthDay,
@@ -472,7 +475,7 @@ const RegistrationContent = () => {
           fetchHistory();
 
           setTimeout(() => {
-            setFormData({ employerId: '', employerName: '', employerPosition: '', contactNo: '', email: '', address: '', gender: '', birthDay: '', baseSalary: '' });
+            setFormData({ employerId: '', employerName: '', employerPosition: '', contactNo: '', email: '', password: '', address: '', gender: '', birthDay: '', baseSalary: '' });
             setIsModalOpen(true);
             setIsCameraOpen(false);
             setScanResult(null);
@@ -523,12 +526,12 @@ const RegistrationContent = () => {
   };
 
   const handleCancel = () => {
-    setFormData({ employerId: '', employerName: '', employerPosition: '', contactNo: '', email: '', address: '', gender: '', birthDay: '', baseSalary: '' });
+    setFormData({ employerId: '', employerName: '', employerPosition: '', contactNo: '', email: '', password: '', address: '', gender: '', birthDay: '', baseSalary: '' });
     setIsModalOpen(false);
   };
 
   const handleNewRegistration = () => {
-    setFormData({ employerId: '', employerName: '', employerPosition: '', contactNo: '', email: '', address: '', gender: '', birthDay: '', baseSalary: '' });
+    setFormData({ employerId: '', employerName: '', employerPosition: '', contactNo: '', email: '', password: '', address: '', gender: '', birthDay: '', baseSalary: '' });
     setIsModalOpen(true);
     setIsCameraOpen(false);
     setScanResult(null);
@@ -660,6 +663,19 @@ const RegistrationContent = () => {
                           className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs font-bold text-foreground shadow-sm"
                         />
                       </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2 ml-1">
+                        Password
+                      </label>
+                      <input
+                        type="password"
+                        value={formData.password}
+                        onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                        placeholder="Login password"
+                        className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/10 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary/40 transition-all text-xs font-bold text-foreground shadow-sm"
+                      />
                     </div>
 
                     <div className="space-y-1.5">
