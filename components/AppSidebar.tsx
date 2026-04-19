@@ -26,7 +26,8 @@ import {
   CreditCard,
   Wallet,
   FilePlus,
-  Settings2
+  Settings2,
+  Percent,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
@@ -57,10 +58,10 @@ const sidebarItems: NavItem[] = [
     ]
   },
   {
-    name: 'Attendance', icon: ClipboardCheck, href: '/attendanceV1/attendance/attendance-log', hasSub: true, subItems: [
-      { name: 'Attendance Log', icon: FileText, href: '/attendanceV1/attendance/attendance-log' },
-      { name: 'Exceptions', icon: Clock, href: '/attendanceV1/attendance/exceptions' },
-      { name: 'Attendance Report', icon: FilePlus, href: '/attendanceV1/attendance/attendance-report' },
+    name: 'Attendance', icon: ClipboardCheck, href: '/admin/attendance/attendance-log', hasSub: true, subItems: [
+      { name: 'Attendance Log', icon: FileText, href: '/admin/attendance/attendance-log' },
+      { name: 'Exceptions', icon: Clock, href: '/admin/attendance/exceptions' },
+      { name: 'Attendance Report', icon: FilePlus, href: '/admin/attendance/attendance-report' },
     ]
   },
   { name: 'DTR', icon: ClipboardCheck, href: '/admin/dtr' },
@@ -75,54 +76,59 @@ const sidebarItems: NavItem[] = [
   //   ]
   // },
   {
-    name: 'Leave Management', icon: Hourglass, href: '/attendanceV1/leave-management/leave-balance', hasSub: true, subItems: [
-      { name: 'Leave Balance', icon: Wallet, href: '/attendanceV1/leave-management/leave-balance' },
-      { name: 'Leave Taken', icon: Clock, href: '/attendanceV1/leave-management/leave-taken' },
-      { name: 'Manual Override', icon: Settings, href: '/attendanceV1/leave-management/manual-override' },
+    name: 'Leave Management', icon: Hourglass, href: '/admin/leave-management/leave-balance', hasSub: true, subItems: [
+      { name: 'Leave Balance', icon: Wallet, href: '/admin/leave-management/leave-balance' },
+      { name: 'Leave Taken', icon: Clock, href: '/admin/leave-management/leave-taken' },
+      { name: 'Manual Override', icon: Settings, href: '/admin/leave-management/manual-override' },
     ]
   },
   {
-    name: 'Overtime Management', icon: Timer, href: '/attendanceV1/overtime-management/overtime-log', hasSub: true, subItems: [
-      { name: 'Overtime Log', icon: Clock, href: '/attendanceV1/overtime-management/overtime-log' },
-      { name: 'Overtime Report', icon: FilePlus, href: '/attendanceV1/overtime-management/overtime-report' },
-      { name: 'Manual Override', icon: Settings, href: '/attendanceV1/overtime-management/manual-override' },
+    name: 'Overtime Management', icon: Timer, href: '/admin/overtime-management/overtime-log', hasSub: true, subItems: [
+      { name: 'Overtime Log', icon: Clock, href: '/admin/overtime-management/overtime-log' },
+      { name: 'Overtime Report', icon: FilePlus, href: '/admin/overtime-management/overtime-report' },
+      { name: 'Manual Override', icon: Settings, href: '/admin/overtime-management/manual-override' },
     ]
   },
   {
     name: 'Deductions', icon: CreditCard, href: '#', hasSub: true, subItems: [
       {
+        name: 'Late & absent rates',
+        icon: Percent,
+        href: '/admin/deductions/late-absent-rates',
+      },
+      {
         name: 'Loans & CA', icon: Wallet, href: '#', hasSub: true, subItems: [
-          { name: 'Active Loans', icon: Banknote, href: '/attendanceV1/deductions/loans-ca/active-loans' },
-          { name: 'Loan History', icon: Clock, href: '/attendanceV1/deductions/loans-ca/loan-history' },
-          { name: 'Payment Schedule', icon: Calendar, href: '/attendanceV1/deductions/loans-ca/payment-schedule' },
-          { name: 'Add New Loan', icon: FilePlus, href: '/attendanceV1/deductions/loans-ca/add-new-loan' },
+          { name: 'Active Loans', icon: Banknote, href: '/admin/deductions/loans-ca/active-loans' },
+          { name: 'Loan History', icon: Clock, href: '/admin/deductions/loans-ca/loan-history' },
+          { name: 'Payment Schedule', icon: Calendar, href: '/admin/deductions/loans-ca/payment-schedule' },
+          { name: 'Add New Loan', icon: FilePlus, href: '/admin/deductions/loans-ca/add-new-loan' },
         ]
       },
-      { name: 'Other Deductions', icon: CreditCard, href: '/attendanceV1/deductions/other-deductions' },
-      { name: 'Deduction Report', icon: FileText, href: '/attendanceV1/deductions/deduction-report' },
+      { name: 'Other Deductions', icon: CreditCard, href: '/admin/deductions/other-deductions' },
+      { name: 'Deduction Report', icon: FileText, href: '/admin/deductions/deduction-report' },
     ]
   },
   {
     name: 'Payroll', icon: Banknote, href: '#', hasSub: true, subItems: [
-      { name: 'Payroll Adjustments', icon: Settings, href: '/attendanceV1/payroll/payroll-adjustments' },
-      { name: 'Payroll Exceptions', icon: Clock, href: '/attendanceV1/payroll/payroll-exceptions' },
+      { name: 'Payroll Adjustments', icon: Settings, href: '/admin/payroll/payroll-adjustments' },
+      { name: 'Payroll Exceptions', icon: Clock, href: '/admin/payroll/payroll-exceptions' },
       {
         name: 'Process Payroll', icon: Clock, href: '#', hasSub: true, subItems: [
-          { name: 'Cutoff Date', icon: Calendar, href: '/attendanceV1/payroll/process-payroll/cutoff-date' },
-          { name: 'Review Auto-Calculations', icon: FileText, href: '/attendanceV1/payroll/process-payroll/review-auto-calculations' },
-          { name: 'Resolve Exceptions', icon: Settings, href: '/attendanceV1/payroll/process-payroll/resolve-exceptions' },
-          { name: 'Finalize', icon: Settings2, href: '/attendanceV1/payroll/process-payroll/finalize' },
+          { name: 'Cutoff Date', icon: Calendar, href: '/admin/payroll/process-payroll/cutoff-date' },
+          { name: 'Review Auto-Calculations', icon: FileText, href: '/admin/payroll/process-payroll/review-auto-calculations' },
+          { name: 'Resolve Exceptions', icon: Settings, href: '/admin/payroll/process-payroll/resolve-exceptions' },
+          { name: 'Finalize', icon: Settings2, href: '/admin/payroll/process-payroll/finalize' },
         ]
       },
-      { name: 'Payroll History', icon: Clock, href: '/attendanceV1/payroll/payroll-history' },
+      { name: 'Payroll History', icon: Clock, href: '/admin/payroll/payroll-history' },
     ]
   },
   {
     name: 'Reports', icon: FileText, href: '#', hasSub: true, subItems: [
-      { name: 'Payroll Register', icon: FileText, href: '/attendanceV1/reports/payroll-register' },
-      { name: 'Loan Balance Report', icon: Wallet, href: '/attendanceV1/reports/loan-balance-report' },
-      { name: 'Deduction Summary', icon: CreditCard, href: '/attendanceV1/reports/deduction-summary' },
-      { name: 'Employee Payslip', icon: FileText, href: '/attendanceV1/reports/employee-payslip' },
+      { name: 'Payroll Register', icon: FileText, href: '/admin/reports/payroll-register' },
+      { name: 'Loan Balance Report', icon: Wallet, href: '/admin/reports/loan-balance-report' },
+      { name: 'Deduction Summary', icon: CreditCard, href: '/admin/reports/deduction-summary' },
+      { name: 'Employee Payslip', icon: FileText, href: '/admin/reports/employee-payslip' },
     ]
   },
   { name: 'Calendar', icon: Calendar, href: '/admin/adminCalendar' },

@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Label } from '@/components/ui/label';
 import { 
   Search, 
   Download,
@@ -123,19 +124,33 @@ export default function OvertimeLogPage() {
               <CardTitle className="dark:text-white">Overtime Records</CardTitle>
               <CardDescription className="dark:text-gray-400">All overtime entries with payment details</CardDescription>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search employee..." 
-                  className="pl-9 w-full sm:w-48 dark:bg-white/5 dark:border-white/10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-4">
+              <div className="space-y-2 w-full sm:w-auto">
+                <Label htmlFor="otlog-search" className="text-xs text-muted-foreground font-medium">
+                  Search
+                </Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" aria-hidden />
+                  <Input 
+                    id="otlog-search"
+                    placeholder="Name or employee ID"
+                    className="pl-9 w-full sm:w-48 dark:bg-white/5 dark:border-white/10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    aria-describedby="otlog-search-hint"
+                  />
+                </div>
+                <p id="otlog-search-hint" className="sr-only">
+                  Filter by employee name or ID
+                </p>
               </div>
-              <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-                <SelectTrigger className="w-full sm:w-36 dark:bg-white/5 dark:border-white/10">
-                  <SelectValue placeholder="Status" />
+              <div className="space-y-2 w-full sm:w-auto">
+                <Label htmlFor="otlog-status" className="text-xs text-muted-foreground font-medium">
+                  Status
+                </Label>
+                <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+                <SelectTrigger id="otlog-status" className="w-full sm:w-36 dark:bg-white/5 dark:border-white/10">
+                  <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent className="dark:bg-black dark:border-white/10">
                   <SelectItem value="all">All Status</SelectItem>
@@ -144,6 +159,7 @@ export default function OvertimeLogPage() {
                   <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
+              </div>
             </div>
           </div>
         </CardHeader>
