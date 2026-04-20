@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, startTransition, useState } from 'react';
 import { ENV } from '@/lib/api';
 import { Label } from '@/components/ui/label';
 import { CheckCircle2 } from 'lucide-react';
@@ -35,13 +35,20 @@ const PayrollException = () => {
       fetch(`${ENV.API_URL}/payroll-exceptions`, { cache: 'no-store' }),
       fetch(`${ENV.API_URL}/registration`, { cache: 'no-store' }),
     ]);
-    if (exRes.ok) setRows(await exRes.json());
+    if (exRes.ok) {
+      const list = await exRes.json();
+      startTransition(() => setRows(list));
+    }
     if (empRes.ok) {
       const data = await empRes.json();
-      setEmployees(Array.isArray(data) ? data : (data.data ?? []));
+      const list = Array.isArray(data) ? data : (data.data ?? []);
+      startTransition(() => setEmployees(list));
     }
   };
-  useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    void load();
+  }, []);
 
   const createException = async () => {
     if (!form.employer_registration_id || !form.exception_type || !form.description) return;

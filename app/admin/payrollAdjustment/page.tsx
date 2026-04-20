@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, startTransition, useState } from 'react';
 import { ENV } from '@/lib/api';
 import { Label } from '@/components/ui/label';
 import { Plus } from 'lucide-react';
@@ -40,14 +40,20 @@ const PayrollAdjustment = () => {
       fetch(`${ENV.API_URL}/payroll-adjustments`, { cache: 'no-store' }),
       fetch(`${ENV.API_URL}/registration`, { cache: 'no-store' }),
     ]);
-    if (adjRes.ok) setRows(await adjRes.json());
+    if (adjRes.ok) {
+      const list = await adjRes.json();
+      startTransition(() => setRows(list));
+    }
     if (empRes.ok) {
       const data = await empRes.json();
-      setEmployees(Array.isArray(data) ? data : (data.data ?? []));
+      const list = Array.isArray(data) ? data : (data.data ?? []);
+      startTransition(() => setEmployees(list));
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    void load();
+  }, []);
 
   const createAdjustment = async () => {
     if (!form.employer_registration_id || !form.amount || !form.reason || !form.effective_date) return;
