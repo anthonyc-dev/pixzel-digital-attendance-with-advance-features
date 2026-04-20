@@ -76,6 +76,7 @@ const sidebarItems: NavItem[] = [
   // },
   {
     name: 'Leave Management', icon: Hourglass, href: '/attendanceV1/leave-management/leave-balance', hasSub: true, subItems: [
+      { name: 'Leave requests', icon: FilePlus, href: '/admin/leaves' },
       { name: 'Leave Balance', icon: Wallet, href: '/attendanceV1/leave-management/leave-balance' },
       { name: 'Leave Taken', icon: Clock, href: '/attendanceV1/leave-management/leave-taken' },
       { name: 'Manual Override', icon: Settings, href: '/attendanceV1/leave-management/manual-override' },
