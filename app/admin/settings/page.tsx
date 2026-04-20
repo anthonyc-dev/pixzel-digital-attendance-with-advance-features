@@ -42,6 +42,7 @@ export default function SettingsPage() {
       const email = data.user?.email ?? '';
       setAccountEmail(email);
       setNewEmail(email);
+
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only
   }, []);

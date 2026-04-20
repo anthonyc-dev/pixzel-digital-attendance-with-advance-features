@@ -49,6 +49,20 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  const { data: settings, error: settingsError } = await supabase
+    .from("payroll_deduction_settings")
+    .select("late_grace_minutes")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (settingsError && (settingsError as { code?: string }).code !== "42703") {
+    return NextResponse.json({ error: settingsError.message }, { status: 500 });
+  }
+
+  const lateGraceMinutes = Number(settings?.late_grace_minutes ?? 5);
+  const lateThresholdMinutes = 9 * 60 + lateGraceMinutes;
+
   const mappedData =
     data?.map((record: Record<string, unknown>) => {
       let isLate = record.is_late as boolean;
@@ -67,7 +81,8 @@ export async function GET(request: Request) {
           if (amPm.toUpperCase() === 'PM' && hours !== 12) hours += 12;
           if (amPm.toUpperCase() === 'AM' && hours === 12) hours = 0;
 
-          if (hours > 9 || (hours === 9 && minutes >= 15)) {
+          const actualMinutes = hours * 60 + minutes;
+          if (actualMinutes > lateThresholdMinutes) {
             isLate = true;
             if (finalStatus === "present" || finalStatus === "on_time") {
                 finalStatus = "late";
