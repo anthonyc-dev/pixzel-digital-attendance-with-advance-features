@@ -354,3 +354,10 @@
 --shadow-2xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.25);
 --tracking-normal: 0em;
 --spacing: 0.25rem; */
+
+/* Theme toggle: avoid lag where `dark` applies instantly but backgrounds still animate */
+html.theme-switching,
+html.theme-switching * {
+  transition-duration: 0ms !important;
+  animation-duration: 0ms !important;
+}

@@ -71,7 +71,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`dark ${plusJakarta.variable} ${outfit.variable} ${dmSerif.variable} ${firaCode.variable} h-full overflow-x-hidden antialiased`}
+      className={`${plusJakarta.variable} ${outfit.variable} ${dmSerif.variable} ${firaCode.variable} h-full overflow-x-hidden antialiased`}
     >
       <head>
         {/* Preconnect to important domains */}
