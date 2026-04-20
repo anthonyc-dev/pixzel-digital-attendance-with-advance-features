@@ -2,7 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { ENV } from '@/lib/api';
+import { Label } from '@/components/ui/label';
 import { CheckCircle2 } from 'lucide-react';
+
+const fieldClass =
+  'px-3 py-2 rounded border bg-white text-black placeholder:text-neutral-500 dark:bg-black dark:text-white dark:placeholder:text-neutral-400 border-gray-300 dark:border-white/20 w-full min-w-0';
+const selectFieldClass = `${fieldClass} [color-scheme:light] dark:[color-scheme:dark]`;
 
 interface Employer { id: number; employer_name: string; employer_id: string }
 interface ExceptionRow {
@@ -77,15 +82,62 @@ const PayrollException = () => {
         </p>
       </header>
 
-      <div className="p-4 rounded-2xl border grid md:grid-cols-4 gap-3">
-        <select value={form.employer_registration_id} onChange={(e) => setForm((p) => ({ ...p, employer_registration_id: e.target.value }))} className="px-3 py-2 rounded border">
-          <option value="">Select employee</option>
-          {employees.map((e) => <option key={e.id} value={e.id}>{e.employer_name} ({e.employer_id})</option>)}
-        </select>
-        <input placeholder="Exception type" value={form.exception_type} onChange={(e) => setForm((p) => ({ ...p, exception_type: e.target.value }))} className="px-3 py-2 rounded border" />
-        <input type="number" placeholder="Amount impact" value={form.amount_impact} onChange={(e) => setForm((p) => ({ ...p, amount_impact: e.target.value }))} className="px-3 py-2 rounded border" />
-        <button onClick={createException} className="px-3 py-2 rounded bg-secondary text-white text-xs font-bold">Add Exception</button>
-        <input placeholder="Description" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} className="px-3 py-2 rounded border md:col-span-4" />
+      <div className="p-4 rounded-2xl border">
+        <div className="grid md:grid-cols-4 gap-x-4 gap-y-4">
+          <div className="space-y-2 min-w-0">
+            <Label htmlFor="pe-employee">Employee</Label>
+            <select
+              id="pe-employee"
+              value={form.employer_registration_id}
+              onChange={(e) => setForm((p) => ({ ...p, employer_registration_id: e.target.value }))}
+              className={selectFieldClass}
+            >
+              <option value="">Select employee</option>
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.employer_name} ({e.employer_id})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2 min-w-0">
+            <Label htmlFor="pe-type">Exception type</Label>
+            <input
+              id="pe-type"
+              placeholder="e.g. Missing clock-out, wrong rate"
+              value={form.exception_type}
+              onChange={(e) => setForm((p) => ({ ...p, exception_type: e.target.value }))}
+              className={fieldClass}
+            />
+          </div>
+          <div className="space-y-2 min-w-0">
+            <Label htmlFor="pe-impact">Amount impact (PHP)</Label>
+            <input
+              id="pe-impact"
+              type="number"
+              step="0.01"
+              placeholder="Optional; 0 if none"
+              value={form.amount_impact}
+              onChange={(e) => setForm((p) => ({ ...p, amount_impact: e.target.value }))}
+              className={fieldClass}
+            />
+          </div>
+          <div className="flex min-w-0 flex-col justify-end">
+            <button type="button" onClick={createException} className="px-3 py-2 rounded bg-secondary text-white text-xs font-bold">
+              Add Exception
+            </button>
+          </div>
+          <div className="space-y-2 min-w-0 md:col-span-4">
+            <Label htmlFor="pe-description">Description</Label>
+            <input
+              id="pe-description"
+              placeholder="What happened and what should payroll do about it?"
+              value={form.description}
+              onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+              className={fieldClass}
+            />
+          </div>
+        </div>
       </div>
 
       <div className="rounded-2xl border overflow-hidden">

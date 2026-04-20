@@ -2,7 +2,12 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { ENV } from '@/lib/api';
+import { Label } from '@/components/ui/label';
 import { Plus } from 'lucide-react';
+
+const fieldClass =
+  'px-3 py-2 rounded border bg-white text-black placeholder:text-neutral-500 dark:bg-black dark:text-white dark:placeholder:text-neutral-400 border-gray-300 dark:border-white/20 w-full min-w-0';
+const selectFieldClass = `${fieldClass} [color-scheme:light] dark:[color-scheme:dark]`;
 
 interface Employer { 
   id: number; 
@@ -85,18 +90,81 @@ const PayrollAdjustment = () => {
         <div className="p-6 rounded-2xl border"><p className="text-xs uppercase font-bold">Net Impact</p><p className="text-2xl font-bold">{netImpact >= 0 ? '+' : ''}P{netImpact.toFixed(2)}</p></div>
       </div>
 
-      <div className="p-4 rounded-2xl border grid md:grid-cols-6 gap-3">
-        <select value={form.employer_registration_id} onChange={(e) => setForm((p) => ({ ...p, employer_registration_id: e.target.value }))} className="px-3 py-2 rounded border md:col-span-2">
-          <option value="">Select employee</option>
-          {employees.map((e) => <option key={e.id} value={e.id}>{e.employer_name} ({e.employer_id})</option>)}
-        </select>
-        <select value={form.adjustment_type} onChange={(e) => setForm((p) => ({ ...p, adjustment_type: e.target.value }))} className="px-3 py-2 rounded border">
-          <option>Bonus</option><option>Allowance</option><option>Deduction</option><option>Correction</option>
-        </select>
-        <input type="number" placeholder="Amount" value={form.amount} onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value }))} className="px-3 py-2 rounded border" />
-        <input type="date" value={form.effective_date} onChange={(e) => setForm((p) => ({ ...p, effective_date: e.target.value }))} className="px-3 py-2 rounded border" />
-        <button onClick={createAdjustment} className="px-3 py-2 rounded bg-secondary text-white font-bold text-xs flex items-center justify-center gap-2"><Plus className="w-3 h-3" /> Add</button>
-        <input placeholder="Reason" value={form.reason} onChange={(e) => setForm((p) => ({ ...p, reason: e.target.value }))} className="px-3 py-2 rounded border md:col-span-6" />
+      <div className="p-4 rounded-2xl border">
+        <div className="grid md:grid-cols-6 gap-x-4 gap-y-4">
+          <div className="space-y-2 min-w-0 md:col-span-2">
+            <Label htmlFor="pa-employee">Employee</Label>
+            <select
+              id="pa-employee"
+              value={form.employer_registration_id}
+              onChange={(e) => setForm((p) => ({ ...p, employer_registration_id: e.target.value }))}
+              className={selectFieldClass}
+            >
+              <option value="">Select employee</option>
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.employer_name} ({e.employer_id})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2 min-w-0">
+            <Label htmlFor="pa-type">Adjustment type</Label>
+            <select
+              id="pa-type"
+              value={form.adjustment_type}
+              onChange={(e) => setForm((p) => ({ ...p, adjustment_type: e.target.value }))}
+              className={selectFieldClass}
+            >
+              <option>Bonus</option>
+              <option>Allowance</option>
+              <option>Deduction</option>
+              <option>Correction</option>
+            </select>
+          </div>
+          <div className="space-y-2 min-w-0">
+            <Label htmlFor="pa-amount">Amount (PHP)</Label>
+            <input
+              id="pa-amount"
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder="0.00"
+              value={form.amount}
+              onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value }))}
+              className={fieldClass}
+            />
+          </div>
+          <div className="space-y-2 min-w-0">
+            <Label htmlFor="pa-effective-date">Effective date</Label>
+            <input
+              id="pa-effective-date"
+              type="date"
+              value={form.effective_date}
+              onChange={(e) => setForm((p) => ({ ...p, effective_date: e.target.value }))}
+              className={`${fieldClass} [color-scheme:light] dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:dark:invert`}
+            />
+          </div>
+          <div className="flex min-w-0 flex-col justify-end md:col-span-1">
+            <button
+              type="button"
+              onClick={createAdjustment}
+              className="px-3 py-2 rounded bg-secondary text-white font-bold text-xs flex items-center justify-center gap-2"
+            >
+              <Plus className="w-3 h-3" aria-hidden /> Add
+            </button>
+          </div>
+          <div className="space-y-2 min-w-0 md:col-span-6">
+            <Label htmlFor="pa-reason">Reason</Label>
+            <input
+              id="pa-reason"
+              placeholder="Short note shown on payroll (e.g. performance bonus, uniform fee)"
+              value={form.reason}
+              onChange={(e) => setForm((p) => ({ ...p, reason: e.target.value }))}
+              className={fieldClass}
+            />
+          </div>
+        </div>
       </div>
 
       <div className="rounded-2xl border overflow-hidden">
