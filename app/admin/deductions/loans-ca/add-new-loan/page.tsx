@@ -280,7 +280,7 @@ export default function AddNewLoanPage() {
             type="button"
             onClick={() => void submit()}
             disabled={isSubmitting}
-            className="px-4 py-2.5 rounded-lg bg-secondary text-white font-semibold text-sm w-full sm:w-auto disabled:opacity-60 disabled:pointer-events-none"
+            className="px-4 py-2.5 rounded-lg bg-secondary text-white font-semibold text-sm w-full sm:w-auto transition-colors hover:bg-secondary/90 disabled:opacity-60 disabled:pointer-events-none disabled:hover:bg-secondary"
           >
             {isSubmitting ? 'Creating…' : 'Create loan'}
           </button>

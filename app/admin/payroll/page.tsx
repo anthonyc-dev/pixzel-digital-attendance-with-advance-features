@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ENV } from '@/lib/api';
+import { Label } from '@/components/ui/label';
 
 interface PayrollRecord {
     id: string;
@@ -359,9 +360,10 @@ const PayrollPage = () => {
 
                 <div className="flex items-center gap-2">
                     <button
+                        type="button"
                         onClick={handleGeneratePayroll}
                         disabled={regeneratingId !== null}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-secondary text-white rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-lg shadow-secondary/20 hover:opacity-90 transition-all disabled:opacity-50 cursor-pointer">
+                        className="flex items-center gap-2 px-4 py-2.5 bg-secondary text-white rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-lg shadow-secondary/20 transition-colors hover:bg-secondary/90 disabled:opacity-50 disabled:pointer-events-none disabled:hover:bg-secondary cursor-pointer">
                         {regeneratingId === 'all' ? (
                             <>
                                 <span>•</span>
@@ -375,8 +377,9 @@ const PayrollPage = () => {
                         )}
                     </button>
                     <button
+                        type="button"
                         onClick={handleExportCSV}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-all"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl font-bold uppercase tracking-widest text-[9px] shadow-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-colors cursor-pointer"
                     >
                         <span className="text-secondary">•</span>
                         <span>Export CSV</span>
@@ -419,33 +422,41 @@ const PayrollPage = () => {
             </section>
 
             <div className="flex flex-col gap-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="relative group max-w-sm w-full">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-secondary transition-colors">•</span>
-                        <input
-                            type="text"
-                            placeholder="Search Employee for Payroll..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-secondary/10 focus:border-secondary transition-all shadow-sm"
-                        />
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                    <div className="max-w-sm w-full space-y-2 min-w-0">
+                        <Label htmlFor="payroll-search">Search employee</Label>
+                        <div className="relative group">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-secondary transition-colors">•</span>
+                            <input
+                                id="payroll-search"
+                                type="text"
+                                placeholder="Search employee for payroll..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-secondary/10 focus:border-secondary transition-all shadow-sm"
+                            />
+                        </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <select
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                            className="outline-none flex items-center gap-1 px-4 py-2.5 bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-xl text-[9px] font-bold uppercase tracking-widest text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/10 transition-all shadow-sm"
-                        >
-                            <option value="all" className="bg-white text-black dark:bg-[#0A0A0A] dark:text-white outline-none">All Status</option>
-                            <option value="pending" className="bg-white text-black dark:bg-[#0A0A0A] dark:text-white outline-none">Pending</option>
-                            <option value="paid" className="bg-white text-black dark:bg-[#0A0A0A] dark:text-white outline-none">Paid</option>
-                        </select>
+                    <div className="flex items-end gap-2">
+                        <div className="space-y-2 min-w-[170px]">
+                            <Label htmlFor="payroll-status-filter">Status filter</Label>
+                            <select
+                                id="payroll-status-filter"
+                                value={filterStatus}
+                                onChange={(e) => setFilterStatus(e.target.value)}
+                                className="outline-none w-full px-4 py-2.5 bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-xl text-[9px] font-bold uppercase tracking-widest text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/10 transition-colors shadow-sm [color-scheme:light] dark:[color-scheme:dark]"
+                            >
+                                <option value="all" className="bg-white text-black dark:bg-[#0A0A0A] dark:text-white outline-none">All Status</option>
+                                <option value="pending" className="bg-white text-black dark:bg-[#0A0A0A] dark:text-white outline-none">Pending</option>
+                                <option value="paid" className="bg-white text-black dark:bg-[#0A0A0A] dark:text-white outline-none">Paid</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
                 <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl shadow-xl overflow-visible">
-                    <div className="overflow-x-auto rounded-2xl">
+                    <div className="overflow-x-auto overflow-y-visible rounded-2xl">
                     <table className="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
                             <tr className="bg-gray-50 dark:bg-white/[0.03] border-b border-gray-100 dark:border-white/5 text-center">

@@ -263,8 +263,8 @@ const Overtime = () => {
                 <td className="p-3 text-sm">P{Number(row.computed_amount ?? 0).toFixed(2)}</td>
                 <td className="p-3 text-sm">{row.status}</td>
                 <td className="p-3 text-right">
-                  <button disabled={row.status === 'approved'} onClick={() => setStatus(row, 'approved')} className="px-2 py-1 rounded bg-emerald-600 text-white text-xs mr-2 disabled:opacity-50 inline-flex items-center gap-1"><CheckCircle2 className="w-3 h-3" />Approve</button>
-                  <button disabled={row.status === 'rejected'} onClick={() => setStatus(row, 'rejected')} className="px-2 py-1 rounded bg-amber-600 text-white text-xs disabled:opacity-50 inline-flex items-center gap-1"><Clock className="w-3 h-3" />Reject</button>
+                  <button disabled={row.status === 'approved'} onClick={() => setStatus(row, 'approved')} className="px-2 py-1 rounded bg-emerald-600 text-white text-xs mr-2 transition-colors hover:bg-emerald-700 disabled:opacity-50 disabled:hover:bg-emerald-600 inline-flex items-center gap-1"><CheckCircle2 className="w-3 h-3" />Approve</button>
+                  <button disabled={row.status === 'rejected'} onClick={() => setStatus(row, 'rejected')} className="px-2 py-1 rounded bg-amber-600 text-white text-xs transition-colors hover:bg-amber-700 disabled:opacity-50 disabled:hover:bg-amber-600 inline-flex items-center gap-1"><Clock className="w-3 h-3" />Reject</button>
                 </td>
               </tr>
             ))}
