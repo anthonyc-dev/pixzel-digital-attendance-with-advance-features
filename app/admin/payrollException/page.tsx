@@ -1,148 +1,175 @@
 'use client';
 
-import React, { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { 
-  AlertTriangle, 
-  Calendar, 
-  CheckCircle2, 
-  ArrowRight,
-  Clock,
-  FileWarning,
-  History
-} from 'lucide-react';
-import { toast } from 'sonner';
+import React, { useEffect, startTransition, useState } from 'react';
+import { ENV } from '@/lib/api';
+import { Label } from '@/components/ui/label';
+import { CheckCircle2 } from 'lucide-react';
 
-interface PayrollException {
-    id: string;
-    employee_name: string;
-    leave_period: string;
-    submission_date: string;
-    late_days: number;
-    reason: string;
-    status: 'Pending' | 'Approved' | 'Adjusted';
+const fieldClass =
+  'px-3 py-2 rounded border bg-white text-black placeholder:text-neutral-500 dark:bg-black dark:text-white dark:placeholder:text-neutral-400 border-gray-300 dark:border-white/20 w-full min-w-0';
+const selectFieldClass = `${fieldClass} [color-scheme:light] dark:[color-scheme:dark]`;
+
+interface Employer { id: number; employer_name: string; employer_id: string }
+interface ExceptionRow {
+  id: string;
+  exception_type: string;
+  description: string;
+  amount_impact: number;
+  status: 'open' | 'resolved' | 'ignored';
+  created_at: string;
+  employer_registration?: Employer;
 }
 
-const MOCK_EXCEPTIONS: PayrollException[] = [
-    { id: 'EX-001', employee_name: 'Alice Johnson', leave_period: 'Mar 15 - Mar 17', submission_date: '2026-04-05', late_days: 15, reason: 'Late submission of medical certificate', status: 'Pending' },
-    { id: 'EX-002', employee_name: 'Bob Smith', leave_period: 'Mar 20 - Mar 21', submission_date: '2026-04-02', late_days: 10, reason: 'Family emergency, forgot to file', status: 'Pending' },
-    { id: 'EX-003', employee_name: 'Charlie Davis', leave_period: 'Mar 01 - Mar 05', submission_date: '2026-04-01', late_days: 25, reason: 'System access issues', status: 'Approved' },
-];
-
 const PayrollException = () => {
-    const [exceptions, setExceptions] = useState(MOCK_EXCEPTIONS);
+  const [rows, setRows] = useState<ExceptionRow[]>([]);
+  const [employees, setEmployees] = useState<Employer[]>([]);
+  const [form, setForm] = useState({
+    employer_registration_id: '',
+    exception_type: '',
+    description: '',
+    amount_impact: '',
+  });
 
-    const handleApprove = (id: string) => {
-        setExceptions(prev => prev.map(ex => 
-            ex.id === id ? { ...ex, status: 'Approved' } : ex
-        ));
-        toast.success('Exception approved for payroll adjustment!');
-    };
+  const load = async () => {
+    const [exRes, empRes] = await Promise.all([
+      fetch(`${ENV.API_URL}/payroll-exceptions`, { cache: 'no-store' }),
+      fetch(`${ENV.API_URL}/registration`, { cache: 'no-store' }),
+    ]);
+    if (exRes.ok) {
+      const list = await exRes.json();
+      startTransition(() => setRows(list));
+    }
+    if (empRes.ok) {
+      const data = await empRes.json();
+      const list = Array.isArray(data) ? data : (data.data ?? []);
+      startTransition(() => setEmployees(list));
+    }
+  };
 
-    return (
-        <div className="flex flex-col p-4 md:p-6 lg:p-8 gap-6 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out pb-20">
-            {/* Header */}
-            <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                <div className="space-y-1">
-                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight bg-linear-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
-                        Payroll Exceptions
-                    </h1>
-                    <p className="text-muted-foreground text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.3em] leading-none opacity-80">
-                        Handle late leave submissions and manual synchronization
-                    </p>
-                </div>
-                <div className="flex gap-2">
-                    <button className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl font-bold uppercase tracking-widest text-[10px] shadow-sm hover:bg-gray-50 transition-all">
-                        <History className="w-3.5 h-3.5" />
-                        <span>View History</span>
-                    </button>
-                </div>
-            </header>
+  useEffect(() => {
+    void load();
+  }, []);
 
-            {/* Warning Banner */}
-            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-4">
-                <div className="p-2 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400">
-                    <AlertTriangle className="w-5 h-5" />
-                </div>
-                <div className="space-y-1">
-                    <h3 className="text-sm font-bold text-amber-800 dark:text-amber-400">Late Submissions Detected</h3>
-                    <p className="text-xs text-amber-700/80 dark:text-amber-400/60 leading-relaxed font-medium">
-                        The following leave requests were submitted after the cutoff date. Approved exceptions will be automatically queued for the next payroll adjustment cycle.
-                    </p>
-                </div>
-            </div>
+  const createException = async () => {
+    if (!form.employer_registration_id || !form.exception_type || !form.description) return;
+    const res = await fetch(`${ENV.API_URL}/payroll-exceptions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        employer_registration_id: Number(form.employer_registration_id),
+        exception_type: form.exception_type,
+        description: form.description,
+        amount_impact: Number(form.amount_impact || 0),
+      }),
+    });
+    if (res.ok) {
+      const created = await res.json();
+      setRows((prev) => [created, ...prev]);
+      setForm({ employer_registration_id: '', exception_type: '', description: '', amount_impact: '' });
+    }
+  };
 
-            {/* Exceptions List */}
-            <section className="grid grid-cols-1 gap-4">
-                {exceptions.map((ex) => (
-                    <div 
-                        key={ex.id}
-                        className="group relative overflow-hidden p-6 rounded-2xl bg-white dark:bg-white/2 border border-gray-100 dark:border-white/5 shadow-xl transition-all hover:border-secondary/30"
-                    >
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                            <div className="flex items-start gap-4">
-                                <div className="p-3 rounded-2xl bg-secondary/10 text-secondary border border-secondary/20">
-                                    <FileWarning className="w-6 h-6" />
-                                </div>
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <h3 className="text-lg font-bold text-foreground group-hover:text-secondary transition-colors">{ex.employee_name}</h3>
-                                        <span className={cn(
-                                            "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest",
-                                            ex.status === 'Pending' && "bg-amber-500/10 text-amber-600 border border-amber-500/20",
-                                            ex.status === 'Approved' && "bg-green-500/10 text-green-600 border border-green-500/20"
-                                        )}>
-                                            {ex.status}
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-muted-foreground">
-                                        <div className="flex items-center gap-2">
-                                            <Calendar className="w-3.5 h-3.5" />
-                                            <span className="text-xs font-semibold">{ex.leave_period}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-rose-500">
-                                            <Clock className="w-3.5 h-3.5" />
-                                            <span className="text-xs font-black italic">{ex.late_days} Days Late</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Submitted: {ex.submission_date}</span>
-                                        </div>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground/80 font-medium italic">
-                                        &quot;{ex.reason}&quot;
-                                    </p>
-                                </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-3 self-end md:self-center">
-                                {ex.status === 'Pending' ? (
-                                    <button 
-                                        onClick={() => handleApprove(ex.id)}
-                                        className="flex items-center gap-2 px-6 py-3 bg-secondary text-white rounded-xl font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-secondary/20 hover:scale-[1.05] active:scale-[0.95] transition-all cursor-pointer"
-                                    >
-                                        <span>Approve for Adjustment</span>
-                                        <ArrowRight className="w-3.5 h-3.5" />
-                                    </button>
-                                ) : (
-                                    <div className="flex items-center gap-2 px-6 py-3 bg-green-500/10 text-green-600 border border-green-500/20 rounded-xl font-bold uppercase tracking-widest text-[10px]">
-                                        <CheckCircle2 className="w-4 h-4" />
-                                        <span>Ready for Next Payroll</span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                ))}
+  const resolve = async (row: ExceptionRow) => {
+    const res = await fetch(`${ENV.API_URL}/payroll-exceptions/${row.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'resolved', resolved_at: new Date().toISOString() }),
+    });
+    if (res.ok) {
+      setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, status: 'resolved' } : r)));
+    }
+  };
 
-                {exceptions.length === 0 && (
-                    <div className="p-20 flex flex-col items-center justify-center gap-4 bg-white dark:bg-white/2 border border-dashed border-gray-200 dark:border-white/10 rounded-3xl">
-                        <CheckCircle2 className="w-12 h-12 text-green-500 opacity-20" />
-                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">No pending exceptions found</p>
-                    </div>
-                )}
-            </section>
+  return (
+    <div className="flex flex-col p-4 md:p-6 lg:p-8 gap-6 w-full mx-auto max-w-7xl pb-20">
+      <header>
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">Payroll Exceptions</h1>
+        <p className="text-muted-foreground text-[11px] font-bold uppercase tracking-[0.3em] leading-none opacity-80 mt-1">
+          Review and resolve payroll issues
+        </p>
+      </header>
+
+      <div className="p-4 rounded-2xl border">
+        <div className="grid md:grid-cols-4 gap-x-4 gap-y-4">
+          <div className="space-y-2 min-w-0">
+            <Label htmlFor="pe-employee">Employee</Label>
+            <select
+              id="pe-employee"
+              value={form.employer_registration_id}
+              onChange={(e) => setForm((p) => ({ ...p, employer_registration_id: e.target.value }))}
+              className={selectFieldClass}
+            >
+              <option value="">Select employee</option>
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.employer_name} ({e.employer_id})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2 min-w-0">
+            <Label htmlFor="pe-type">Exception type</Label>
+            <input
+              id="pe-type"
+              placeholder="e.g. Missing clock-out, wrong rate"
+              value={form.exception_type}
+              onChange={(e) => setForm((p) => ({ ...p, exception_type: e.target.value }))}
+              className={fieldClass}
+            />
+          </div>
+          <div className="space-y-2 min-w-0">
+            <Label htmlFor="pe-impact">Amount impact (PHP)</Label>
+            <input
+              id="pe-impact"
+              type="number"
+              step="0.01"
+              placeholder="Optional; 0 if none"
+              value={form.amount_impact}
+              onChange={(e) => setForm((p) => ({ ...p, amount_impact: e.target.value }))}
+              className={fieldClass}
+            />
+          </div>
+          <div className="flex min-w-0 flex-col justify-end">
+            <button type="button" onClick={createException} className="px-3 py-2 rounded bg-secondary text-white text-xs font-bold">
+              Add Exception
+            </button>
+          </div>
+          <div className="space-y-2 min-w-0 md:col-span-4">
+            <Label htmlFor="pe-description">Description</Label>
+            <input
+              id="pe-description"
+              placeholder="What happened and what should payroll do about it?"
+              value={form.description}
+              onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+              className={fieldClass}
+            />
+          </div>
         </div>
-    );
+      </div>
+
+      <div className="rounded-2xl border overflow-hidden">
+        <table className="w-full text-left">
+          <thead><tr className="bg-muted/40 text-xs uppercase"><th className="p-3">Employee</th><th className="p-3">Type</th><th className="p-3">Description</th><th className="p-3">Impact</th><th className="p-3">Status</th><th className="p-3 text-right">Action</th></tr></thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.id} className="border-t">
+                <td className="p-3 text-sm font-medium">{row.employer_registration?.employer_name ?? '-'}</td>
+                <td className="p-3 text-sm">{row.exception_type}</td>
+                <td className="p-3 text-sm">{row.description}</td>
+                <td className="p-3 text-sm">{row.amount_impact}</td>
+                <td className="p-3 text-sm">{row.status}</td>
+                <td className="p-3 text-right">
+                  <button disabled={row.status === 'resolved'} onClick={() => resolve(row)} className="px-3 py-1.5 rounded bg-secondary text-white text-xs font-bold disabled:opacity-50 inline-flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Resolve
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 };
 
-export default PayrollException;
+export default PayrollException;

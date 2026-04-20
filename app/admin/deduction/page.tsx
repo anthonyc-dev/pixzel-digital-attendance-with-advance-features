@@ -228,7 +228,7 @@ const DeductionSettingsPage = () => {
                                     Unsaved changes detected
                                 </p>
                             )}
-                            
+
                             <button
                                 onClick={handleSave}
                                 disabled={saving || !hasChanges}
@@ -250,8 +250,8 @@ const DeductionSettingsPage = () => {
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                             <div className="relative w-full sm:max-w-xs">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                <input 
-                                    placeholder="Search loans..." 
+                                <input
+                                    placeholder="Search loans..."
                                     className="w-full pl-9 pr-4 py-2 bg-white dark:bg-white/2 border border-gray-100 dark:border-white/10 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-secondary/50 placeholder:text-muted-foreground/50 transition-all font-medium"
                                 />
                             </div>
@@ -294,8 +294,8 @@ const DeductionSettingsPage = () => {
                                                             <span className="text-muted-foreground tracking-widest">₱{loan.total_amount.toLocaleString()}</span>
                                                         </div>
                                                         <div className="h-1.5 w-full bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
-                                                            <div 
-                                                                className="h-full bg-secondary transition-all duration-1000" 
+                                                            <div
+                                                                className="h-full bg-secondary transition-all duration-1000"
                                                                 style={{ width: `${(loan.paid_amount / loan.total_amount) * 100}%` }}
                                                             />
                                                         </div>
@@ -336,7 +336,7 @@ const DeductionSettingsPage = () => {
                                 <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
                                     <HandCoins className="w-12 h-12 text-secondary" />
                                 </div>
-                                
+
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-start">
                                         <div>
@@ -368,7 +368,7 @@ const DeductionSettingsPage = () => {
                                 </div>
                             </div>
                         ))}
-                        
+
                         {/* New CA Card */}
                         <button className="p-5 rounded-2xl bg-white/40 dark:bg-white/1 border border-dashed border-gray-200 dark:border-white/10 flex flex-col items-center justify-center gap-2 group hover:bg-white/60 dark:hover:bg-white/2 transition-all cursor-pointer">
                             <div className="p-2 rounded-full bg-secondary/10 text-secondary group-hover:scale-110 transition-transform">
