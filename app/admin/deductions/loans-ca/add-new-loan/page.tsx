@@ -144,149 +144,151 @@ export default function AddNewLoanPage() {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      <h1 className="text-3xl font-bold tracking-tight">Add New Loan</h1>
-      <p className="text-sm text-muted-foreground max-w-2xl">
-        <strong>End date</strong> is the expected payoff date. Enter <strong>monthly payment</strong> and we set end date from principal (equal installments, no interest in this calculator). Or set <strong>end date</strong> and we derive monthly payment.
-      </p>
-      <div className="p-4 rounded-2xl border grid md:grid-cols-2 gap-x-4 gap-y-5">
-        <div className="space-y-2 min-w-0">
-          <Label htmlFor="loan-employee">Employee</Label>
-          <select
-            id="loan-employee"
-            className={`${fieldClass} w-full`}
-            value={form.employer_registration_id}
-            onChange={(e) => setForm((p) => ({ ...p, employer_registration_id: e.target.value }))}
-          >
-            <option value="">Select an employee</option>
-            {employees.map((e) => <option key={e.id} value={e.id}>{e.employer_name} ({e.employer_id})</option>)}
-          </select>
-        </div>
+    <div className="flex flex-col p-4 md:p-6 lg:p-8 gap-4 sm:gap-5 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out pb-6 lg:pb-10">
+      <div className="space-y-6 p-6">
+        <h1 className="text-3xl font-bold tracking-tight">Add New Loan</h1>
+        <p className="text-sm text-muted-foreground max-w-2xl">
+          <strong>End date</strong> is the expected payoff date. Enter <strong>monthly payment</strong> and we set end date from principal (equal installments, no interest in this calculator). Or set <strong>end date</strong> and we derive monthly payment.
+        </p>
+        <div className="p-4 rounded-2xl border grid md:grid-cols-2 gap-x-4 gap-y-5">
+          <div className="space-y-2 min-w-0">
+            <Label htmlFor="loan-employee">Employee</Label>
+            <select
+              id="loan-employee"
+              className={`${fieldClass} w-full`}
+              value={form.employer_registration_id}
+              onChange={(e) => setForm((p) => ({ ...p, employer_registration_id: e.target.value }))}
+            >
+              <option value="">Select an employee</option>
+              {employees.map((e) => <option key={e.id} value={e.id}>{e.employer_name} ({e.employer_id})</option>)}
+            </select>
+          </div>
 
-        <div className="space-y-2 min-w-0">
-          <Label htmlFor="loan-type">Loan type</Label>
-          <select
-            id="loan-type"
-            className={`${fieldClass} w-full`}
-            value={form.loan_type}
-            onChange={(e) => setForm((p) => ({ ...p, loan_type: e.target.value }))}
-          >
-            <option value="salary_advance">Salary advance</option>
-            <option value="cash_advance">Cash advance</option>
-            <option value="emergency_loan">Emergency loan</option>
-          </select>
-        </div>
+          <div className="space-y-2 min-w-0">
+            <Label htmlFor="loan-type">Loan type</Label>
+            <select
+              id="loan-type"
+              className={`${fieldClass} w-full`}
+              value={form.loan_type}
+              onChange={(e) => setForm((p) => ({ ...p, loan_type: e.target.value }))}
+            >
+              <option value="salary_advance">Salary advance</option>
+              <option value="cash_advance">Cash advance</option>
+              <option value="emergency_loan">Emergency loan</option>
+            </select>
+          </div>
 
-        <div className="space-y-2 min-w-0">
-          <Label htmlFor="loan-principal">Principal amount</Label>
-          <input
-            id="loan-principal"
-            type="number"
-            min={0}
-            step="0.01"
-            placeholder="0.00"
-            aria-describedby="loan-principal-hint"
-            value={form.principal_amount}
-            onChange={(e) => {
-              const v = e.target.value;
-              setForm((prev) => {
-                const next = { ...prev, principal_amount: v };
-                return scheduleMode === 'payment' ? recomputeFromPayment(next) : recomputeFromEnd(next);
-              });
-            }}
-            className={`${fieldClass} w-full`}
-          />
-          <p id="loan-principal-hint" className="text-xs text-muted-foreground">
-            Total amount borrowed. Required.
-          </p>
-        </div>
+          <div className="space-y-2 min-w-0">
+            <Label htmlFor="loan-principal">Principal amount</Label>
+            <input
+              id="loan-principal"
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder="0.00"
+              aria-describedby="loan-principal-hint"
+              value={form.principal_amount}
+              onChange={(e) => {
+                const v = e.target.value;
+                setForm((prev) => {
+                  const next = { ...prev, principal_amount: v };
+                  return scheduleMode === 'payment' ? recomputeFromPayment(next) : recomputeFromEnd(next);
+                });
+              }}
+              className={`${fieldClass} w-full`}
+            />
+            <p id="loan-principal-hint" className="text-xs text-muted-foreground">
+              Total amount borrowed. Required.
+            </p>
+          </div>
 
-        <div className="space-y-2 min-w-0">
-          <Label htmlFor="loan-monthly">Monthly payment</Label>
-          <input
-            id="loan-monthly"
-            type="number"
-            min={0}
-            step="0.01"
-            placeholder="0.00"
-            aria-describedby="loan-monthly-hint"
-            value={form.monthly_payment}
-            onChange={(e) => {
-              setScheduleMode('payment');
-              const v = e.target.value;
-              setForm((prev) => recomputeFromPayment({ ...prev, monthly_payment: v }));
-            }}
-            className={`${fieldClass} w-full`}
-          />
-          <p id="loan-monthly-hint" className="text-xs text-muted-foreground">
-            Deduction per month. If you fill this, <strong>expected end date</strong> updates automatically.
-          </p>
-        </div>
+          <div className="space-y-2 min-w-0">
+            <Label htmlFor="loan-monthly">Monthly payment</Label>
+            <input
+              id="loan-monthly"
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder="0.00"
+              aria-describedby="loan-monthly-hint"
+              value={form.monthly_payment}
+              onChange={(e) => {
+                setScheduleMode('payment');
+                const v = e.target.value;
+                setForm((prev) => recomputeFromPayment({ ...prev, monthly_payment: v }));
+              }}
+              className={`${fieldClass} w-full`}
+            />
+            <p id="loan-monthly-hint" className="text-xs text-muted-foreground">
+              Deduction per month. If you fill this, <strong>expected end date</strong> updates automatically.
+            </p>
+          </div>
 
-        <div className="space-y-2 min-w-0">
-          <Label htmlFor="loan-start">Start date</Label>
-          <input
-            id="loan-start"
-            type="date"
-            aria-describedby="loan-start-hint"
-            value={form.start_date}
-            onChange={(e) => {
-              const v = e.target.value;
-              setForm((prev) => {
-                const next = { ...prev, start_date: v };
-                return scheduleMode === 'payment' ? recomputeFromPayment(next) : recomputeFromEnd(next);
-              });
-            }}
-            className={`${dateFieldClass} w-full`}
-          />
-          <p id="loan-start-hint" className="text-xs text-muted-foreground">
-            First deduction / loan start. Required.
-          </p>
-        </div>
+          <div className="space-y-2 min-w-0">
+            <Label htmlFor="loan-start">Start date</Label>
+            <input
+              id="loan-start"
+              type="date"
+              aria-describedby="loan-start-hint"
+              value={form.start_date}
+              onChange={(e) => {
+                const v = e.target.value;
+                setForm((prev) => {
+                  const next = { ...prev, start_date: v };
+                  return scheduleMode === 'payment' ? recomputeFromPayment(next) : recomputeFromEnd(next);
+                });
+              }}
+              className={`${dateFieldClass} w-full`}
+            />
+            <p id="loan-start-hint" className="text-xs text-muted-foreground">
+              First deduction / loan start. Required.
+            </p>
+          </div>
 
-        <div className="space-y-2 min-w-0">
-          <Label htmlFor="loan-end">Expected end date (payoff)</Label>
-          <input
-            id="loan-end"
-            type="date"
-            aria-describedby="loan-end-hint"
-            value={form.end_date}
-            onChange={(e) => {
-              setScheduleMode('end');
-              const v = e.target.value;
-              setForm((prev) => recomputeFromEnd({ ...prev, end_date: v }));
-            }}
-            className={`${dateFieldClass} w-full`}
-          />
-          <p id="loan-end-hint" className="text-xs text-muted-foreground">
-            Last payment date. If you pick this instead, <strong>monthly payment</strong> is calculated from principal.
-          </p>
-        </div>
+          <div className="space-y-2 min-w-0">
+            <Label htmlFor="loan-end">Expected end date (payoff)</Label>
+            <input
+              id="loan-end"
+              type="date"
+              aria-describedby="loan-end-hint"
+              value={form.end_date}
+              onChange={(e) => {
+                setScheduleMode('end');
+                const v = e.target.value;
+                setForm((prev) => recomputeFromEnd({ ...prev, end_date: v }));
+              }}
+              className={`${dateFieldClass} w-full`}
+            />
+            <p id="loan-end-hint" className="text-xs text-muted-foreground">
+              Last payment date. If you pick this instead, <strong>monthly payment</strong> is calculated from principal.
+            </p>
+          </div>
 
-        <div className="space-y-2 md:col-span-2 min-w-0">
-          <Label htmlFor="loan-notes">Notes</Label>
-          <textarea
-            id="loan-notes"
-            placeholder="Optional details (reference no., terms, etc.)"
-            value={form.notes}
-            onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
-            className={`${fieldClass} w-full min-h-24`}
-            rows={4}
-          />
-        </div>
+          <div className="space-y-2 md:col-span-2 min-w-0">
+            <Label htmlFor="loan-notes">Notes</Label>
+            <textarea
+              id="loan-notes"
+              placeholder="Optional details (reference no., terms, etc.)"
+              value={form.notes}
+              onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+              className={`${fieldClass} w-full min-h-24`}
+              rows={4}
+            />
+          </div>
 
-        <div className="md:col-span-2">
-          <button
-            type="button"
-            onClick={() => void submit()}
-            disabled={isSubmitting}
-            className="px-4 py-2.5 rounded-lg bg-secondary text-white font-semibold text-sm w-full sm:w-auto disabled:opacity-60 disabled:pointer-events-none"
-          >
-            {isSubmitting ? 'Creating…' : 'Create loan'}
-          </button>
-          <p className="text-xs text-muted-foreground mt-2">
-            The button locks while saving so double-clicks do not create duplicate loans.
-          </p>
+          <div className="md:col-span-2">
+            <button
+              type="button"
+              onClick={() => void submit()}
+              disabled={isSubmitting}
+              className="px-4 py-2.5 rounded-lg bg-secondary text-white font-semibold text-sm w-full sm:w-auto disabled:opacity-60 disabled:pointer-events-none"
+            >
+              {isSubmitting ? 'Creating…' : 'Create loan'}
+            </button>
+            <p className="text-xs text-muted-foreground mt-2">
+              The button locks while saving so double-clicks do not create duplicate loans.
+            </p>
+          </div>
         </div>
       </div>
     </div>
