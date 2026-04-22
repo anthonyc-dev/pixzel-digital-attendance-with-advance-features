@@ -70,155 +70,157 @@ export default function AttendanceExceptionsPage() {
   const resolvedCount = mockExceptions.filter(e => e.status === 'Resolved').length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight dark:text-white">Attendance Exceptions</h1>
-          <p className="text-muted-foreground dark:text-gray-400 mt-1">Review and resolve attendance exceptions</p>
-        </div>
-        <Button variant="outline" className="dark:border-white/20 dark:text-gray-300">
-          <Download className="w-4 h-4 mr-2" />
-          Export Report
-        </Button>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="dark:bg-black dark:border-white/10">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground dark:text-gray-400">Pending</p>
-                <p className="text-2xl font-bold mt-1 dark:text-white">{pendingCount}</p>
-              </div>
-              <div className="p-3 rounded-xl bg-amber-500">
-                <Clock className="w-6 h-6 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="dark:bg-black dark:border-white/10">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground dark:text-gray-400">Approved</p>
-                <p className="text-2xl font-bold mt-1 dark:text-white">{approvedCount}</p>
-              </div>
-              <div className="p-3 rounded-xl bg-green-500">
-                <CheckCircle className="w-6 h-6 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="dark:bg-black dark:border-white/10">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground dark:text-gray-400">Resolved</p>
-                <p className="text-2xl font-bold mt-1 dark:text-white">{resolvedCount}</p>
-              </div>
-              <div className="p-3 rounded-xl bg-blue-500">
-                <CheckCircle className="w-6 h-6 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="dark:bg-black dark:border-white/10">
-        <CardHeader className="pb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <CardTitle className="dark:text-white">Exception List</CardTitle>
-              <CardDescription className="dark:text-gray-400">All attendance exceptions requiring attention</CardDescription>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search employee..." 
-                  className="pl-9 w-full sm:w-48 dark:bg-white/5 dark:border-white/10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <Select value={typeFilter} onValueChange={handleTypeFilterChange}>
-                <SelectTrigger className="w-full sm:w-40 dark:bg-white/5 dark:border-white/10">
-                  <SelectValue placeholder="Exception Type" />
-                </SelectTrigger>
-                <SelectContent className="dark:bg-black dark:border-white/10">
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="late">Late Arrival</SelectItem>
-                  <SelectItem value="missed">Missed Punch</SelectItem>
-                  <SelectItem value="early">Early Departure</SelectItem>
-                  <SelectItem value="overtime">Overtime Violation</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-                <SelectTrigger className="w-full sm:w-32 dark:bg-white/5 dark:border-white/10">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent className="dark:bg-black dark:border-white/10">
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+    <div className="flex flex-col p-4 md:p-6 lg:p-8 gap-4 sm:gap-5 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out pb-6 lg:pb-10">
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight dark:text-white">Attendance Exceptions</h1>
+            <p className="text-muted-foreground dark:text-gray-400 mt-1">Review and resolve attendance exceptions</p>
           </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="dark:border-white/5 hover:bg-transparent">
-                <TableHead className="dark:text-gray-400">Employee</TableHead>
-                <TableHead className="dark:text-gray-400">Date</TableHead>
-                <TableHead className="dark:text-gray-400">Exception Type</TableHead>
-                <TableHead className="dark:text-gray-400">Time</TableHead>
-                <TableHead className="dark:text-gray-400">Duration</TableHead>
-                <TableHead className="dark:text-gray-400">Reason</TableHead>
-                <TableHead className="dark:text-gray-400">Status</TableHead>
-                <TableHead className="text-right dark:text-gray-400">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredExceptions.map((exc) => (
-                <TableRow key={exc.id} className="dark:border-white/5 hover:bg-muted/50 dark:hover:bg-white/5">
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9">
-                        <AvatarFallback className="bg-secondary text-white text-xs">
-                          {exc.name.split(' ').map(n => n[0]).join('').slice(0,2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium dark:text-white">{exc.name}</p>
-                        <p className="text-xs text-muted-foreground dark:text-gray-400">{exc.employeeId}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="dark:text-gray-300">{new Date(exc.date).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {getTypeIcon(exc.type)}
-                      <span className="dark:text-gray-300">{exc.type}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="dark:text-gray-300">{exc.time}</TableCell>
-                  <TableCell className="dark:text-gray-300">{exc.duration}</TableCell>
-                  <TableCell className="dark:text-gray-400 text-sm">{exc.reason}</TableCell>
-                  <TableCell>{getStatusBadge(exc.status)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" className="dark:text-gray-400 dark:hover:text-white">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
-                  </TableCell>
+          <Button variant="outline" className="dark:border-white/20 dark:text-gray-300">
+            <Download className="w-4 h-4 mr-2" />
+            Export Report
+          </Button>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="dark:bg-black dark:border-white/10">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground dark:text-gray-400">Pending</p>
+                  <p className="text-2xl font-bold mt-1 dark:text-white">{pendingCount}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-amber-500">
+                  <Clock className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="dark:bg-black dark:border-white/10">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground dark:text-gray-400">Approved</p>
+                  <p className="text-2xl font-bold mt-1 dark:text-white">{approvedCount}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-green-500">
+                  <CheckCircle className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="dark:bg-black dark:border-white/10">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground dark:text-gray-400">Resolved</p>
+                  <p className="text-2xl font-bold mt-1 dark:text-white">{resolvedCount}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-blue-500">
+                  <CheckCircle className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="dark:bg-black dark:border-white/10">
+          <CardHeader className="pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <CardTitle className="dark:text-white">Exception List</CardTitle>
+                <CardDescription className="dark:text-gray-400">All attendance exceptions requiring attention</CardDescription>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search employee..." 
+                    className="pl-9 w-full sm:w-48 dark:bg-white/5 dark:border-white/10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Select value={typeFilter} onValueChange={handleTypeFilterChange}>
+                  <SelectTrigger className="w-full sm:w-40 dark:bg-white/5 dark:border-white/10">
+                    <SelectValue placeholder="Exception Type" />
+                  </SelectTrigger>
+                  <SelectContent className="dark:bg-black dark:border-white/10">
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="late">Late Arrival</SelectItem>
+                    <SelectItem value="missed">Missed Punch</SelectItem>
+                    <SelectItem value="early">Early Departure</SelectItem>
+                    <SelectItem value="overtime">Overtime Violation</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+                  <SelectTrigger className="w-full sm:w-32 dark:bg-white/5 dark:border-white/10">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent className="dark:bg-black dark:border-white/10">
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="resolved">Resolved</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow className="dark:border-white/5 hover:bg-transparent">
+                  <TableHead className="dark:text-gray-400">Employee</TableHead>
+                  <TableHead className="dark:text-gray-400">Date</TableHead>
+                  <TableHead className="dark:text-gray-400">Exception Type</TableHead>
+                  <TableHead className="dark:text-gray-400">Time</TableHead>
+                  <TableHead className="dark:text-gray-400">Duration</TableHead>
+                  <TableHead className="dark:text-gray-400">Reason</TableHead>
+                  <TableHead className="dark:text-gray-400">Status</TableHead>
+                  <TableHead className="text-right dark:text-gray-400">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {filteredExceptions.map((exc) => (
+                  <TableRow key={exc.id} className="dark:border-white/5 hover:bg-muted/50 dark:hover:bg-white/5">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9">
+                          <AvatarFallback className="bg-secondary text-white text-xs">
+                            {exc.name.split(' ').map(n => n[0]).join('').slice(0,2)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium dark:text-white">{exc.name}</p>
+                          <p className="text-xs text-muted-foreground dark:text-gray-400">{exc.employeeId}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="dark:text-gray-300">{new Date(exc.date).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {getTypeIcon(exc.type)}
+                        <span className="dark:text-gray-300">{exc.type}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="dark:text-gray-300">{exc.time}</TableCell>
+                    <TableCell className="dark:text-gray-300">{exc.duration}</TableCell>
+                    <TableCell className="dark:text-gray-400 text-sm">{exc.reason}</TableCell>
+                    <TableCell>{getStatusBadge(exc.status)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" className="dark:text-gray-400 dark:hover:text-white">
+                        <MoreHorizontal className="w-4 h-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
-}
+} 
