@@ -1,52 +1,158 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { 
-  Download, 
+import {
+  Download,
   Calendar,
-  Filter,
-  BarChart3,
-  PieChart,
   TrendingUp,
   Clock,
-  Users
+  Users,
+  AlertCircle,
 } from 'lucide-react';
+import { ENV } from '@/lib/api';
 
-const mockReportData = [
-  { department: 'Engineering', present: 45, late: 3, absent: 2, leave: 5 },
-  { department: 'Design', present: 12, late: 1, absent: 0, leave: 2 },
-  { department: 'Marketing', present: 18, late: 2, absent: 1, leave: 3 },
-  { department: 'Human Resources', present: 8, late: 0, absent: 0, leave: 1 },
-  { department: 'Finance', present: 10, late: 1, absent: 0, leave: 2 },
-  { department: 'Operations', present: 15, late: 2, absent: 1, leave: 1 },
-  { department: 'Sales', present: 22, late: 3, absent: 2, leave: 4 },
-];
+type AttendanceLog = {
+  id: string;
+  type: 'time_in' | 'time_out';
+  status: string;
+  employer_position?: string;
+  employer_registration?: {
+    employer_position?: string;
+  };
+};
+
+type DepartmentReport = {
+  department: string;
+  present: number;
+  late: number;
+  absent: number;
+  leave: number;
+};
+
+function formatDateParam(date: Date): string {
+  const y = date.getFullYear();
+  const m = `${date.getMonth() + 1}`.padStart(2, '0');
+  const d = `${date.getDate()}`.padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function getRange(value: string): { start: string; end: string } {
+  const now = new Date();
+  const start = new Date(now);
+  const end = new Date(now);
+
+  if (value === 'today') {
+    return { start: formatDateParam(now), end: formatDateParam(now) };
+  }
+
+  if (value === 'this-week') {
+    const day = now.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    start.setDate(now.getDate() + diffToMonday);
+    return { start: formatDateParam(start), end: formatDateParam(end) };
+  }
+
+  if (value === 'this-quarter') {
+    const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+    start.setMonth(quarterStartMonth, 1);
+    return { start: formatDateParam(start), end: formatDateParam(end) };
+  }
+
+  // default: this-month
+  start.setDate(1);
+  return { start: formatDateParam(start), end: formatDateParam(end) };
+}
 
 export default function AttendanceReportPage() {
   const [dateRange, setDateRange] = useState('this-month');
-  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [reportData, setReportData] = useState<DepartmentReport[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchReport = async (range: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { start, end } = getRange(range);
+      const response = await fetch(
+        `${ENV.API_URL}/attendance?start_date=${encodeURIComponent(start)}&end_date=${encodeURIComponent(end)}`,
+        { cache: 'no-store' },
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to load attendance report data.');
+      }
+
+      const logs = (await response.json()) as AttendanceLog[];
+      const grouped = new Map<string, DepartmentReport>();
+
+      for (const log of logs) {
+        // Report is based on time-in records in attendance_logs.
+        if (log.type !== 'time_in') continue;
+
+        const department =
+          log.employer_registration?.employer_position ??
+          log.employer_position ??
+          'Unassigned';
+
+        if (!grouped.has(department)) {
+          grouped.set(department, {
+            department,
+            present: 0,
+            late: 0,
+            absent: 0,
+            leave: 0,
+          });
+        }
+
+        const row = grouped.get(department)!;
+        if (log.status === 'late') {
+          row.late += 1;
+        } else {
+          row.present += 1;
+        }
+      }
+
+      setReportData(
+        Array.from(grouped.values()).sort((a, b) => a.department.localeCompare(b.department)),
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load report.';
+      setError(message);
+      setReportData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchReport(dateRange);
+  }, [dateRange]);
 
   const handleDateRangeChange = (value: string | null) => {
     if (value) setDateRange(value);
   };
 
-  const totalPresent = mockReportData.reduce((acc, d) => acc + d.present, 0);
-  const totalLate = mockReportData.reduce((acc, d) => acc + d.late, 0);
-  const totalAbsent = mockReportData.reduce((acc, d) => acc + d.absent, 0);
-  const totalLeave = mockReportData.reduce((acc, d) => acc + d.leave, 0);
+  const totalPresent = useMemo(() => reportData.reduce((acc, d) => acc + d.present, 0), [reportData]);
+  const totalLate = useMemo(() => reportData.reduce((acc, d) => acc + d.late, 0), [reportData]);
+  const totalAbsent = useMemo(() => reportData.reduce((acc, d) => acc + d.absent, 0), [reportData]);
+  const totalLeave = useMemo(() => reportData.reduce((acc, d) => acc + d.leave, 0), [reportData]);
   const grandTotal = totalPresent + totalLate + totalAbsent + totalLeave;
+  const overallAttendanceRate = grandTotal > 0 ? (((totalPresent + totalLate) / grandTotal) * 100).toFixed(1) : '0.0';
+  const presentPct = grandTotal > 0 ? Math.round((totalPresent / grandTotal) * 100) : 0;
+  const latePct = grandTotal > 0 ? Math.round((totalLate / grandTotal) * 100) : 0;
+  const absentPct = grandTotal > 0 ? Math.round((totalAbsent / grandTotal) * 100) : 0;
+  const leavePct = grandTotal > 0 ? Math.round((totalLeave / grandTotal) * 100) : 0;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight dark:text-white">Attendance Report</h1>
-          <p className="text-muted-foreground dark:text-gray-400 mt-1">Generate and analyze attendance reports</p>
+          <p className="text-muted-foreground dark:text-gray-400 mt-1">Live data from attendance logs</p>
         </div>
         <Button variant="outline" className="dark:border-white/20 dark:text-gray-300">
           <Download className="w-4 h-4 mr-2" />
@@ -61,7 +167,7 @@ export default function AttendanceReportPage() {
               <div>
                 <p className="text-sm text-muted-foreground dark:text-gray-400">Total Present</p>
                 <p className="text-2xl font-bold mt-1 dark:text-white">{totalPresent}</p>
-                <p className="text-xs text-green-500 mt-1">+5% from last period</p>
+                <p className="text-xs text-green-500 mt-1">From attendance logs</p>
               </div>
               <div className="p-3 rounded-xl bg-green-500">
                 <Users className="w-6 h-6 text-white" />
@@ -75,7 +181,7 @@ export default function AttendanceReportPage() {
               <div>
                 <p className="text-sm text-muted-foreground dark:text-gray-400">Total Late</p>
                 <p className="text-2xl font-bold mt-1 dark:text-white">{totalLate}</p>
-                <p className="text-xs text-amber-500 mt-1">-2% from last period</p>
+                <p className="text-xs text-amber-500 mt-1">From attendance logs</p>
               </div>
               <div className="p-3 rounded-xl bg-amber-500">
                 <Clock className="w-6 h-6 text-white" />
@@ -89,7 +195,7 @@ export default function AttendanceReportPage() {
               <div>
                 <p className="text-sm text-muted-foreground dark:text-gray-400">Total Absent</p>
                 <p className="text-2xl font-bold mt-1 dark:text-white">{totalAbsent}</p>
-                <p className="text-xs text-red-500 mt-1">+1% from last period</p>
+                <p className="text-xs text-red-500 mt-1">No absent source yet</p>
               </div>
               <div className="p-3 rounded-xl bg-red-500">
                 <TrendingUp className="w-6 h-6 text-white" />
@@ -103,7 +209,7 @@ export default function AttendanceReportPage() {
               <div>
                 <p className="text-sm text-muted-foreground dark:text-gray-400">On Leave</p>
                 <p className="text-2xl font-bold mt-1 dark:text-white">{totalLeave}</p>
-                <p className="text-xs text-blue-500 mt-1">Same as last period</p>
+                <p className="text-xs text-blue-500 mt-1">No leave source yet</p>
               </div>
               <div className="p-3 rounded-xl bg-blue-500">
                 <Calendar className="w-6 h-6 text-white" />
@@ -151,9 +257,30 @@ export default function AttendanceReportPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {mockReportData.map((dept) => {
+                  {loading && (
+                    <tr>
+                      <td className="py-6 px-4 text-sm text-gray-500 dark:text-gray-400" colSpan={6}>
+                        Loading attendance report...
+                      </td>
+                    </tr>
+                  )}
+                  {!loading && error && (
+                    <tr>
+                      <td className="py-6 px-4 text-sm text-red-500" colSpan={6}>
+                        {error}
+                      </td>
+                    </tr>
+                  )}
+                  {!loading && !error && reportData.length === 0 && (
+                    <tr>
+                      <td className="py-6 px-4 text-sm text-gray-500 dark:text-gray-400" colSpan={6}>
+                        No attendance logs found for the selected period.
+                      </td>
+                    </tr>
+                  )}
+                  {!loading && !error && reportData.map((dept) => {
                     const deptTotal = dept.present + dept.late + dept.absent + dept.leave;
-                    const rate = ((dept.present / deptTotal) * 100).toFixed(1);
+                    const rate = deptTotal > 0 ? (((dept.present + dept.late) / deptTotal) * 100).toFixed(1) : '0.0';
                     return (
                       <tr key={dept.department} className="border-b dark:border-white/5 hover:bg-muted/50 dark:hover:bg-white/5">
                         <td className="py-3 px-4 font-medium dark:text-white">{dept.department}</td>
@@ -178,7 +305,7 @@ export default function AttendanceReportPage() {
                     <td className="py-3 px-4 text-center font-medium dark:text-white">{totalAbsent}</td>
                     <td className="py-3 px-4 text-center font-medium dark:text-white">{totalLeave}</td>
                     <td className="py-3 px-4 text-center font-medium dark:text-white">
-                      {((totalPresent / grandTotal) * 100).toFixed(1)}%
+                      {overallAttendanceRate}%
                     </td>
                   </tr>
                 </tfoot>
@@ -197,44 +324,50 @@ export default function AttendanceReportPage() {
           <CardContent>
             <div className="space-y-6">
               <div className="text-center">
-                <div className="text-5xl font-bold dark:text-white">94.2%</div>
-                <p className="text-sm text-muted-foreground dark:text-gray-400 mt-2">Average Attendance Rate</p>
+                <div className="text-5xl font-bold dark:text-white">{overallAttendanceRate}%</div>
+                <p className="text-sm text-muted-foreground dark:text-gray-400 mt-2">Average Attendance Rate (Present + Late)</p>
               </div>
+              {error && (
+                <div className="flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-500">
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm dark:text-gray-400">Present</span>
                   <div className="flex items-center gap-2">
                     <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-green-500 rounded-full" style={{ width: '85%' }} />
+                      <div className="h-full bg-green-500 rounded-full" style={{ width: `${presentPct}%` }} />
                     </div>
-                    <span className="text-sm font-medium dark:text-white">85%</span>
+                    <span className="text-sm font-medium dark:text-white">{presentPct}%</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm dark:text-gray-400">Late</span>
                   <div className="flex items-center gap-2">
                     <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-amber-500 rounded-full" style={{ width: '8%' }} />
+                      <div className="h-full bg-amber-500 rounded-full" style={{ width: `${latePct}%` }} />
                     </div>
-                    <span className="text-sm font-medium dark:text-white">8%</span>
+                    <span className="text-sm font-medium dark:text-white">{latePct}%</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm dark:text-gray-400">Absent</span>
                   <div className="flex items-center gap-2">
                     <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-red-500 rounded-full" style={{ width: '3%' }} />
+                      <div className="h-full bg-red-500 rounded-full" style={{ width: `${absentPct}%` }} />
                     </div>
-                    <span className="text-sm font-medium dark:text-white">3%</span>
+                    <span className="text-sm font-medium dark:text-white">{absentPct}%</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm dark:text-gray-400">On Leave</span>
                   <div className="flex items-center gap-2">
                     <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-500 rounded-full" style={{ width: '4%' }} />
+                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${leavePct}%` }} />
                     </div>
-                    <span className="text-sm font-medium dark:text-white">4%</span>
+                    <span className="text-sm font-medium dark:text-white">{leavePct}%</span>
                   </div>
                 </div>
               </div>
