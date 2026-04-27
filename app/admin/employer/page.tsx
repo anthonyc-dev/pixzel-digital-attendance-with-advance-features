@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Users, MoreHorizontal, CheckCircle2, ScanFace, Pencil, Trash2, X, AlertCircle, Calendar, Mail, MapPin, Phone, Briefcase, PhilippinePeso, User, ScanLine } from 'lucide-react';
+import { Users, MoreHorizontal, CheckCircle2, ScanFace, Pencil, Trash2, X, AlertCircle, Calendar, Mail, MapPin, Phone, Briefcase, PhilippinePeso, User, ScanLine, KeyRound } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ENV } from '@/lib/api';
@@ -33,6 +33,10 @@ const EmployerPage = () => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedEmployer, setSelectedEmployer] = useState<Employer | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'delete' } | null>(null);
+  const [passwordModalEmployer, setPasswordModalEmployer] = useState<Employer | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
   const router = useRouter();
 
   const showToast = (message: string, type: 'success' | 'error' | 'delete') => {
@@ -111,6 +115,45 @@ const EmployerPage = () => {
       salary: String(employer.base_salary || '')
     });
     router.push(`/admin/employerRegistration?${params.toString()}`);
+  };
+
+  const handleSavePassword = async () => {
+    if (!passwordModalEmployer) return;
+    if (newPassword.length < 8) {
+      showToast('Password must be at least 8 characters', 'error');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showToast('Passwords do not match', 'error');
+      return;
+    }
+
+    setIsSavingPassword(true);
+    try {
+      const response = await fetch(`${ENV.API_URL}/registration/set-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employerRegistrationId: passwordModalEmployer.id,
+          newPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || 'Failed to update password');
+      }
+
+      showToast('Password updated successfully', 'success');
+      setPasswordModalEmployer(null);
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update password';
+      showToast(message, 'error');
+    } finally {
+      setIsSavingPassword(false);
+    }
   };
   
     return (
@@ -248,6 +291,19 @@ const EmployerPage = () => {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    setPasswordModalEmployer(employer);
+                                    setNewPassword('');
+                                    setConfirmPassword('');
+                                    setOpenMenuId(null);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                                >
+                                  <KeyRound className="w-4 h-4 text-secondary" />
+                                  Set Password
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     setShowDeleteConfirm(employer.id);
                                     setOpenMenuId(null);
                                   }}
@@ -286,6 +342,63 @@ const EmployerPage = () => {
               <button className="absolute top-4 right-4 p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-all">
                 <X className="w-5 h-5" />
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Set Password Modal */}
+        {passwordModalEmployer && (
+          <div className="fixed inset-0 z-[190] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-[#0A0A0A] rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-100 dark:border-white/10">
+              <div className="space-y-1 mb-5">
+                <h3 className="text-lg font-bold tracking-tight text-foreground">Set Employee Password</h3>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  {passwordModalEmployer.employer_name} ({passwordModalEmployer.employer_id})
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">New Password</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Minimum 8 characters"
+                    className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/20"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Confirm Password</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Retype password"
+                    className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/20"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={() => {
+                    setPasswordModalEmployer(null);
+                    setNewPassword('');
+                    setConfirmPassword('');
+                  }}
+                  className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-white/10 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSavePassword}
+                  disabled={isSavingPassword}
+                  className="flex-1 py-2.5 rounded-xl bg-secondary text-white text-[10px] font-bold uppercase tracking-widest hover:opacity-90 disabled:opacity-60 transition-colors"
+                >
+                  {isSavingPassword ? 'Saving...' : 'Save Password'}
+                </button>
+              </div>
             </div>
           </div>
         )}

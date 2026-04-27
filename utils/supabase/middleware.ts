@@ -1,5 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
+import { defaultPostLoginPath, isEmployeeRoleUser, isPayrollStaffUser } from "@/lib/rbac/roles";
+import { CUSTOM_SESSION_COOKIE, verifySessionToken } from "@/lib/auth/custom-session";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -43,6 +45,8 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const customSession = verifySessionToken(request.cookies.get(CUSTOM_SESSION_COOKIE)?.value);
+  const isAuthenticated = Boolean(user || customSession);
 
   const { pathname } = request.nextUrl;
 
@@ -54,15 +58,41 @@ export async function updateSession(request: NextRequest) {
 
   const isAuthPath = pathname.startsWith('/auth/login');
 
-  if (isProtectedPath && !user) {
+  if (isProtectedPath && !isAuthenticated) {
     const url = request.nextUrl.clone();
     url.pathname = '/auth/login';
     return NextResponse.redirect(url);
   }
 
-  if (isAuthPath && user) {
+  if (isAuthPath && isAuthenticated) {
     const url = request.nextUrl.clone();
-    url.pathname = '/admin/adminDashboard';
+    if (user) {
+      url.pathname = defaultPostLoginPath(user);
+    } else {
+      url.pathname = customSession?.role === "employee" ? "/employee" : "/admin/adminDashboard";
+    }
+    return NextResponse.redirect(url);
+  }
+
+  if (pathname.startsWith("/admin")) {
+    const blockedByUserRole = Boolean(user && isEmployeeRoleUser(user));
+    const blockedByCustomRole = customSession?.role === "employee";
+    if (!(blockedByUserRole || blockedByCustomRole)) {
+      return supabaseResponse;
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = "/employee";
+    return NextResponse.redirect(url);
+  }
+
+  if (pathname.startsWith("/employee")) {
+    const blockedByUserRole = Boolean(user && isPayrollStaffUser(user));
+    const blockedByCustomRole = customSession?.role === "admin";
+    if (!(blockedByUserRole || blockedByCustomRole)) {
+      return supabaseResponse;
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = "/admin/adminDashboard";
     return NextResponse.redirect(url);
   }
 

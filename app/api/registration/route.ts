@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "../../../utils/supabase/server";
-import { createHash } from "crypto";
-
-function hashPassword(password: string): string {
-  return createHash('sha256').update(password).digest('hex');
-}
+import { hashPassword } from "@/lib/auth/password";
 
 // GET ALL (SSR)
 export async function GET() {
@@ -42,7 +38,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const hashedPassword = body.password ? hashPassword(body.password) : null;
+    const hashedPassword = body.password ? await hashPassword(body.password) : null;
 
     const { data, error } = await supabase
       .from("employer_registration")

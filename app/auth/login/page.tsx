@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { ENV } from '@/lib/api'
+import { defaultPostLoginPath } from '@/lib/rbac/roles'
 
 const Login = () => {
   const router = useRouter()
@@ -89,17 +90,53 @@ const Login = () => {
       emailToSignIn = resolvePayload.email
     }
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: emailToSignIn,
-      password,
-    })
+    let redirectPath = '/admin/adminDashboard'
+    let customLoginError: string | undefined
+    let customLoginOk = false
+
+    try {
+      const loginResponse = await fetch('/api/auth/custom-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: emailToSignIn,
+          password,
+        }),
+      })
+
+      const contentType = loginResponse.headers.get('content-type') ?? ''
+      const loginPayload = contentType.includes('application/json')
+        ? (await loginResponse.json()) as { error?: string; redirectTo?: string }
+        : {}
+
+      customLoginOk = loginResponse.ok
+      customLoginError = loginPayload.error
+      redirectPath = loginPayload.redirectTo ?? redirectPath
+    } catch {
+      customLoginOk = false
+      customLoginError = 'Custom login service is temporarily unavailable.'
+    }
+
+    if (!customLoginOk) {
+      // Fallback for legacy/admin accounts that authenticate via Supabase Auth.
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: emailToSignIn,
+        password,
+      })
+
+      if (signInError) {
+        setLoading(false)
+        setError(customLoginError ?? signInError.message ?? 'Invalid login credentials.')
+        return
+      }
+
+      const { data: { user } } = await supabase.auth.getUser()
+      redirectPath = defaultPostLoginPath(user)
+    }
 
     setLoading(false)
-
-    if (signInError) {
-      setError(signInError.message)
-      return
-    }
 
     setIsSuccess(true)
 
@@ -110,7 +147,7 @@ const Login = () => {
 
     setTimeout(() => {
       router.refresh()
-      router.push('/admin/adminDashboard')
+      router.push(redirectPath)
     }, 3000)
   }
 

@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "../../../../utils/supabase/server";
-import { createHash } from "crypto";
-
-function hashPassword(password: string): string {
-  return createHash('sha256').update(password).digest('hex');
-}
+import { hashPassword } from "@/lib/auth/password";
 
 // UPDATE
 export async function PUT(
@@ -24,7 +20,7 @@ export async function PUT(
   }
 
   // Hash the password if provided
-  const hashedPassword = body.password ? hashPassword(body.password) : null;
+  const hashedPassword = body.password ? await hashPassword(body.password) : null;
 
   const updateData: Record<string, unknown> = {
     employer_id: body.employer_id,
