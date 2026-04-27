@@ -37,21 +37,23 @@ export default function CutoffDatePage() {
     }
   };
 
-  return (
-    <div className="space-y-6 p-6">
-      <h1 className="text-3xl font-bold tracking-tight">Cutoff Date</h1>
-      <div className="p-4 rounded-2xl border grid md:grid-cols-5 gap-3">
-        <input placeholder="Label" value={form.period_label} onChange={(e) => setForm((p) => ({ ...p, period_label: e.target.value }))} className="px-3 py-2 rounded border" />
-        <input type="date" value={form.period_start} onChange={(e) => setForm((p) => ({ ...p, period_start: e.target.value }))} className="px-3 py-2 rounded border" />
-        <input type="date" value={form.period_end} onChange={(e) => setForm((p) => ({ ...p, period_end: e.target.value }))} className="px-3 py-2 rounded border" />
-        <input type="date" value={form.cutoff_date} onChange={(e) => setForm((p) => ({ ...p, cutoff_date: e.target.value }))} className="px-3 py-2 rounded border" />
-        <button onClick={createPeriod} className="px-3 py-2 rounded bg-secondary text-white text-xs font-bold">Save</button>
-      </div>
-      <div className="rounded-2xl border overflow-hidden">
-        <table className="w-full text-left">
-          <thead><tr className="bg-muted/40 text-xs uppercase"><th className="p-3">Label</th><th className="p-3">Start</th><th className="p-3">End</th><th className="p-3">Cutoff</th><th className="p-3">Open</th></tr></thead>
-          <tbody>{rows.map((r) => <tr key={r.id} className="border-t"><td className="p-3 text-sm">{r.period_label ?? '-'}</td><td className="p-3 text-sm">{r.period_start}</td><td className="p-3 text-sm">{r.period_end}</td><td className="p-3 text-sm">{r.cutoff_date ?? '-'}</td><td className="p-3 text-sm">{r.is_open ? 'Yes' : 'No'}</td></tr>)}</tbody>
-        </table>
+  return (  
+    <div className="flex flex-col p-4 md:p-6 lg:p-8 gap-4 sm:gap-5 w-full mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out pb-6 lg:pb-10">
+      <div className="space-y-6 p-6">
+        <h1 className="text-3xl font-bold tracking-tight">Cutoff Date</h1>
+        <div className="p-4 rounded-2xl border grid md:grid-cols-5 gap-3">
+          <input placeholder="Label" value={form.period_label} onChange={(e) => setForm((p) => ({ ...p, period_label: e.target.value }))} className="px-3 py-2 rounded border" />
+          <input type="date" value={form.period_start} onChange={(e) => setForm((p) => ({ ...p, period_start: e.target.value }))} className="px-3 py-2 rounded border" />
+          <input type="date" value={form.period_end} onChange={(e) => setForm((p) => ({ ...p, period_end: e.target.value }))} className="px-3 py-2 rounded border" />
+          <input type="date" value={form.cutoff_date} onChange={(e) => setForm((p) => ({ ...p, cutoff_date: e.target.value }))} className="px-3 py-2 rounded border" />
+          <button onClick={createPeriod} className="px-3 py-2 rounded bg-secondary text-white text-xs font-bold">Save</button>
+        </div>
+        <div className="rounded-2xl border overflow-hidden">
+          <table className="w-full text-left">
+            <thead><tr className="bg-muted/40 text-xs uppercase"><th className="p-3">Label</th><th className="p-3">Start</th><th className="p-3">End</th><th className="p-3">Cutoff</th><th className="p-3">Open</th></tr></thead>
+            <tbody>{rows.map((r) => <tr key={r.id} className="border-t"><td className="p-3 text-sm">{r.period_label ?? '-'}</td><td className="p-3 text-sm">{r.period_start}</td><td className="p-3 text-sm">{r.period_end}</td><td className="p-3 text-sm">{r.cutoff_date ?? '-'}</td><td className="p-3 text-sm">{r.is_open ? 'Yes' : 'No'}</td></tr>)}</tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
